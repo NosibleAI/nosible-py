@@ -25,14 +25,16 @@ jobs:
           pip install -e .
           pip install pytest pytest-cov pytest-doctestplus
 
-      - name: Configure coverage to omit dunder/private
+      - name: Configure coverage to skip all dunder methods
         run: |
           cat > .coveragerc << 'EOF'
           [run]
-          # omit any module or member whose name starts and ends with __
-          omit =
-              */__*.py
-              */*_*.py
+          branch = True
+
+          [report]
+          # Exclude any lines inside methods named __something__
+          exclude_lines =
+              ^\s*def __.*__\(.*\):
           EOF
 
       - name: Run tests
