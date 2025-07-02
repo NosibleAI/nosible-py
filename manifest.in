@@ -1,6 +1,7 @@
 # Core docs and metadata
 include README.md
 include LICENSE
+include Nosible.png
 
 # Package source
 recursive-include src/nosible *.py *.txt *.rst *.md *.json
