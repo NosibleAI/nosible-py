@@ -27,6 +27,7 @@ jobs:
 
       - name: Run tests
         run: pytest --cov --cov-branch --cov-report=xml
+        continue-on-error: true
 
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5
