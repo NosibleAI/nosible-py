@@ -17,6 +17,26 @@ except ImportError:
 def json_dumps(obj: object) -> Union[bytes, str]:
     """
     Returns a JSON byte-string if using orjson, else a unicode str.
+
+    Parameters
+    ----------
+    obj : object
+        Object to serialize; must be JSON-serializable.
+
+    Returns
+    -------
+    Union[bytes, str]
+        If `orjson` is available (`_use_orjson` is True), returns a UTF-8 decoded
+        unicode `str`; otherwise, returns a JSON `str` via the standard `json.dumps`.
+
+    Raises
+    ------
+    RuntimeError
+        If serialization fails for any reason.
+
+    Examples
+    --------
+
     """
     try:
         if _use_orjson:
@@ -39,6 +59,50 @@ def json_dumps(obj: object) -> Union[bytes, str]:
 def json_loads(s: Union[bytes, str]) -> dict:
     """
     Accept both bytes (from orjson) and str (from json.loads).
+
+    Parameters
+    ----------
+    s : Union[bytes, str]
+        JSON data to deserialize. Can be `bytes` (e.g., from `orjson.dumps`)
+        or a unicode `str`.
+
+    Returns
+    -------
+    dict
+        The deserialized Python dictionary.
+
+    Raises
+    ------
+    RuntimeError
+        If deserialization fails (invalid JSON or other error).
+
+    Examples
+    --------
+    # Standard library path (disable orjson)
+    >>> _use_orjson = False
+    >>> json_dumps({'a': 1})
+    '{"a":1}'
+
+    # orjson path with monkey-patched dumping
+    >>> _use_orjson = True
+    >>> orjson.dumps = lambda o: b'{"b": 2}'
+    >>> json_dumps({'b': 2})
+    '{"b": 2}'
+
+    # Convert non-str dict keys to str when using orjson
+    >>> _use_orjson = True
+    >>> orjson.dumps = lambda o: b'{"1": "one"}'
+    >>> json_dumps({1: 'one'})
+    '{"1": "one"}'
+
+    # Error path: object not serializable
+    >>> _use_orjson = False
+    >>> class Bad: pass
+    >>> try:
+    ...     json_dumps(Bad())
+    ... except RuntimeError as e:
+    ...     "Failed to serialize" in str(e)
+    '{"1": "one"}'
     """
     try:
         if _use_orjson:
