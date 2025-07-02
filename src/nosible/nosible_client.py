@@ -91,8 +91,6 @@ class Nosible:
         Get a plaintext summary of rate limits for all subscription plans.
     close()
         Close the client and release resources.
-    __enter__(), __exit__()
-        Context manager support for automatic cleanup.
     """
 
     def __init__(

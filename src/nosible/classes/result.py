@@ -41,16 +41,6 @@ class Result:
 
     Methods
     -------
-    __init__(...)
-        Initialize a Result instance with optional metadata fields.
-    __str__()
-        Return a short summary of the Result.
-    __repr__()
-        Return a detailed string representation for debugging.
-    __getitem__(key)
-        Retrieve the value of a field by its key.
-    __getattr__(item)
-        Retrieve the value of an attribute by its name.
     visit(client)
         Visit the URL associated with this Result and retrieve its content.
     sentiment(client)
