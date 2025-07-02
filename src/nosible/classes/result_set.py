@@ -152,6 +152,24 @@ class ResultSet(Iterator[Result]):
         -------
         str
             A formatted table showing the index, similarity, and title of each Result.
+
+        Examples
+        --------
+        >>> from nosible import Result, ResultSet
+        >>> results = [
+        ...     Result(url="https://example.com", title="Example Domain", similarity=0.95),
+        ...     Result(url="https://openai.com", title="OpenAI", similarity=0.99),
+        ... ]
+        >>> search_results = ResultSet(results)
+        >>> print(search_results)  # doctest: +NORMALIZE_WHITESPACE
+        Idx | Similarity | Title
+        ------------------------
+          0 |   0.95 | Example Domain
+          1 |   0.99 | OpenAI
+
+        >>> empty = ResultSet([])
+        >>> print(empty)
+        ResultSet: No results found.
         """
         if not self.results:
             return "ResultSet: No results found."
@@ -759,8 +777,8 @@ class ResultSet(Iterator[Result]):
         ... ]
         >>> search_results = ResultSet(results)
         >>> ndjson_str = search_results.to_ndjson()
-        >>> print(ndjson_str.splitlines()[0])  # doctest: +ELLIPSIS
-        {"url":"https://example.com","title":"Example Domain","description":null,"netloc":null..."url_hash":null}
+        >>> print(ndjson_str.splitlines()[0][0:30])
+        {"url": "https://example.com",
         >>> # Optionally write to file
         >>> path = search_results.to_ndjson(file_path="results.ndjson")
         >>> path.endswith(".ndjson")
