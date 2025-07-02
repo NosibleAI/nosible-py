@@ -8,6 +8,8 @@ from nosible.classes.web_page import WebPageData
 
 if TYPE_CHECKING:
     from nosible.classes.result_set import ResultSet
+else:
+    ResultSet = None
 
 
 class Result:
@@ -136,6 +138,15 @@ class Result:
         -------
         str
             A formatted string showing the title, similarity, and URL of the Result.
+
+        Examples
+        --------
+        >>> result = Result(title="Example Domain", similarity=0.9876)
+        >>> print(str(result))
+          0.99 | Example Domain
+        >>> result = Result(title=None, similarity=None)
+        >>> print(str(result))
+           N/A | No Title
         """
         similarity = f"{self.similarity:.2f}" if self.similarity is not None else "N/A"
         title = self.title or "No Title"
@@ -163,18 +174,35 @@ class Result:
     def __getitem__(self, key: str) -> str | float | bool | None:
         """
         Retrieve the value of a field by its key.
+
         Parameters
         ----------
         key : str
             The name of the field to retrieve.
+
         Returns
         -------
         str or float or bool or None
             The value associated with the specified key.
+
         Raises
         ------
         KeyError
             If the key does not exist in the object.
+
+        Examples
+        --------
+        >>> result = Result(title="Example Domain", similarity=0.98)
+        >>> result["title"]
+        'Example Domain'
+        >>> result["similarity"]
+        0.98
+        >>> result["url"] is None
+        True
+        >>> result["nonexistent"]
+        Traceback (most recent call last):
+            ...
+        KeyError: "Key 'nonexistent' not found in Result"
         """
         try:
             return object.__getattribute__(self, key)
@@ -184,20 +212,36 @@ class Result:
     def __getattr__(self, item: str) -> str | float | bool | None:
         """
         Retrieve the value of an attribute by its name using __getitem__.
+
         Parameters
         ----------
         item : str
             The name of the attribute to retrieve.
+
         Returns
         -------
         str or float or bool or None
             The value of the requested attribute.
+
         Raises
         ------
         AttributeError
             If the attribute does not exist in the object.
-        """
 
+        Examples
+        --------
+        >>> result = Result(title="Example Domain", similarity=0.98)
+        >>> result.__getattr__("title")
+        'Example Domain'
+        >>> result.__getattr__("similarity")
+        0.98
+        >>> result.__getattr__("url") is None
+        True
+        >>> result.__getattr__("nonexistent")
+        Traceback (most recent call last):
+            ...
+        AttributeError: Attribute 'nonexistent' not found in Result
+        """
         try:
             return self.__getitem__(item)
         except KeyError as err:
@@ -268,13 +312,44 @@ class Result:
 
         Examples
         --------
-        >>> from nosible import Nosible  # doctest: +SKIP
-        >>> with Nosible() as nos:  # doctest: +SKIP
-        ...     results = nos.search(question="Nvidia market performance", n_results=10)  # doctest: +SKIP
-        ...     for result in results:  # doctest: +SKIP
-        ...         sentiment = result.sentiment(client=nos)  # doctest: +SKIP
-        ...         print(sentiment)  # doctest: +SKIP
-        TODO Add example
+        >>> from nosible.classes.result import Result
+        >>> class DummyClient:
+        ...     llm_api_key = "dummy"
+        ...
+        ...     def visit(self, url):
+        ...         return "web page"
+        >>> result = Result(url="https://example.com", content="This is great!")
+        >>> import types
+        >>> def fake_sentiment(self, client):
+        ...     return 0.8
+        >>> result.sentiment = types.MethodType(fake_sentiment, result)
+        >>> result.sentiment(DummyClient())
+        0.8
+
+        >>> result = Result(url="https://example.com", content="Awful experience.")
+        >>> def fake_sentiment_neg(self, client):
+        ...     return -0.9
+        >>> result.sentiment = types.MethodType(fake_sentiment_neg, result)
+        >>> result.sentiment(DummyClient())
+        -0.9
+
+        >>> class NoKeyClient:
+        ...     llm_api_key = None
+        >>> result = Result(url="https://example.com", content="Neutral.")
+        >>> try:
+        ...     result.sentiment(NoKeyClient())
+        ... except ValueError as e:
+        ...     print("ValueError" in str(e))
+        False
+
+        >>> class NoneClient:
+        ...     pass
+        >>> result = Result(url="https://example.com", content="Neutral.")
+        >>> try:
+        ...     result.sentiment(None)
+        ... except ValueError as e:
+        ...     print("A Nosible client instance must be provided" in str(e))
+        True
         """
         if client is None:
             raise ValueError("A Nosible client instance must be provided as 'client'.")
