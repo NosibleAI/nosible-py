@@ -777,8 +777,8 @@ class ResultSet(Iterator[Result]):
         ... ]
         >>> search_results = ResultSet(results)
         >>> ndjson_str = search_results.to_ndjson()
-        >>> print(ndjson_str.splitlines()[0][0:30])
-        {"url": "https://example.com",
+        >>> print(ndjson_str.splitlines()[0])  # doctest: +ELLIPSIS
+        {"url":"https://example.com","title":"Example Domain","description":null,"netloc":null..."url_hash":null}
         >>> # Optionally write to file
         >>> path = search_results.to_ndjson(file_path="results.ndjson")
         >>> path.endswith(".ndjson")
