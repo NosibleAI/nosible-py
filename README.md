@@ -63,13 +63,26 @@ export LLM_API_KEY="sk-…"  # for query expansions (optional)
 ```
 
 Or in code:
+
+- As an argument:
+
 ```python
 from nosible import Nosible
 
 client = Nosible(
-    nosible_api_key="basic|abcd1234…",
-    llm_api_key="sk-…",
+    nosible_api_key="basic|abcd1234...",
+    llm_api_key="sk-...",
 )
+```
+
+- As an environment variable:
+
+```python
+from nosible import Nosible
+import os
+
+os.environ["NOSIBLE_API_KEY"] = "basic|abcd1234..."
+os.environ["LLM_API_KEY"] = "sk-..."
 ```
 
 ### 🎯 Core Workflows
@@ -92,8 +105,8 @@ Retrieve up to 100 results with optional filters:
 from nosible import Nosible
 
 with Nosible(
-    nosible_api_key="basic|abcd1234…",
-    llm_api_key="sk-…",
+    nosible_api_key="basic|abcd1234...",
+    llm_api_key="sk-...",
     base_url="https://api.openrouter.ai/v1"
 ) as client:
     results = client.search(
@@ -120,7 +133,7 @@ Run multiple queries concurrently:
 ```python
 from nosible import Nosible
 
-with Nosible(nosible_api_key="basic|abcd1234…", llm_api_key="sk-…") as client:
+with Nosible(nosible_api_key="basic|abcd1234...", llm_api_key="sk-...") as client:
     for batch in client.searches(
         questions=[
             "What are the terms of the partnership between Microsoft and OpenAI?",
@@ -139,7 +152,7 @@ Fetch thousands of results for offline analysis:
 ```python
 from nosible import Nosible
 
-with Nosible(nosible_api_key="basic|abcd1234…") as client:
+with Nosible(nosible_api_key="basic|abcd1234...") as client:
     bulk = client.bulk_search(
         question="What chip-development responsibilities has Intel committed to under its deal with Apple?",
         n_results=2000
@@ -155,7 +168,7 @@ Add two ResultSets together:
 ```python
 from nosible import Nosible
 
-with Nosible(nosible_api_key="basic|abcd1234…") as client:
+with Nosible(nosible_api_key="basic|abcd1234...") as client:
     r1 = client.search(
         question="What are the terms of the partnership between Microsoft and OpenAI?",
         n_results=5
@@ -175,7 +188,7 @@ Use the `Search` class to encapsulate parameters:
 ```python
 from nosible import Nosible, Search
 
-with Nosible(nosible_api_key="basic|abcd1234…") as client:
+with Nosible(nosible_api_key="basic|abcd1234...") as client:
     params = Search(
         question="What are the terms of the partnership between Microsoft and OpenAI?",
         n_results=3,
@@ -195,7 +208,7 @@ Compute sentiment for a single result (Uses GPT-4o; requires LLM API key):
 ```python
 from nosible import Nosible
 
-with Nosible(nosible_api_key="basic|abcd1234…", llm_api_key="sk-…") as client:
+with Nosible(nosible_api_key="basic|abcd1234...", llm_api_key="sk-...") as client:
     results = client.search(
         question="What are the terms of the partnership between Microsoft and OpenAI?",
         n_results=1
@@ -211,7 +224,7 @@ Supported formats for saving and loading:
 ```python
 from nosible import Nosible, ResultSet
 
-with Nosible(nosible_api_key="basic|abcd1234…") as client:
+with Nosible(nosible_api_key="basic|abcd1234...") as client:
     combined = client.search(
         question="What are the terms of the partnership between Microsoft and OpenAI?",
         n_results=5
