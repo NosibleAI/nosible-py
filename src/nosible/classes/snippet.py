@@ -3,29 +3,36 @@ from nosible.utils.json_tools import json_dumps
 
 class Snippet:
     """
-    Represents a snippet of text extracted from a web page.
+    A class representing a snippet of text, typically extracted from a web page.
 
     Attributes
     ----------
-    content : str, optional
-    url_hash : str, optional
-        Hash of the URL from which the snippet was extracted.
-    next_snippet_hash : str, optional
+    content : str or None
+        The text content of the snippet.
+    images : list or None
+        List of image URLs associated with the snippet.
+    language : str or None
+        The language of the snippet.
+    next_snippet_hash : str or None
         Hash of the next snippet in sequence.
-    prev_snippet_hash : str, optional
+    prev_snippet_hash : str or None
         Hash of the previous snippet in sequence.
+    snippet_hash : str or None
+        A unique hash for the snippet.
+    statistics : dict or None
+        Statistical information about the snippet.
+    url_hash : str or None
+        Hash of the URL from which the snippet was extracted.
+    words : str or None
+        The words in the snippet.
 
     Methods
     -------
-    __init__(content=None, images=None, language=None, next_snippet_hash=None, prev_snippet_hash=None,
-            snippet_hash=None, statistics=None, url_hash=None, words=None)
-    __repr__()
-    __str__()
-    __getitem__(key)
     to_dict()
-    to_json()"""
-
-    """Represents a snippet of text extracted from a web page."""
+        Convert the Snippet to a dictionary representation.
+    to_json()
+        Convert the Snippet to a JSON string representation.
+    """
 
     def __init__(
         self,

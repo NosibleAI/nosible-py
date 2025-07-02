@@ -62,12 +62,6 @@ class Search:
 
     Methods
     -------
-    __init__(...)
-        Initialize a Search instance with the given parameters.
-    __str__()
-        Return a readable string representation of the search parameters.
-    __add__(other)
-        Combine two Search instances into a SearchSet.
     to_dict()
         Convert the Search instance into a dictionary.
     from_dict(data)

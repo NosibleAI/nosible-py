@@ -23,31 +23,9 @@ class ResultSet(Iterator[Result]):
     ----------
     results : list of Result
         The list of Result objects contained in the ResultSet.
-    FIELDS : list of str
-        The field names for each Result, used for serialization and DataFrame conversion.
 
     Methods
     -------
-    __init__(results=None)
-        Initialize the ResultSet with an optional list of Result objects.
-    __len__()
-        Return the number of results in the set.
-    __iter__()
-        Return an iterator over the ResultSet.
-    __next__()
-        Return the next Result in the iteration.
-    __getitem__(key)
-        Get a Result by index.
-    __setitem__(key, value)
-        Set a Result at a specific index.
-    __add__(other)
-        Concatenate two ResultSet instances.
-    __str__()
-        Return a string representation of the ResultSet.
-    __repr__()
-        Return a string representation for interactive sessions.
-    __enter__()
-        Enter the runtime context for the ResultSet.
     analyze(by="published")
         Analyze the ResultSet by grouping on a specified field.
     find_in_search_results(query, top_k=10)
@@ -651,8 +629,6 @@ class ResultSet(Iterator[Result]):
         ----------
         file_path : str or None, optional
             Path to save the JSON file. If None, the JSON string is returned.
-        indent : int or None, optional
-            Indentation level for pretty printing. Default is 2.
 
         Returns
         -------

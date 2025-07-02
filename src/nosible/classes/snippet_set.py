@@ -20,16 +20,6 @@ class SnippetSet(Iterator[Snippet]):
 
     Methods
     -------
-    __init__(snippets)
-        Initialize the SnippetSet with a list of Snippet objects, dictionaries, or strings.
-    __iter__()
-        Return the iterator object itself and reset the iteration index.
-    __next__()
-        Return the next Snippet object in the collection.
-    __len__()
-        Return the number of snippets in the collection.
-    __getitem__(index)
-        Return the Snippet at the specified index.
     to_dict()
         Convert the SnippetSet to a dictionary indexed by snippet hash.
     to_json()"""

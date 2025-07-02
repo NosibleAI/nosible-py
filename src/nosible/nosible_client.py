@@ -91,8 +91,6 @@ class Nosible:
         Get a plaintext summary of rate limits for all subscription plans.
     close()
         Close the client and release resources.
-    __enter__(), __exit__()
-        Context manager support for automatic cleanup.
     """
 
     def __init__(
@@ -340,6 +338,21 @@ class Nosible:
         ...     print(len(results))
         True
         10
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.search()
+        Traceback (most recent call last):
+        ...
+        TypeError: Specify exactly one of 'question' or 'search'.
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.search(question="foo", search=s)
+        Traceback (most recent call last):
+        ...
+        TypeError: Specify exactly one of 'question' or 'search'.
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.search(question="foo", n_results=101)
+        Traceback (most recent call last):
+        ...
+        ValueError: Search can not have more than 100 results - Use bulk search instead.
         """
         if (question is None and search is None) or (question is not None and search is not None):
             raise TypeError("Specify exactly one of 'question' or 'search'.")
@@ -475,6 +488,17 @@ class Nosible:
         ...     print(isinstance(r, ResultSet), bool(r))
         True True
         True True
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.searches()
+        Traceback (most recent call last):
+        ...
+        TypeError: Specify exactly one of 'questions' or 'searches'.
+        >>> from nosible import Nosible
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.searches(questions=["A"], searches=SearchSet(questions=["A"]))
+        Traceback (most recent call last):
+        ...
+        TypeError: Specify exactly one of 'questions' or 'searches'.
         """
         if (questions is None and searches is None) or (questions is not None and searches is not None):
             raise TypeError("Specify exactly one of 'questions' or 'searches'.")
@@ -749,6 +773,30 @@ class Nosible:
         ...     print(len(results))  # doctest: +SKIP
         True
         2000
+
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.bulk_search()
+        Traceback (most recent call last):
+        ...
+        TypeError: Either question or search must be specified
+
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.bulk_search(question="foo", search=Search(question="foo"))
+        Traceback (most recent call last):
+        ...
+        TypeError: Question and search cannot be both specified
+
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.bulk_search(question="foo", n_results=100)
+        Traceback (most recent call last):
+        ...
+        ValueError: Bulk search must have at least 100 results per query; use search() for smaller result sets.
+
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.bulk_search(question="foo", n_results=10001)
+        Traceback (most recent call last):
+        ...
+        ValueError: Bulk search cannot have more than 10000 results per query.
         """
         if question is not None and search is not None:
             raise TypeError("Question and search cannot be both specified")
@@ -885,7 +933,16 @@ class Nosible:
         True
         True
         True
+        >>> with Nosible() as nos:  # doctest: +SKIP
+        ...     out = nos.visit()  # doctest: +SKIP
+        ...     print(isinstance(out, type(WebPageData)))  # doctest: +SKIP
+        ...     print(hasattr(out, "languages"))  # doctest: +SKIP
+        ...     print(hasattr(out, "page"))  # doctest: +SKIP
+        Traceback (most recent call last):
+        ...
+        TypeError: URL must be provided
         """
+
         # self._enforce("visit")
         if url is None:
             raise TypeError("URL must be provided")

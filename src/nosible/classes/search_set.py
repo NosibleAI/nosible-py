@@ -19,18 +19,6 @@ class SearchSet(Iterator[Search]):
 
     Methods
     -------
-    __init__(searches=None)
-        Initialize the SearchSet with an optional list of Search objects.
-    __iter__()
-        Return an iterator over the SearchSet.
-    __next__()
-        Return the next Search object in the iteration.
-    __str__()
-        Return a string listing all questions in the collection.
-    __getitem__(index)
-        Get a Search by its index.
-    __setitem__(index, value)
-        Set a Search at a specific index.
     add(search)
         Add a Search instance to the collection.
     remove(index)
