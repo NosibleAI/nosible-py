@@ -6,7 +6,7 @@
 [![PyPI downloads](https://img.shields.io/pypi/dm/nosible.svg?label=%20Downloads&logo=pypi)](https://pypi.org/project/nosible/)
 [![Codecov](https://img.shields.io/codecov/c/github/NosibleAI/nosible-py/main.svg?label=coverage&logo=codecov)](https://codecov.io/gh/NosibleAI/nosible-py)
 
-![Logo](./docs/_static/readme.png)
+![Logo](https://github.com/NosibleAI/nosible-py/blob/main/docs/_static/readme.png?raw=true)
 
 # NOSIBLE Search Client
 
