@@ -4,7 +4,7 @@
 [![Read the Docs](https://img.shields.io/readthedocs/nosible-py/latest.svg?label=docs&logo=readthedocs)](https://nosible-py.readthedocs.io/en/latest/)
 
 
-![Logo](./docs/_static/readme.png)
+![Logo](./Nosible.png)
 
 # NOSIBLE Search Client
 
