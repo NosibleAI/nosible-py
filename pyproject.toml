@@ -24,7 +24,7 @@ dependencies = [
   'pyarrow',
 ]
 
-license = {file = "LICENSE"}
+license = "MIT"
 
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -33,6 +33,15 @@ classifiers = [
   "Programming Language :: Python :: 3 :: Only",
   "Topic :: Software Development :: Libraries",
   "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+  "Intended Audience :: Information Technology",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Financial and Insurance Industry",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries :: Python Modules",
   "Operating System :: OS Independent",
 ]
 
@@ -40,6 +49,7 @@ classifiers = [
 Homepage = "https://github.com/NosibleAI/nosible"
 Issues = "https://github.com/NosibleAI/nosible/issues"
 Documentation = "https://nosible.ai/docs"
+Stars = "https://github.com/NosibleAI/nosible-py/stargazers"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
