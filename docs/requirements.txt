@@ -1,0 +1,13 @@
+orjson
+cryptography
+duckdb
+openai
+pandas
+polars
+pyarrow
+pyrate-limiter
+requests
+tantivy
+tenacity
+sphinx
+sphinx-rtd-theme

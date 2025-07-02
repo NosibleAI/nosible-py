@@ -1,0 +1,49 @@
+[project]
+name = "nosible"
+version = "0.0.8"
+description = "Python client for the NOSIBLE Search API"
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.9"
+authors = [
+  { name = "Stuart Reid", email = "stuart@nosible.com" },
+  { name = "Matthew Dicks", email = "matthew@nosible.com" },
+  { name = "Richard Taylor", email = "richard@nosible.com" },
+  { name = "Gareth Warburton", email = "gareth@nosible.com" },
+]
+
+dependencies = [
+  'requests',
+  'polars',
+  'duckdb',
+  'openai',
+  'tantivy',
+  'pyrate-limiter',
+  'tenacity',
+  'cryptography',
+  'pandas',
+  'pyarrow',
+]
+
+license = {file = "LICENSE"}
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Software Development :: Libraries",
+  "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+  "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/NosibleAI/nosible"
+Issues = "https://github.com/NosibleAI/nosible/issues"
+Documentation = "https://nosible.ai/docs"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

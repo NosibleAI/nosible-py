@@ -1,0 +1,17 @@
+# Core docs and metadata
+include README.md
+include LICENSE
+
+# Package source
+recursive-include src/nosible *.py *.txt *.rst *.md *.json
+
+# Exclude caches, IDE settings, build artifacts, bytecode, docs
+global-exclude *.py[cod]
+global-exclude __pycache__/
+prune .idea
+prune .pytest_cache
+prune build
+prune dist
+prune .scratches
+prune docs
+prune .git

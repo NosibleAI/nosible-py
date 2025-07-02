@@ -1,0 +1,325 @@
+/* GENERAL HTML ELEMENTS */
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Set the background colour of the entire doc to black */
+body {
+  background-color: #151515 !important;
+}
+
+html {
+    overflow-x: hidden;
+}
+
+p {
+    font-family: 'Quicksand', sans-serif;
+    color: white;
+}
+
+p.caption {
+    color: white !important;
+}
+
+a.btn.btn-neutral.float-right {
+    background-color: #212121 !important;
+}
+
+a.btn.btn-neutral.float-left {
+    background-color: #212121 !important;
+}
+
+hr {
+    color: transparent;
+    border: transparent;
+}
+
+div {
+    font-family: 'Quicksand', sans-serif;
+}
+
+h1 {
+    color: #2FCF6E;
+}
+
+h2 {
+    color: #2FCF6E;
+}
+
+h3 {
+    color: #2FCF6E;
+}
+
+pre {
+    background-color: #212121;
+    border-radius: 10px;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+blockquote {
+    margin: 0;
+    padding-left: 15px;
+    font-weight: 600;
+    line-height: 30px;
+    font-family: 'Quicksand', sans-serif;
+    border-left: #d3d3d3;
+}
+
+strong {
+  color: #2FCF6E !important;
+}
+
+/* HIGHLIGHT ELEMENTS */
+
+.highlight {
+    background-color: #151515;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.highlight-bash.notranslate {
+    background-color: #151515;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.highlight-python.notranslate {
+    background-color: #151515;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.highlight-powershell.notranslate {
+    background-color: #151515;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* TABLES */
+
+.rst-content table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-family: 'Quicksand', sans-serif;
+    background: #171717;
+    border-radius: 10px;
+    border: 1px solid #3A3A3A !important;
+    box-shadow: none !important;
+    outline: none !important;
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+th {
+    padding: 12px 15px;
+    text-align: left;
+    background-color: #171717;
+}
+
+thead {
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.wy-table-responsive {
+    border-radius: 10px;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.docutils.align-default {
+    border-radius: 10px;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+td {
+    padding: 10px 15px;
+    border-bottom: 1px solid #3A3A3A;
+    background-color: #171717;
+}
+
+td p {
+    color: #171717;
+}
+
+.rst-content table {
+  background-color: #3A3A3A !important;
+}
+
+.rst-content table th {
+    background-color: #1e1e1e !important;
+    color: #2FCF6E !important;
+
+}
+
+.rst-content table td {
+    background-color: #151515;
+    /*border-radius: 30px;*/
+}
+
+.rst-content table tr:nth-child(odd) td,
+.rst-content table tr:nth-child(odd) th {
+  background-color: #171717 !important;
+}
+
+.rst-content table tr:nth-child(even) td,
+.rst-content table tr:nth-child(even) th {
+  background-color: #212121;
+}
+
+.rst-content table tr:nth-child(odd) td p {
+    color: white !important;
+}
+
+.rst-content table tr:nth-child(even) td p {
+    color: white !important;
+}
+
+tr:nth-child(even) {
+    background-color: #171717;
+}
+
+tr.row-odd {
+    background-color: #171717;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    border-radius: 10px;
+}
+
+tbody {
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    border-radius: 10px;
+}
+
+tr:hover {
+    background-color: #2C2C2C;
+}
+
+.rst-content table th,
+.rst-content table td {
+  border: 1px solid #3A3A3A !important;
+}
+
+.rst-content table th:first-child {
+    border-top-left-radius: 10px !important;
+}
+.rst-content table th:last-child {
+    border-top-right-radius: 10px !important;
+}
+.rst-content table tr:last-child td:first-child {
+    border-bottom-left-radius: 10px !important;
+}
+.rst-content table tr:last-child td:last-child {
+    border-bottom-right-radius: 10px !important;
+}
+
+/* OTHER RTD THEME ELEMENTS THAT I AM OVERRIDING */
+
+.caption-text {
+    color: #2FCF6E;
+}
+
+.rst-content a:link {
+  color: #2FCF6E !important;
+}
+
+.rst-content a:visited {
+  color: #25A558 !important;
+}
+
+.rst-content a:hover,
+.rst-content a:focus {
+  color: #58D98A !important;
+  text-decoration: underline;
+}
+
+.wy-nav-content-wrap {
+    background: #151515;
+}
+
+.wy-nav-content {
+    background: #151515;
+}
+
+.wy-breadcrumbs {
+    color: white;
+}
+
+dt.sig.sig-object.py {
+    display: inline-block;
+    border-radius: 5px;
+    overflow: hidden;
+    border-top: 3px solid #2FCF6E !important;
+    background-color: #212121 !important;
+    border-left-color: Transparent !important;
+}
+
+em.sig-param {
+    color: white !important;
+}
+
+span.sig-name {
+    color: #25A558 !important;
+}
+
+dt {
+    color: white;
+}
+
+.sig-param {
+    color: #2FCF6E;
+}
+
+.property {
+    color: #2FCF6E;
+}
+
+.field-odd {
+    color: #2FCF6E;
+}
+
+.field-even {
+    color: #2FCF6E;
+}
+
+code.xref.py.py-obj.docutils.literal.notranslate {
+    background-color: #171717;
+    color: #2FCF6E;
+    border-color: transparent;
+}
+
+code.xref.py.py-class.docutils.literal.notranslate {
+    background-color: #171717;
+    color: #2FCF6E;
+    border-color: transparent;
+}
+
+code.docutils.literal.notranslate {
+    background-color: transparent;
+    /*color: #2FCF6E;*/
+    border-color: transparent;
+}
+
+/* For the Nosible sticker. */
+img.rounded-image {
+  border-radius: 8px;
+}
+
+/*a.reference.internal {*/
+/*    color: blue;*/
+/*}*/
