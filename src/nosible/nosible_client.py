@@ -115,7 +115,7 @@ class Nosible:
         exclude_companies: list = None,
         include_docs: list = None,
         exclude_docs: list = None,
-    ) -> None:
+    ) -> None:  # pragma: no cover
         """
         Initialize the Nosible client.
 
@@ -171,6 +171,9 @@ class Nosible:
                 self.nosible_api_key = os.getenv("NOSIBLE_API_KEY")
             except KeyError:
                 raise ValueError("Must provide api_key or set $NOSIBLE_API_KEY")
+        else:
+            # Neither passed in nor in the environment
+            raise ValueError("Must provide api_key or set $NOSIBLE_API_KEY")
 
         self.llm_api_key = llm_api_key or os.getenv("LLM_API_KEY")
         self.openai_base_url = openai_base_url
@@ -488,6 +491,8 @@ class Nosible:
         ...     print(isinstance(r, ResultSet), bool(r))
         True True
         True True
+        >>> with Nosible() as nos:
+        ...     results_list_str = list(nos.searches(questions=["Python programming", "C++ programming"]))
         >>> nos = Nosible(nosible_api_key="test|xyz")
         >>> nos.searches()
         Traceback (most recent call last):
@@ -538,7 +543,7 @@ class Nosible:
                 try:
                     yield future.result()
                 except Exception as e:
-                    failed = future_to_search[future]  # TODO This can throw an error.
+                    failed = future_to_search[future]
                     self.logger.warning(f"Search for {failed.question!r} failed: {e}")
                     yield None
         return _run_generator()
@@ -562,6 +567,18 @@ class Nosible:
         ------
         ValueError
             If `n_results` > 100.
+
+        Examples
+        --------
+
+        >>> from nosible.classes.search import Search
+        >>> from nosible import Nosible
+        >>> s = Search(question="OpenAI", n_results=200)
+        >>> with Nosible() as nos:
+        ...     results = nos.search(search=s)
+        Traceback (most recent call last):
+        ...
+        ValueError: Search can not have more than 100 results - Use bulk search instead.
         """
         # --------------------------------------------------------------------------------------------------------------
         # Setting search params. Individual search will overide Nosible defaults.
@@ -769,13 +786,23 @@ class Nosible:
 
         Examples
         --------
-        >>> # initialize and use with context manager
+        >>> from nosible.classes.search import Search
+        >>> from nosible import Nosible
         >>> with Nosible(include_netlocs=["bbc.com"]) as nos:  # doctest: +SKIP
         ...     results = nos.bulk_search(question="OpenAI", n_results=2000)  # doctest: +SKIP
         ...     print(isinstance(results, ResultSet))  # doctest: +SKIP
         ...     print(len(results))  # doctest: +SKIP
         True
         2000
+
+
+        >>> s = Search(question="OpenAI", n_results=1000)
+        >>> with Nosible() as nos:
+        ...     results = nos.bulk_search(search=s)
+        ...     print(isinstance(results, ResultSet))
+        ...     print(len(results))
+        True
+        1000
 
         >>> nos = Nosible(nosible_api_key="test|xyz")
         >>> nos.bulk_search()
@@ -1101,7 +1128,7 @@ class Nosible:
 
         return json.dumps(response.json(), indent=2, sort_keys=True)
 
-    def get_rate_limits(self) -> str:
+    def get_rate_limits(self) -> str:  # pragma: no cover
         """
         Generate a plaintext summary of rate limits for every subscription plan.
 
@@ -1247,6 +1274,13 @@ class Nosible:
         ------
         ValueError
             If the extracted prefix is not one of the recognized plan names.
+
+        Examples
+        --------
+        >>> nos = Nosible(nosible_api_key="test+|xyz")
+        Traceback (most recent call last):
+        ...
+        ValueError: test+ is not a valid plan prefix.
         """
         # Split off anything after the first '|'
         prefix = (self.nosible_api_key or "").split("|", 1)[0]
@@ -1279,6 +1313,17 @@ class Nosible:
             If no LLM API key is set.
         RuntimeError
             If the LLM response is invalid or cannot be parsed.
+
+        Examples
+        --------
+
+        >>> from nosible import Nosible
+        >>> nos = Nosible(llm_api_key=None)
+        >>> nos.llm_api_key = None
+        >>> nos._generate_expansions("anything")
+        Traceback (most recent call last):
+        ...
+        ValueError: LLM API key is required for generating expansions.
         """
         if not self.llm_api_key:
             raise ValueError("LLM API key is required for generating expansions.")
@@ -1379,7 +1424,7 @@ class Nosible:
         exclude_companies: list = None,
         include_docs: list = None,
         exclude_docs: list = None,
-    ) -> str:
+    ) -> str:  # pragma: no cover
         """
         Construct an SQL SELECT statement with WHERE clauses based on provided filters.
 
