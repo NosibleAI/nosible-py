@@ -2,7 +2,8 @@
 [![Windows Tests](https://github.com/NosibleAI/nosible-py/actions/workflows/tests-windows.yml/badge.svg?branch=main)](https://github.com/NosibleAI/nosible-py/actions/workflows/tests-windows.yml)
 [![macOS Tests](https://github.com/NosibleAI/nosible-py/actions/workflows/tests-macos.yml/badge.svg?branch=main)](https://github.com/NosibleAI/nosible-py/actions/workflows/tests-macos.yml)
 [![Read the Docs](https://img.shields.io/readthedocs/nosible-py/latest.svg?label=docs&logo=readthedocs)](https://nosible-py.readthedocs.io/en/latest/)
-
+[![PyPI version](https://img.shields.io/pypi/v/nosible.svg?label=PyPI&logo=python)](https://pypi.org/project/nosible/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/nosible.svg?label=%20Downloads&logo=pypi)](https://pypi.org/project/nosible/)
 
 ![Logo](./docs/_static/readme.png)
 
