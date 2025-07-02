@@ -4,7 +4,7 @@
 [![Read the Docs](https://img.shields.io/readthedocs/nosible-py/latest.svg?label=docs&logo=readthedocs)](https://nosible-py.readthedocs.io/en/latest/)
 [![PyPI version](https://img.shields.io/pypi/v/nosible.svg?label=PyPI&logo=python)](https://pypi.org/project/nosible/)
 [![PyPI downloads](https://img.shields.io/pypi/dm/nosible.svg?label=%20Downloads&logo=pypi)](https://pypi.org/project/nosible/)
-[![Codecov](https://img.shields.io/codecov/c/github/NosibleAI/nosible-py/main.svg?label=coverage&logo=codecov)](https://codecov.io/gh/NosibleAI/nosible-py)
+[![codecov](https://codecov.io/gh/NosibleAI/nosible-py/graph/badge.svg?token=DDXGQ3V6P9)](https://codecov.io/gh/NosibleAI/nosible-py)
 
 ![Logo](./docs/_static/readme.png)
 
