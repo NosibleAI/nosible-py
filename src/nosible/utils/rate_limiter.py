@@ -119,11 +119,11 @@ class RateLimiter:
 
         Examples
         --------
-        >>> rl = RateLimiter(1, 10.0) # doctest: +SKIP
-        >>> rl.acquire()  # first call always passes # doctest: +SKIP
-        >>> # second call within 10 seconds will block until the window resets # doctest: +SKIP
-        >>> start = time.monotonic(); rl.acquire(); end = time.monotonic()# doctest: +SKIP
-        >>> end - start >= 10.0 # doctest: +SKIP
+        >>> rl = RateLimiter(1, 10.0)
+        >>> rl.acquire()  # first call always passes
+        >>> # second call within 10 seconds will block until the window resets
+        >>> start = time.monotonic(); rl.acquire(); end = time.monotonic()
+        >>> end - start >= 10.0
         True
         """
         waited = False
