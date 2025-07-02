@@ -497,7 +497,7 @@ class Nosible:
         TypeError: Specify exactly one of 'questions' or 'searches'.
 
         >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.searches(questions=["A"], searches=ss)
+        >>> nos.searches(questions=["A"], searches=SearchSet(questions=["A"]))
         Traceback (most recent call last):
         ...
         TypeError: Specify exactly one of 'questions' or 'searches'.
