@@ -7,7 +7,7 @@ with open("README.md", encoding="utf-8") as f:
 setup(
     # Package metadata
     name="nosible",
-    version="0.0.6",
+    version="0.1.0",
     author="Stuart Reid, Matthew Dicks, Richard Taylor, Gareth Warburton",
     author_email="stuart@nosible.com, matthew@nosible.com, richard@nosible.com, gareth@nosible.com",
     description="Python client for the NOSIBLE Search API",
