@@ -495,7 +495,7 @@ class Nosible:
         TypeError: Specify exactly one of 'questions' or 'searches'.
         >>> from nosible import Nosible
         >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.searches(questions=["A"], searches=SearchSet(questions=["A"]))
+        >>> nos.searches(questions=["A"], searches=SearchSet(searches=["A"]))
         Traceback (most recent call last):
         ...
         TypeError: Specify exactly one of 'questions' or 'searches'.
@@ -503,42 +503,45 @@ class Nosible:
         if (questions is None and searches is None) or (questions is not None and searches is not None):
             raise TypeError("Specify exactly one of 'questions' or 'searches'.")
 
-        search_queries = questions if questions is not None else searches
+        # Function to ensure correct errors are raised.
+        def _run_generator():
+            search_queries = questions if questions is not None else searches
 
-        searches_list = self._construct_search(
-            question=search_queries,
-            expansions=expansions,
-            sql_filter=sql_filter,
-            n_results=n_results,
-            n_probes=n_probes,
-            n_contextify=n_contextify,
-            algorithm=algorithm,
-            publish_start=publish_start,
-            publish_end=publish_end,
-            include_netlocs=include_netlocs,
-            exclude_netlocs=exclude_netlocs,
-            visited_start=visited_start,
-            visited_end=visited_end,
-            certain=certain,
-            include_languages=include_languages,
-            exclude_languages=exclude_languages,
-            include_companies=include_companies,
-            exclude_companies=exclude_companies,
-            include_docs=include_docs,
-            exclude_docs=exclude_docs,
-        )
+            searches_list = self._construct_search(
+                question=search_queries,
+                expansions=expansions,
+                sql_filter=sql_filter,
+                n_results=n_results,
+                n_probes=n_probes,
+                n_contextify=n_contextify,
+                algorithm=algorithm,
+                publish_start=publish_start,
+                publish_end=publish_end,
+                include_netlocs=include_netlocs,
+                exclude_netlocs=exclude_netlocs,
+                visited_start=visited_start,
+                visited_end=visited_end,
+                certain=certain,
+                include_languages=include_languages,
+                exclude_languages=exclude_languages,
+                include_companies=include_companies,
+                exclude_companies=exclude_companies,
+                include_docs=include_docs,
+                exclude_docs=exclude_docs,
+            )
 
-        # Submit all searches concurrently
-        future_to_search = {self._executor.submit(self._search_single, s): s for s in searches_list}
+            # Submit all searches concurrently
+            future_to_search = {self._executor.submit(self._search_single, s): s for s in searches_list}
 
-        # Yield results as they complete
-        for future in as_completed(future_to_search):
-            try:
-                yield future.result()
-            except Exception as e:
-                failed = future_to_search[future]  # TODO This can throw an error.
-                self.logger.warning(f"Search for {failed.question!r} failed: {e}")
-                yield None
+            # Yield results as they complete
+            for future in as_completed(future_to_search):
+                try:
+                    yield future.result()
+                except Exception as e:
+                    failed = future_to_search[future]  # TODO This can throw an error.
+                    self.logger.warning(f"Search for {failed.question!r} failed: {e}")
+                    yield None
+        return _run_generator()
 
     @_rate_limited("fast")
     def _search_single(self, search_obj: Search) -> ResultSet:
