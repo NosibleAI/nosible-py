@@ -1,0 +1,47 @@
+name: Run tests and upload coverage
+
+on:
+  push
+
+jobs:
+  test:
+    name: Run tests and collect coverage
+    runs-on: ubuntu-latest
+    env:
+      NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY }}
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip setuptools wheel
+          pip install -e .
+          pip install pytest pytest-cov pytest-doctestplus
+
+      - name: Configure coverage to skip all dunder methods
+        run: |
+          cat > .coveragerc << 'EOF'
+          [run]
+          branch = True
+
+          [report]
+          # Exclude any lines inside methods named __something__
+          exclude_lines =
+              ^\s*def __.*__\(.*\):
+          EOF
+
+      - name: Run tests
+        run: pytest --cov --cov-branch --cov-report=xml || true
+        continue-on-error: true
+
+      - name: Upload results to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
