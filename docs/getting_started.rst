@@ -1,5 +1,5 @@
-NOSIBLE Search Client
-=====================
+Getting-Started
+===============
 
 A high-level Python client for the `NOSIBLE Search
 API <https://www.nosible.ai/search/v1/docs/swagger#/>`__. Easily
