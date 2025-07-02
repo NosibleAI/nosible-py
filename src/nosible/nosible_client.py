@@ -115,7 +115,7 @@ class Nosible:
         exclude_companies: list = None,
         include_docs: list = None,
         exclude_docs: list = None,
-    ) -> None:  # pragma: no cover
+    ) -> None:
         """
         Initialize the Nosible client.
 
@@ -1128,7 +1128,7 @@ class Nosible:
 
         return json.dumps(response.json(), indent=2, sort_keys=True)
 
-    def get_rate_limits(self) -> str:  # pragma: no cover
+    def get_rate_limits(self) -> str:
         """
         Generate a plaintext summary of rate limits for every subscription plan.
 
@@ -1424,7 +1424,7 @@ class Nosible:
         exclude_companies: list = None,
         include_docs: list = None,
         exclude_docs: list = None,
-    ) -> str:  # pragma: no cover
+    ) -> str:
         """
         Construct an SQL SELECT statement with WHERE clauses based on provided filters.
 
