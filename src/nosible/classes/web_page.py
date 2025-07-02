@@ -4,11 +4,41 @@ from nosible.utils.json_tools import json_dumps, json_loads
 
 class WebPageData:
     """
-    Container class for storing and accessing parsed webpage information.
+    A data container for all extracted and processed information about a web page.
 
-    This class encapsulates various aspects of a parsed webpage, including metadata, language detection,
-    page details, request information, extracted snippets, statistics, structured data, and URL hierarchy.
-    It provides convenient access to these components and supports conversion to dictionary and JSON formats.
+    Attributes
+    ----------
+    full_text : str or None
+        The full textual content of the web page, or None if not available.
+    languages : dict
+        A dictionary mapping language codes to their probabilities or counts, representing detected languages.
+    metadata : dict
+        Metadata extracted from the web page, such as description, keywords, author, etc.
+    page : dict
+        Page-specific details, such as title, canonical URL, and other page-level information.
+    request : dict
+        Information about the HTTP request and response, such as headers, status code, and timing.
+    snippets : SnippetSet
+        A set of extracted text snippets or highlights from the page, wrapped in a SnippetSet object.
+    statistics : dict
+        Statistical information about the page, such as word count, sentence count, or other computed metrics.
+    structured : list
+        A list of structured data objects (e.g., schema.org, OpenGraph) extracted from the page.
+    url_tree : dict
+        A hierarchical representation of the URL structure, such as breadcrumbs or navigation paths.
+
+    Methods
+    -------
+    to_dict(self)
+        Convert the WebPageData instance to a dictionary.
+    to_json(self)
+        Convert the WebPageData instance to a JSON string.
+    save(self, path)
+        Save the WebPageData instance to a JSON file at the given path.
+    from_json(cls, data)
+        Create a WebPageData instance from a JSON string.
+    load(cls, path)
+        Create a WebPageData instance from a JSON file at the given path.
 
     Examples
     --------
