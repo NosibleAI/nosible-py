@@ -5,7 +5,7 @@ class Snippet:
     """
     A class representing a snippet of text, typically extracted from a web page.
 
-    Attributes
+    Parameters
     ----------
     content : str or None
         The text content of the snippet.
@@ -26,12 +26,12 @@ class Snippet:
     words : str or None
         The words in the snippet.
 
-    Methods
-    -------
-    to_dict()
-        Convert the Snippet to a dictionary representation.
-    to_json()
-        Convert the Snippet to a JSON string representation.
+    Examples
+    --------
+    >>> snippet = Snippet(content="Example snippet", language="en")
+    >>> print(snippet.content)
+    Example snippet
+
     """
 
     def __init__(
@@ -46,30 +46,6 @@ class Snippet:
         url_hash: str = None,
         words: str = None,
     ):
-        """
-        Initialize a Snippet instance.
-
-        Parameters
-        ----------
-        content : str
-            The text content of the snippet.
-        images : list, optional
-            List of image URLs associated with the snippet.
-        language : str, optional
-            The language of the snippet.
-        snippet_hash : str, optional
-            A unique hash for the snippet.
-        statistics : dict, optional
-            Statistical information about the snippet (e.g., word count).
-        words : str, optional
-            The words in the snippet.
-
-        Examples
-        --------
-        >>> snippet = Snippet(content="Example snippet", language="en")
-        >>> print(snippet.content)
-        Example snippet
-        """
         self.content = content
         self.images = images
         self.language = language

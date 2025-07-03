@@ -6,7 +6,7 @@ class WebPageData:
     """
     A data container for all extracted and processed information about a web page.
 
-    Attributes
+    Parameters
     ----------
     full_text : str or None
         The full textual content of the web page, or None if not available.
@@ -26,19 +26,6 @@ class WebPageData:
         A list of structured data objects (e.g., schema.org, OpenGraph) extracted from the page.
     url_tree : dict
         A hierarchical representation of the URL structure, such as breadcrumbs or navigation paths.
-
-    Methods
-    -------
-    to_dict(self)
-        Convert the WebPageData instance to a dictionary.
-    to_json(self)
-        Convert the WebPageData instance to a JSON string.
-    save(self, path)
-        Save the WebPageData instance to a JSON file at the given path.
-    from_json(cls, data)
-        Create a WebPageData instance from a JSON string.
-    load(cls, path)
-        Create a WebPageData instance from a JSON file at the given path.
 
     Examples
     --------
@@ -61,36 +48,6 @@ class WebPageData:
         structured: list = None,
         url_tree: dict = None,
     ):
-        """
-        Initialize a WebPageData instance.
-
-        Parameters
-        ----------
-        full_text : str, optional
-            The full text content of the webpage.
-        languages : dict, optional
-            Detected languages and their probabilities or counts.
-        metadata : dict, optional
-            Metadata extracted from the webpage (e.g., description, keywords).
-        page : dict, optional
-            Page-specific details such as title, canonical URL, etc.
-        request : dict, optional
-            Information about the HTTP request/response.
-        snippets : list, optional
-            Extracted text snippets or highlights from the page.
-        statistics : dict, optional
-            Statistical information about the page (e.g., word count).
-        structured : list, optional
-            Structured data (e.g., schema.org, OpenGraph).
-        url_tree : dict, optional
-            Hierarchical representation of the URL structure.
-
-        Examples
-        --------
-        >>> data = WebPageData(full_text="Example Domain", languages={"en": 1})
-        >>> data.languages
-        {'en': 1}
-        """
         if snippets is None:
             snippets = []
         self.full_text = full_text
@@ -104,7 +61,13 @@ class WebPageData:
         self.url_tree = url_tree or {}
 
     def __str__(self):
-        """Return a string representation of the WebPageData."""
+        """Return a string representation of the WebPageData.
+
+        Returns
+        -------
+        str
+            A string representation of the WebPageData instance, including languages, metadata, and other fields.
+        """
         return (
             f"WebPageData(languages={self.languages}, metadata={self.metadata}, "
             f"page={self.page}, request={self.request}, snippets={self.snippets}, "

@@ -19,57 +19,10 @@ class ResultSet(Iterator[Result]):
     Result instances. It supports context management, sequence operations, and
     conversion to and from various data formats (CSV, JSON, DataFrames, etc.).
 
-    Attributes
+    Parameters
     ----------
     results : list of Result
         The list of Result objects contained in the ResultSet.
-
-    Methods
-    -------
-    analyze(by="published")
-        Analyze the ResultSet by grouping on a specified field.
-    find_in_search_results(query, top_k=10)
-        Perform an in-memory search over the ResultSet using Tantivy.
-    to_csv(file_path=None, delimiter=",", encoding="utf-8")
-        Serialize the search results to a CSV file.
-    to_polars()
-        Convert the search results to a Polars DataFrame.
-    to_pandas()
-        Convert the search results to a pandas DataFrame.
-    to_json(file_path=None, indent=2)
-        Serialize the search results to a JSON string or file.
-    to_dicts()
-        Return the search results as a list of dictionaries.
-    to_dict()
-        Return the search results as a dictionary keyed by url_hash.
-    to_ndjson(file_path=None)
-        Serialize search results to newline-delimited JSON (NDJSON).
-    to_parquet(file_path=None)
-        Serialize the search results to Apache Parquet format.
-    to_arrow(file_path=None)
-        Serialize the search results to Apache Arrow IPC (Feather) format.
-    to_duckdb(file_path=None, table_name="results")
-        Serialize the search results to a DuckDB database file and table.
-    from_csv(file_path)
-        Load search results from a CSV file.
-    from_json(file_path)
-        Load search results from a JSON file.
-    from_polars(df)
-        Create a ResultSet from a Polars DataFrame.
-    from_pandas(df)
-        Create a ResultSet from a pandas DataFrame.
-    from_ndjson(file_path)
-        Load search results from a NDJSON file.
-    from_parquet(file_path)
-        Load search results from a Parquet file.
-    from_arrow(file_path)
-        Load search results from an Arrow IPC file.
-    from_duckdb(file_path)
-        Load search results from a DuckDB database file.
-    from_dicts(dicts)
-        Create a ResultSet from a list of dictionaries.
-    from_dict(data)
-        Create a ResultSet from a dictionary or list of dictionaries.
 
     Examples
     --------
@@ -90,7 +43,7 @@ class ResultSet(Iterator[Result]):
     ['url', 'title', 'description', 'netloc', 'published', 'visited', 'author', 'content', ... 'url_hash']
     """
 
-    FIELDS = [
+    _FIELDS = [
         "url",
         "title",
         "description",
@@ -116,8 +69,8 @@ class ResultSet(Iterator[Result]):
         -------
         list of dict
             List of dictionaries representing each Result.
-        """
 
+        """
         # dataclass.asdict handles nested structures too
         return [r.to_dict() for r in self.results]
 
@@ -130,8 +83,7 @@ class ResultSet(Iterator[Result]):
         dict
             Dictionary where keys are field names and values are lists of field values.
         """
-
-        return {f: [getattr(r, f) for r in self.results] for f in self.FIELDS}
+        return {f: [getattr(r, f) for r in self.results] for f in self._FIELDS}
 
     def __len__(self) -> int:
         """
@@ -301,6 +253,10 @@ class ResultSet(Iterator[Result]):
         ResultSet
             A new ResultSet instance containing results from both instances.
 
+        Raises
+        ------
+        TypeError
+
         Examples
         --------
         >>> results1 = ResultSet([Result(url="https://example.com")])
@@ -327,6 +283,11 @@ class ResultSet(Iterator[Result]):
         ResultSet
             A new ResultSet instance containing results from this instance that are not in the other.
 
+        Raises
+        ------
+        TypeError
+
+
         Examples
         --------
         >>> results1 = ResultSet([Result(url="https://example.com")])
@@ -351,105 +312,6 @@ class ResultSet(Iterator[Result]):
         Cleanup resources when the ResultSet instance is deleted. TODO
         """
         self.close()
-
-    def close(self) -> None:
-        """
-        Explicitly release any held resources.
-        """
-        # TODO: cleanup handles, sessions, etc.
-        pass
-
-    def analyze(self, by: str = "published") -> dict:
-        """
-        Analyze ResultSet by grouping on a specified field.
-
-        This method uses Polars to compute different metrics based on the `by` parameter:
-
-        - **Date fields** (`"published"` or `"visited"`): Counts per month.
-        - **Similarity**: Descriptive statistics.
-        - **Categorical fields**: value counts sorted descending, mapping each value to its frequency.
-
-        Parameters
-        ----------
-        by : str
-            The Result attribute to analyze. Must be one of:
-            'netloc', 'published', 'visited', 'author', 'language',
-             or 'similarity'
-
-        Returns
-        -------
-        dict
-            A dictionary of analysis results. The structure depends on `by`:
-
-            - Date-based fields: { 'YYYY-MM': int(count), ... }
-            - Numeric fields: { 'count': float, 'mean': float, 'std': float,
-                                'min': float, '25%': float, '50%': float,
-                                '75%': float, 'max': float }
-            - Categorical fields: { value: int(count), ... } sorted by count descending.
-
-        Examples
-        --------
-        >>> from nosible import Nosible
-        >>> from nosible import Result, ResultSet
-        >>> with Nosible() as nos:
-        ...     results: ResultSet = nos.search(question="Aircraft Manufacturing", n_results=100)
-        ...     summary = results.analyze(by="language")
-        ...     print(summary)
-        {'en': 100}
-        """
-        # Convert to Polars DataFrame
-        df: pl.DataFrame = self.to_polars()
-
-        # Validate column
-        if by not in ["netloc", "published", "visited", "author", "language", "similarity"]:
-            raise ValueError(f"Cannot analyze by '{by}' - not a valid field.")
-
-        # Drop nulls for the analysis column
-        df = df.drop_nulls(by)
-        if df.is_empty():
-            return {}
-
-        # Handle author unknown
-        if by == "author":
-            df = df.with_columns(
-                pl.when(pl.col("author").str.strip() == "")
-                .then(pl.lit("Author Unknown"))
-                .otherwise(pl.col("author"))
-                .alias("author")
-            )
-
-        # Handle date fields: 'published' or 'visited'
-        if by in ("published", "visited"):
-            # parse ISO date strings to Date
-            df = df.with_columns(pl.col(by).str.strptime(pl.Date, "%Y-%m-%d", strict=False).alias(by))
-            # Extract year-month
-            df = df.with_columns(pl.col(by).dt.strftime("%Y-%m").alias("year_month"))
-            # Count per month
-            vc = df.groupby("year_month").agg(pl.count().alias("count")).sort("year_month")
-            rows = vc.rows()
-            if not rows:
-                return {}
-            # Generate full month range
-            first_month, last_month = rows[0][0], rows[-1][0]
-            all_months = pd.date_range(start=f"{first_month}-01", end=f"{last_month}-01", freq="MS").strftime("%Y-%m")
-            result = dict.fromkeys(all_months, 0)
-            # Fill actual counts
-            for month, cnt in rows:
-                result[month] = cnt
-            return result
-
-        # Non-date: analyze numeric vs. categorical Non-date: analyze numeric vs. categorical
-        series = df[by]
-        dtype = series.dtype
-        # Numeric analysis: descriptive stats
-        if dtype in (pl.Float64, pl.Float32, pl.Int64, pl.Int32):
-            desc_df = series.describe()
-            return {row[0]: float(row[1]) for row in desc_df.rows()}
-        # Categorical/value counts
-        vc = series.value_counts()
-        _, count_col = vc.columns
-        sorted_vc = vc.sort(count_col, descending=True)
-        return {str(row[0]): int(row[1]) for row in sorted_vc.rows()}
 
     def find_in_search_results(self, query: str, top_k: int = 10) -> ResultSet:
         """
@@ -532,6 +394,102 @@ class ResultSet(Iterator[Result]):
 
         return ResultSet(top_results)
 
+    def analyze(self, by: str = "published") -> dict:
+        """
+        Analyze ResultSet by grouping on a specified field.
+
+        This method uses Polars to compute different metrics based on the `by` parameter:
+
+        - **Date fields** (`"published"` or `"visited"`): Counts per month.
+        - **Similarity**: Descriptive statistics.
+        - **Categorical fields**: value counts sorted descending, mapping each value to its frequency.
+
+        Parameters
+        ----------
+        by : str
+            The Result attribute to analyze. Must be one of:
+            'netloc', 'published', 'visited', 'author', 'language',
+             or 'similarity'
+
+        Raises
+        ------
+        ValueError
+
+        Returns
+        -------
+        dict
+            A dictionary of analysis results. The structure depends on `by`:
+
+            - Date-based fields: { 'YYYY-MM': int(count), ... }
+            - Numeric fields: { 'count': float, 'mean': float, 'std': float,
+                                'min': float, '25%': float, '50%': float,
+                                '75%': float, 'max': float }
+            - Categorical fields: { value: int(count), ... } sorted by count descending.
+
+        Examples
+        --------
+        >>> from nosible import Nosible
+        >>> from nosible import Result, ResultSet
+        >>> with Nosible() as nos:
+        ...     results: ResultSet = nos.search(question="Aircraft Manufacturing", n_results=100)
+        ...     summary = results.analyze(by="language")
+        ...     print(summary)
+        {'en': 100}
+        """
+        # Convert to Polars DataFrame
+        df: pl.DataFrame = self.to_polars()
+
+        # Validate column
+        if by not in ["netloc", "published", "visited", "author", "language", "similarity"]:
+            raise ValueError(f"Cannot analyze by '{by}' - not a valid field.")
+
+        # Drop nulls for the analysis column
+        df = df.drop_nulls(by)
+        if df.is_empty():
+            return {}
+
+        # Handle author unknown
+        if by == "author":
+            df = df.with_columns(
+                pl.when(pl.col("author").str.strip() == "")
+                .then(pl.lit("Author Unknown"))
+                .otherwise(pl.col("author"))
+                .alias("author")
+            )
+
+        # Handle date fields: 'published' or 'visited'
+        if by in ("published", "visited"):
+            # parse ISO date strings to Date
+            df = df.with_columns(pl.col(by).str.strptime(pl.Date, "%Y-%m-%d", strict=False).alias(by))
+            # Extract year-month
+            df = df.with_columns(pl.col(by).dt.strftime("%Y-%m").alias("year_month"))
+            # Count per month
+            vc = df.groupby("year_month").agg(pl.count().alias("count")).sort("year_month")
+            rows = vc.rows()
+            if not rows:
+                return {}
+            # Generate full month range
+            first_month, last_month = rows[0][0], rows[-1][0]
+            all_months = pd.date_range(start=f"{first_month}-01", end=f"{last_month}-01", freq="MS").strftime("%Y-%m")
+            result = dict.fromkeys(all_months, 0)
+            # Fill actual counts
+            for month, cnt in rows:
+                result[month] = cnt
+            return result
+
+        # Non-date: analyze numeric vs. categorical Non-date: analyze numeric vs. categorical
+        series = df[by]
+        dtype = series.dtype
+        # Numeric analysis: descriptive stats
+        if dtype in (pl.Float64, pl.Float32, pl.Int64, pl.Int32):
+            desc_df = series.describe()
+            return {row[0]: float(row[1]) for row in desc_df.rows()}
+        # Categorical/value counts
+        vc = series.value_counts()
+        _, count_col = vc.columns
+        sorted_vc = vc.sort(count_col, descending=True)
+        return {str(row[0]): int(row[1]) for row in sorted_vc.rows()}
+
     # Conversion methods
     def to_csv(self, file_path: str | None = None, delimiter: str = ",", encoding: str = "utf-8") -> str:
         """
@@ -577,7 +535,7 @@ class ResultSet(Iterator[Result]):
         out = file_path or "search_results.csv"
         try:
             with open(out, "w", newline="", encoding=encoding) as f:
-                writer = csv.DictWriter(f, fieldnames=self.FIELDS, delimiter=delimiter)
+                writer = csv.DictWriter(f, fieldnames=self._FIELDS, delimiter=delimiter)
                 writer.writeheader()
                 for result in self.results:
                     writer.writerow(result.to_dict())
@@ -619,6 +577,11 @@ class ResultSet(Iterator[Result]):
         pandas.DataFrame
             DataFrame containing all search results, with columns for each field.
 
+        Raises
+        ------
+        RuntimeError
+            If conversion to Pandas DataFrame fails.
+
         Examples
         --------
         >>> from nosible import Result, ResultSet
@@ -652,6 +615,10 @@ class ResultSet(Iterator[Result]):
         -------
         str
             The JSON string if `file_path` is None, otherwise the JSON string that was written to file.
+        Raises
+        -------
+        RuntimeError
+            If serialization to JSON fails or if writing to the file fails.
 
         Examples
         --------
@@ -695,6 +662,11 @@ class ResultSet(Iterator[Result]):
         list of dict
             List where each element is a dictionary representation of a Result.
 
+        Raises
+        ------
+        RuntimeError
+            If conversion to list of dictionaries fails.
+
         Examples
         --------
         >>> from nosible import Result, ResultSet
@@ -728,6 +700,11 @@ class ResultSet(Iterator[Result]):
         -------
         dict
             Dictionary mapping `url_hash` (str) to the result dictionary.
+
+        Raises
+        ------
+        RuntimeError
+            If conversion to dictionary fails, e.g., if any Result lacks a `url_hash`.
 
         Examples
         --------
@@ -767,6 +744,11 @@ class ResultSet(Iterator[Result]):
         -------
         str
             File path if written to file, otherwise the NDJSON string.
+
+        Raises
+        ------
+        RuntimeError
+            If serialization to NDJSON fails or if writing to the file fails.
 
         Examples
         --------
@@ -948,6 +930,13 @@ class ResultSet(Iterator[Result]):
         ResultSet
             An instance of ResultSet containing all loaded results.
 
+        Raises
+        ------
+        RuntimeError
+            If reading the CSV file fails or if parsing rows fails.
+        ValueError
+            If a row in the CSV does not match the expected format.
+
         Examples
         --------
         >>> import polars as pl
@@ -1007,6 +996,12 @@ class ResultSet(Iterator[Result]):
         ResultSet
             An instance of ResultSet containing all loaded results.
 
+        Raises
+        ------
+        RuntimeError
+            If reading the JSON file fails or if parsing the data fails.
+
+
         Examples
         --------
         >>> import json
@@ -1056,6 +1051,11 @@ class ResultSet(Iterator[Result]):
         -------
         ResultSet
             An instance of ResultSet containing all loaded results.
+
+        Raises
+        ------
+        ValueError
+            If a row in the DataFrame does not match the expected format or if required fields are
 
         Examples
         --------
@@ -1441,6 +1441,8 @@ class ResultSet(Iterator[Result]):
         ------
         ValueError
             If the input is neither a dictionary nor a list of dictionaries.
+        RuntimeError
+            If parsing the input fails.
 
         Examples
         --------
@@ -1477,6 +1479,13 @@ class ResultSet(Iterator[Result]):
                 raise RuntimeError(f"Failed to create ResultSet from dict: {e}") from e
         else:
             raise ValueError("Input must be a list of dictionaries or a single dictionary.")
+
+    def close(self) -> None:
+        """
+        Explicitly release any held resources.
+        """
+        # TODO: cleanup handles, sessions, etc.
+        pass
 
 
 if __name__ == "__main__":

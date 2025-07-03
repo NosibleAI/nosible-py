@@ -41,11 +41,11 @@ class Nosible:
     """
     High-level client for the Nosible Search API.
 
-    Attributes
+    Parameters
     ----------
-    nosible_api_key : str
+    nosible_api_key : str, optional
         API key for the Nosible Search API.
-    llm_api_key : str
+    llm_api_key : str, optional
         API key for LLM-based query expansions.
     openai_base_url : str
         Base URL for the OpenAI-compatible LLM API.
@@ -53,44 +53,51 @@ class Nosible:
         Model to use for sentiment analysis and expansions.
     timeout : int
         Request timeout for HTTP calls.
-    retries : int
+    retries : int, default=5
         Number of retry attempts for transient HTTP errors.
-    concurrency : int
+    concurrency : int, default=10
         Maximum concurrent search requests.
-    headers : dict
-        Default HTTP headers for API requests.
-    logger : logging.Logger
-        Logger instance for this client.
-    _session : requests.Session
-        HTTP session for persistent connections.
-    _executor : ThreadPoolExecutor
-        Thread pool for concurrent searches.
-    _limiters : dict
-        Rate limiter objects for each endpoint.
-    publish_start, publish_end, include_netlocs, exclude_netlocs, visited_start, visited_end, certain,
-    include_languages, exclude_languages, include_companies, exclude_companies, include_docs, exclude_docs : various
-        Default filters for searches.
+    publish_start : str, optional
+        Earliest publish date filter (ISO formatted date).
+    publish_end : str, optional
+        Latest publish date filter (ISO formatted date).
+    include_netlocs : list of str, optional
+        Domains to include.
+    exclude_netlocs : list of str, optional
+        Domains to exclude.
+    visited_start : str, optional
+        Earliest visit date filter (ISO formatted date).
+    visited_end : str, optional
+        Latest visit date filter (ISO formatted date).
+    certain : bool, optional
+        True if we are 100% sure of the date.
+    include_languages : list of str, optional
+        Language codes to include.
+    exclude_languages : list of str, optional
+        Language codes to exclude.
+    include_companies : list of str, optional
+        Google KG IDs to require.
+    exclude_companies : list of str, optional
+        Google KG IDs to forbid.
+    openai_base_url : str, optional
+        Base URL for the OpenAI API (default is OpenRouter).
+    sentiment_model : str, optional
+        Model to use for sentiment analysis (default is "openai/gpt-4o").
+    
+    Notes
+    -----
+    - The `nosible_api_key` is required to access the Nosible Search API.
+    - The `llm_api_key` is optional and used for LLM-based query expansions.
+    - The `openai_base_url` defaults to OpenRouter's API endpoint.
+    - The `sentiment_model` is used for generating query expansions and sentiment analysis.
+    - The `timeout`, `retries`, and `concurrency` parameters control the behavior of HTTP requests.
 
-    Methods
-    -------
-    search(question, ...)
-        Run a single search query.
-    searches(queries, ...)
-        Run multiple searches concurrently and yield results.
-    bulk_search(question, ...)
-        Perform a bulk (slow) search query for large result sets.
-    visit(html="", recrawl=False, render=False, url=None)
-        Visit a URL and return structured page data.
-    version()
-        Retrieve the current version information for the Nosible API.
-    indexed(url)
-        Check if a URL has been indexed by Nosible.
-    preflight(url)
-        Run a preflight check for crawling/preprocessing on a URL.
-    get_rate_limits()
-        Get a plaintext summary of rate limits for all subscription plans.
-    close()
-        Close the client and release resources.
+    Examples
+    --------
+    >>> from nosible import Nosible # doctest: +SKIP
+    >>> nos = Nosible(nosible_api_key="your_api_key_here") # doctest: +SKIP
+    >>> search = nos.search(question="What is Nosible?", n_results=5) # doctest: +SKIP
+
     """
 
     def __init__(
@@ -116,53 +123,6 @@ class Nosible:
         include_docs: list = None,
         exclude_docs: list = None,
     ) -> None:
-        """
-        Initialize the Nosible client.
-
-        Parameters
-        ----------
-        nosible_api_key : str, optional
-            API key for the Nosible Search API.
-        llm_api_key : str, optional
-            API key for LLM-based query expansions.
-        timeout : int, default=30
-            Request timeout for HTTP calls.
-        retries : int, default=5
-            Number of retry attempts for transient HTTP errors.
-        concurrency : int, default=10
-            Maximum concurrent search requests.
-        publish_start : str, optional
-            Earliest publish date filter (ISO formatted date).
-        publish_end : str, optional
-            Latest publish date filter (ISO formatted date).
-        include_netlocs : list of str, optional
-            Domains to include.
-        exclude_netlocs : list of str, optional
-            Domains to exclude.
-        visited_start : str, optional
-            Earliest visit date filter (ISO formatted date).
-        visited_end : str, optional
-            Latest visit date filter (ISO formatted date).
-        certain : bool, optional
-            True if we are 100% sure of the date.
-        include_languages : list of str, optional
-            Language codes to include.
-        exclude_languages : list of str, optional
-            Language codes to exclude.
-        include_companies : list of str, optional
-            Google KG IDs to require.
-        exclude_companies : list of str, optional
-            Google KG IDs to forbid.
-        openai_base_url : str, optional
-            Base URL for the OpenAI API (default is OpenRouter).
-        sentiment_model : str, optional
-            Model to use for sentiment analysis (default is "openai/gpt-4o").
-
-        Raises
-        ------
-        ValueError
-            If no Nosible API key is provided.
-        """
         # API Keys
         if nosible_api_key is not None:
             self.nosible_api_key = nosible_api_key
@@ -322,8 +282,7 @@ class Nosible:
             If both question and search are specified
         TypeError
             If neither question nor search are specified
-        ValueError
-            If `n_results` > 100.
+
 
         Notes
         -----
@@ -546,6 +505,7 @@ class Nosible:
                     failed = future_to_search[future]
                     self.logger.warning(f"Search for {failed.question!r} failed: {e}")
                     yield None
+
         return _run_generator()
 
     @_rate_limited("fast")
