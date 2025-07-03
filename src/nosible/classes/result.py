@@ -16,43 +16,28 @@ class Result:
     """
     Represents a single search result, including metadata and content.
 
-    Attributes
+    Parameters
     ----------
-    url : str or None
+    url : str, optional
         The URL of the search result.
-    title : str or None
-        The title of the page or document.
-    description : str or None
-        A short snippet or description of the result.
-    netloc : str or None
+    title : str, optional
+        The title of the search result.
+    description : str, optional
+        A brief description or summary of the search result.
+    netloc : str, optional
         The network location (domain) of the URL.
-    published : str or None
-        The publication date (ISO formatted date).
-    visited : str or None
-        When the site was visited (ISO formatted date).
-    author : str or None
-        The author name or identifier.
-    content : str or None
-        The full text or HTML content.
-    language : str or None
-        The language code of the content.
-    similarity : float or None
-        Similarity score to a query.
-    url_hash : str or None
-        Hash of the URL for deduplication.
-
-    Methods
-    -------
-    visit(client)
-        Visit the URL associated with this Result and retrieve its content.
-    sentiment(client)
-        Fetch a sentiment score for this Result via your LLM client.
-    similar(client, ...)
-        Find similar search results based on the content or metadata of this Result.
-    to_dict()
-        Convert the Result instance to a dictionary.
-    from_dict(data)
-        Create a Result instance from a dictionary.
+    published : datetime or str, optional
+        The publication date of the search result.
+    visited : datetime or str, optional
+        The date and time when the result was visited.
+    author : str, optional
+        The author of the content.
+    content : str, optional
+        The main content or body of the search result.
+    language : str, optional
+        The language code of the content (e.g., 'en' for English).
+    similarity : float, optional
+        Similarity score with respect to a query or reference.
 
     Examples
     --------
@@ -90,34 +75,6 @@ class Result:
         similarity=None,
         url_hash=None,
     ):
-        """
-        Initialize a Result instance with optional metadata fields.
-
-        Parameters
-        ----------
-        url : str, optional
-            The URL of the search result.
-        title : str, optional
-            The title of the search result.
-        description : str, optional
-            A brief description or summary of the search result.
-        netloc : str, optional
-            The network location (domain) of the URL.
-        published : datetime or str, optional
-            The publication date of the search result.
-        visited : datetime or str, optional
-            The date and time when the result was visited.
-        author : str, optional
-            The author of the content.
-        content : str, optional
-            The main content or body of the search result.
-        language : str, optional
-            The language code of the content (e.g., 'en' for English).
-        similarity : float, optional
-            Similarity score with respect to a query or reference.
-        url_hash : str, optional
-            A hash value representing the URL for quick comparison or lookup.
-        """
         self.url = url
         self.title = title
         self.description = description
@@ -307,8 +264,6 @@ class Result:
         ValueError
             If `client` or `client.llm_api_key` is missing, if the LLM response
             is not parseable as a float, or if it falls outside [-1.0, 1.0].
-        RuntimeError
-            If the API call itself fails.
 
         Examples
         --------
@@ -420,18 +375,41 @@ class Result:
         client : Nosible
             An instance of the Nosible client to use for finding similar results.
         sql_filter : list of str, optional
-            SQL filter expressions to apply to the search.
-        n_results : int, default 100
-            Number of similar results to return.
-        n_probes : int, default 30
-            Number of probes for the search algorithm.
-        n_contextify : int, default 128
-            Context window size for the search.
-        algorithm : str, default "hybrid-2"
-            Search algorithm to use.
-        publish_start, publish_end, include_netlocs, exclude_netlocs, visited_start, visited_end, certain,
-        include_languages, exclude_languages, include_companies, exclude_companies : optional
-            Additional filtering options for the search.
+            SQL‐style filter clauses.
+        n_results : int, default=100
+            Max number of results (max 100).
+        n_probes : int, default=30
+            Number of index shards to probe.
+        n_contextify : int, default=128
+            Context window size per result.
+        algorithm : str, default="hybrid-2"
+            Search algorithm type.
+        publish_start : str, optional
+            Earliest publish date filter (ISO formatted date).
+        publish_end : str, optional
+            Latest publish date filter (ISO formatted date).
+        include_netlocs : list of str, optional
+            Domains to include.
+        exclude_netlocs : list of str, optional
+            Domains to exclude.
+        visited_start : str, optional
+            Earliest visit date filter (ISO formatted date).
+        visited_end : str, optional
+            Latest visit date filter (ISO formatted date).
+        certain : bool, optional
+            True if we are 100% sure of the date.
+        include_languages : list of str, optional
+            Language codes to include.
+        exclude_languages : list of str, optional
+            Language codes to exclude.
+        include_companies : list of str, optional
+            Google KG IDs of public companies to require.
+        exclude_companies : list of str, optional
+            Google KG IDs of public companies to forbid.
+        include_docs : list of str, optional
+            URL hashes of docs to include.
+        exclude_docs : list of str, optional
+            URL hashes of docs to exclude.
 
         Returns
         -------

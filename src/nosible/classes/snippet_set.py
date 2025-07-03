@@ -11,39 +11,38 @@ class SnippetSet(Iterator[Snippet]):
     It supports initialization from a list of Snippet instances, dictionaries, or strings, and provides
     methods for converting the collection to dictionary and JSON representations.
 
-    Attributes
+    Parameters
     ----------
-    _snippets : list of Snippet
-        The internal list storing Snippet objects.
-    _index : int
-        The current index for iteration.
+    snippets : list
+        A list of Snippet objects.
 
-    Methods
-    -------
-    to_dict()
-        Convert the SnippetSet to a dictionary indexed by snippet hash.
-    to_json()"""
+    Examples
+    --------
+    >>> snippets = SnippetSet([Snippet(content="Example snippet")])
+    >>> for snippet in snippets:
+    ...     print(snippet.content)
+    Example snippet
+    """
 
     def __init__(self, snippets: list[Snippet]) -> None:
-        """
-        Initialize a SnippetSet iterator.
+        self._snippets = []
 
-        Parameters
-        ----------
-        snippets : list
-            A list of Snippet objects.
+        for key, value in snippets.items():
+            self._snippets.append(
+                Snippet(
+                    companies=value.get("companies", []),
+                    content=value.get("content", ""),
+                    images=value.get("images", []),
+                    language=value.get("language", ""),
+                    next_snippet_hash=value.get("next_snippet_hash", ""),
+                    prev_snippet_hash=value.get("prev_snippet_hash", ""),
+                    snippet_hash=key,
+                    statistics=value.get("statistics", {}),
+                    url_hash=value.get("url_hash", ""),
+                    words=value.get("words", ""),
+                )
+            )
 
-        Examples
-        --------
-        >>> snippets = SnippetSet([Snippet(content="Example snippet")])
-        >>> for snippet in snippets:
-        ...     print(snippet.content)
-        Example snippet
-        """
-        self._snippets: list[Snippet] = [
-            s if isinstance(s, Snippet) else Snippet(**s) if isinstance(s, dict) else Snippet(content=str(s))
-            for s in snippets
-        ]
         self._index = 0
 
     def __iter__(self):
@@ -107,6 +106,8 @@ class SnippetSet(Iterator[Snippet]):
         IndexError
             If the index is out of range.
         """
+        if index < 0 or index >= len(self._snippets):
+            raise IndexError("Index out of range.")
         return self._snippets[index]
 
     def __str__(self):
@@ -117,6 +118,17 @@ class SnippetSet(Iterator[Snippet]):
         str
         """
         return "\n".join(str(s) for s in self)
+
+    def __repr__(self):
+        """
+        Returns a string representation of the SnippetSet object.
+
+        Returns
+        -------
+        str
+            A string representation of the SnippetSet.
+        """
+        return f"SnippetSet(snippets={len(self._snippets)})"
 
     def to_dict(self) -> dict:
         """

@@ -34,8 +34,8 @@ Google, or your own proxy):
    from nosible import Nosible
 
    client = Nosible(
-       nosible_api_key="basic|abcd1234…",
-       llm_api_key="sk-…",
+       nosible_api_key="basic|abcd1234...",
+       llm_api_key="sk-...",
        base_url="https://api.openrouter.ai/v1"
    )
 
@@ -49,15 +49,15 @@ On Windows
 
 .. code:: powershell
 
-   $Env:NOSIBLE_API_KEY="basic|abcd1234…"
-   $Env:LLM_API_KEY="sk-…"  # for query expansions (optional)
+   $Env:NOSIBLE_API_KEY="basic|abcd1234..."
+   $Env:LLM_API_KEY="sk-..."  # for query expansions (optional)
 
 On Linux
 
 .. code:: bash
 
-   export NOSIBLE_API_KEY="basic|abcd1234…"
-   export LLM_API_KEY="sk-…"  # for query expansions (optional)
+   export NOSIBLE_API_KEY="basic|abcd1234..."
+   export LLM_API_KEY="sk-..."  # for query expansions (optional)
 
 Or in code:
 
@@ -68,8 +68,8 @@ Or in code:
    from nosible import Nosible
 
    client = Nosible(
-       nosible_api_key="basic|abcd1234…",
-       llm_api_key="sk-…",
+       nosible_api_key="basic|abcd1234...",
+       llm_api_key="sk-...",
    )
 
 - As an environment variable:
@@ -113,23 +113,23 @@ Retrieve up to 100 results with optional filters:
    from nosible import Nosible
 
    with Nosible(
-       nosible_api_key="basic|abcd1234…",
-       llm_api_key="sk-…",
+       nosible_api_key="basic|abcd1234...",
+       llm_api_key="sk-...",
        base_url="https://api.openrouter.ai/v1"
    ) as client:
        results = client.search(
            question="What are the terms of the partnership between Microsoft and OpenAI?",
            n_results=20,
-           publish_start="2025-06-01",
+           publish_start="2020-06-01",
            publish_end="2025-06-30",
            include_netlocs=["nytimes.com", "techcrunch.com"],
            exclude_netlocs=["example.com"],
-           visited_start="2025-06-01",
+           visited_start="2023-06-01",
            visited_end="2025-06-29",
            include_languages=["en", "fr"],
            exclude_languages=["de"],
-           include_companies=["/g/11bxc656v6"],  # OpenAI GKID
-           exclude_companies=["/m/045c7b"]       # Google GKID
+           include_companies=["/m/04sv4"],  # Microsoft's GKID
+           exclude_companies=["/m/045c7b"]  # Google GKID
        )
        print([r.title for r in results])
 
@@ -142,7 +142,7 @@ Run multiple queries concurrently:
 
    from nosible import Nosible
 
-   with Nosible(nosible_api_key="basic|abcd1234…", llm_api_key="sk-…") as client:
+   with Nosible(nosible_api_key="basic|abcd1234...", llm_api_key="sk-...") as client:
        for batch in client.searches(
            questions=[
                "What are the terms of the partnership between Microsoft and OpenAI?",
@@ -162,13 +162,13 @@ Fetch thousands of results for offline analysis:
 
    from nosible import Nosible
 
-   with Nosible(nosible_api_key="basic|abcd1234…") as client:
+   with Nosible(nosible_api_key="basic|abcd1234...") as client:
        bulk = client.bulk_search(
            question="What chip-development responsibilities has Intel committed to under its deal with Apple?",
            n_results=2000
        )
-       print(len(bulk))  # e.g., 2000
-   print(len(bulk))  # e.g., 2000
+       print(len(bulk))
+   print(bulk)
 
 Combine Results
 ^^^^^^^^^^^^^^^
@@ -179,7 +179,7 @@ Add two ResultSets together:
 
    from nosible import Nosible
 
-   with Nosible(nosible_api_key="basic|abcd1234…") as client:
+   with Nosible(nosible_api_key="basic|abcd1234...") as client:
        r1 = client.search(
            question="What are the terms of the partnership between Microsoft and OpenAI?",
            n_results=5
@@ -189,7 +189,7 @@ Add two ResultSets together:
            n_results=5
        )
        combined = r1 + r2
-       print(len(combined))  # 10
+       print(combined)
 
 Search Object
 ^^^^^^^^^^^^^
@@ -200,17 +200,17 @@ Use the ``Search`` class to encapsulate parameters:
 
    from nosible import Nosible, Search
 
-   with Nosible(nosible_api_key="basic|abcd1234…") as client:
-       params = Search(
+   with Nosible(nosible_api_key="basic|abcd1234...") as client:
+       search = Search(
            question="What are the terms of the partnership between Microsoft and OpenAI?",
            n_results=3,
-           publish_start="2025-06-15",
+           publish_start="2025-01-15",
            publish_end="2025-06-20",
-           include_netlocs=["arxiv.org"],
+           include_netlocs=["arxiv.org", "bbc.com"],
            certain=True
        )
-       results = client.search(params)
-       print([r.idx for r in results])
+       results = client.search(search=search)
+       print([r for r in results])
 
 Sentiment Analysis
 ^^^^^^^^^^^^^^^^^^
@@ -222,7 +222,7 @@ key):
 
    from nosible import Nosible
 
-   with Nosible(nosible_api_key="basic|abcd1234…", llm_api_key="sk-…") as client:
+   with Nosible(nosible_api_key="basic|abcd1234...", llm_api_key="sk-...") as client:
        results = client.search(
            question="What are the terms of the partnership between Microsoft and OpenAI?",
            n_results=1
@@ -239,7 +239,7 @@ Supported formats for saving and loading:
 
    from nosible import Nosible, ResultSet
 
-   with Nosible(nosible_api_key="basic|abcd1234…") as client:
+   with Nosible(nosible_api_key="basic|abcd1234...") as client:
        combined = client.search(
            question="What are the terms of the partnership between Microsoft and OpenAI?",
            n_results=5
@@ -261,14 +261,15 @@ Supported formats for saving and loading:
        rs_json   = ResultSet.from_json("all_news.json")
        rs_parq   = ResultSet.from_parquet("all_news.parquet")
        rs_arrow  = ResultSet.from_arrow("all_news.arrow")
-       rs_duckdb = ResultSet.from_duckdb("all_news.duckdb", table_name="news")
+       rs_duckdb = ResultSet.from_duckdb("all_news.duckdb")
        rs_ndjson = ResultSet.from_ndjson("all_news.ndjson")
 
 --------------
 
-📡 Search Endpoints
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+📡 Swagger Docs
+~~~~~~~~~~~~~~~
 
-You can find online endpoints to the NOSIBLE Search API `here <https://www.nosible.ai/search/v1/docs/swagger#/>`__.
+You can find online endpoints to the NOSIBLE Search API Swagger Docs
+`here <https://www.nosible.ai/search/v1/docs/swagger#/>`__.
 
 --------------

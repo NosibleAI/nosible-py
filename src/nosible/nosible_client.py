@@ -33,7 +33,6 @@ from nosible.utils.rate_limiter import PLAN_RATE_LIMITS, RateLimiter, _rate_limi
 logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.INFO)
 logging.basicConfig(level=logging.DEBUG)
-
 logging.disable(logging.CRITICAL)
 
 
@@ -41,11 +40,11 @@ class Nosible:
     """
     High-level client for the Nosible Search API.
 
-    Attributes
+    Parameters
     ----------
-    nosible_api_key : str
+    nosible_api_key : str, optional
         API key for the Nosible Search API.
-    llm_api_key : str
+    llm_api_key : str, optional
         API key for LLM-based query expansions.
     openai_base_url : str
         Base URL for the OpenAI-compatible LLM API.
@@ -53,44 +52,55 @@ class Nosible:
         Model to use for sentiment analysis and expansions.
     timeout : int
         Request timeout for HTTP calls.
-    retries : int
+    retries : int, default=5
         Number of retry attempts for transient HTTP errors.
-    concurrency : int
+    concurrency : int, default=10
         Maximum concurrent search requests.
-    headers : dict
-        Default HTTP headers for API requests.
-    logger : logging.Logger
-        Logger instance for this client.
-    _session : requests.Session
-        HTTP session for persistent connections.
-    _executor : ThreadPoolExecutor
-        Thread pool for concurrent searches.
-    _limiters : dict
-        Rate limiter objects for each endpoint.
-    publish_start, publish_end, include_netlocs, exclude_netlocs, visited_start, visited_end, certain,
-    include_languages, exclude_languages, include_companies, exclude_companies, include_docs, exclude_docs : various
-        Default filters for searches.
+    publish_start : str, optional
+        Earliest publish date filter (ISO formatted date).
+    publish_end : str, optional
+        Latest publish date filter (ISO formatted date).
+    include_netlocs : list of str, optional
+        Domains to include.
+    exclude_netlocs : list of str, optional
+        Domains to exclude.
+    visited_start : str, optional
+        Earliest visit date filter (ISO formatted date).
+    visited_end : str, optional
+        Latest visit date filter (ISO formatted date).
+    certain : bool, optional
+        True if we are 100% sure of the date.
+    include_languages : list of str, optional
+        Language codes to include.
+    exclude_languages : list of str, optional
+        Language codes to exclude.
+    include_companies : list of str, optional
+        Google KG IDs of public companies to require.
+    exclude_companies : list of str, optional
+        Google KG IDs of public companies to forbid.
+    include_docs : list of str, optional
+        URL hashes of docs to include.
+    exclude_docs : list of str, optional
+        URL hashes of docs to exclude.
+    openai_base_url : str, optional
+        Base URL for the OpenAI API (default is OpenRouter).
+    sentiment_model : str, optional
+        Model to use for sentiment analysis (default is "openai/gpt-4o").
 
-    Methods
-    -------
-    search(question, ...)
-        Run a single search query.
-    searches(queries, ...)
-        Run multiple searches concurrently and yield results.
-    bulk_search(question, ...)
-        Perform a bulk (slow) search query for large result sets.
-    visit(html="", recrawl=False, render=False, url=None)
-        Visit a URL and return structured page data.
-    version()
-        Retrieve the current version information for the Nosible API.
-    indexed(url)
-        Check if a URL has been indexed by Nosible.
-    preflight(url)
-        Run a preflight check for crawling/preprocessing on a URL.
-    get_rate_limits()
-        Get a plaintext summary of rate limits for all subscription plans.
-    close()
-        Close the client and release resources.
+    Notes
+    -----
+    - The `nosible_api_key` is required to access the Nosible Search API.
+    - The `llm_api_key` is optional and used for LLM-based query expansions.
+    - The `openai_base_url` defaults to OpenRouter's API endpoint.
+    - The `sentiment_model` is used for generating query expansions and sentiment analysis.
+    - The `timeout`, `retries`, and `concurrency` parameters control the behavior of HTTP requests.
+
+    Examples
+    --------
+    >>> from nosible import Nosible  # doctest: +SKIP
+    >>> nos = Nosible(nosible_api_key="your_api_key_here")  # doctest: +SKIP
+    >>> search = nos.search(question="What is Nosible?", n_results=5)  # doctest: +SKIP
+
     """
 
     def __init__(
@@ -115,54 +125,7 @@ class Nosible:
         exclude_companies: list = None,
         include_docs: list = None,
         exclude_docs: list = None,
-    ) -> None:  # pragma: no cover
-        """
-        Initialize the Nosible client.
-
-        Parameters
-        ----------
-        nosible_api_key : str, optional
-            API key for the Nosible Search API.
-        llm_api_key : str, optional
-            API key for LLM-based query expansions.
-        timeout : int, default=30
-            Request timeout for HTTP calls.
-        retries : int, default=5
-            Number of retry attempts for transient HTTP errors.
-        concurrency : int, default=10
-            Maximum concurrent search requests.
-        publish_start : str, optional
-            Earliest publish date filter (ISO formatted date).
-        publish_end : str, optional
-            Latest publish date filter (ISO formatted date).
-        include_netlocs : list of str, optional
-            Domains to include.
-        exclude_netlocs : list of str, optional
-            Domains to exclude.
-        visited_start : str, optional
-            Earliest visit date filter (ISO formatted date).
-        visited_end : str, optional
-            Latest visit date filter (ISO formatted date).
-        certain : bool, optional
-            True if we are 100% sure of the date.
-        include_languages : list of str, optional
-            Language codes to include.
-        exclude_languages : list of str, optional
-            Language codes to exclude.
-        include_companies : list of str, optional
-            Google KG IDs to require.
-        exclude_companies : list of str, optional
-            Google KG IDs to forbid.
-        openai_base_url : str, optional
-            Base URL for the OpenAI API (default is OpenRouter).
-        sentiment_model : str, optional
-            Model to use for sentiment analysis (default is "openai/gpt-4o").
-
-        Raises
-        ------
-        ValueError
-            If no Nosible API key is provided.
-        """
+    ) -> None:
         # API Keys
         if nosible_api_key is not None:
             self.nosible_api_key = nosible_api_key
@@ -303,9 +266,9 @@ class Nosible:
         exclude_languages : list of str, optional
             Language codes to exclude.
         include_companies : list of str, optional
-            Google KG IDs to require.
+            Google KG IDs of public companies to require.
         exclude_companies : list of str, optional
-            Google KG IDs to forbid.
+            Google KG IDs of public companies to forbid.
         include_docs : list of str, optional
             URL hashes of docs to include.
         exclude_docs : list of str, optional
@@ -322,13 +285,14 @@ class Nosible:
             If both question and search are specified
         TypeError
             If neither question nor search are specified
-        ValueError
-            If `n_results` > 100.
+        RuntimeError
+            If the response fails in any way.
 
         Notes
         -----
         You must provide either a `question` string or a `Search` object, not both.
         The search parameters will be set from the provided object or string and any additional keyword arguments.
+        include_companies and exclude_companies must be the Google KG IDs of public companies.
 
         Examples
         --------
@@ -383,13 +347,18 @@ class Nosible:
             exclude_docs=exclude_docs,
         )
 
-        return self._executor.submit(self._search_single, search_obj).result()
+        future = self._executor.submit(self._search_single, search_obj)
+        try:
+            return future.result()
+        except Exception as e:
+            self.logger.warning(f"Search for {search_obj.question!r} failed: {e}")
+            raise RuntimeError(f"Search for {search_obj.question!r} failed") from e
 
     def searches(
         self,
         *,
-        questions: list[str] = None,
         searches: Union[SearchSet, list[Search]] = None,
+        questions: list[str] = None,
         expansions: list[str] = None,
         sql_filter: list[str] = None,
         n_results: int = 100,
@@ -415,10 +384,10 @@ class Nosible:
 
         Parameters
         ----------
-        queries : list of str
-            The search queries to execute.
         searches: SearchSet or list of Search
             The searches execute.
+        queries : list of str
+            The search queries to execute.
         expansions : list of str, optional
             List of expansion terms to use for each search.
         sql_filter : list of str, optional
@@ -471,6 +440,8 @@ class Nosible:
             If both queries and searches are specified.
         TypeError
             If neither queries nor searches are specified.
+        RuntimeError
+            If the response fails in any way.
 
         Notes
         -----
@@ -716,6 +687,7 @@ class Nosible:
         exclude_companies: list = None,
         include_docs: list = None,
         exclude_docs: list = None,
+        verbose: bool = False,
     ) -> ResultSet:
         """
         Perform a bulk (slow) search query (1,000–10,000 results) against the Nosible API.
@@ -764,6 +736,8 @@ class Nosible:
             URL hashes of documents to include.
         exclude_docs : list of str, optional
             URL hashes of documents to exclude.
+        verbose : bool, optional
+            Show verbose output, Bulk search will print more information.
 
         Returns
         -------
@@ -778,6 +752,8 @@ class Nosible:
             If both question and search are specified.
         TypeError
             If neither question nor search are specified.
+        RuntimeError
+            If the response fails in any way.
 
         Notes
         -----
@@ -794,7 +770,6 @@ class Nosible:
         ...     print(len(results))  # doctest: +SKIP
         True
         2000
-
 
         >>> s = Search(question="OpenAI", n_results=1000)
         >>> with Nosible() as nos:
@@ -828,6 +803,10 @@ class Nosible:
         ...
         ValueError: Bulk search cannot have more than 10000 results per query.
         """
+        previous_level = self.logger.level
+        if verbose:
+            self.logger.setLevel(logging.INFO)
+
         if question is not None and search is not None:
             raise TypeError("Question and search cannot be both specified")
 
@@ -890,41 +869,51 @@ class Nosible:
 
         # Enforce Minimums
         filter_responses = n_results
-        # slow search must ask for at least 1 000
+        # Slow search must ask for at least 1 000
         n_results = max(n_results, 1000)
 
-        payload = {
-            "question": question,
-            "expansions": expansions,
-            "sql_filter": sql_filter,
-            "n_results": n_results,
-            "n_probes": n_probes,
-            "n_contextify": n_contextify,
-            "algorithm": algorithm,
-        }
-        resp = self._post(url="https://www.nosible.ai/search/v1/slow-search", payload=payload)
+        self.logger.info(f"Performing bulk search for {question!r}...")
+
         try:
-            resp.raise_for_status()
-        except requests.HTTPError as e:
-            raise ValueError(f"[{question!r}] HTTP {resp.status_code}: {resp.text}") from e
+            payload = {
+                "question": question,
+                "expansions": expansions,
+                "sql_filter": sql_filter,
+                "n_results": n_results,
+                "n_probes": n_probes,
+                "n_contextify": n_contextify,
+                "algorithm": algorithm,
+            }
+            resp = self._post(url="https://www.nosible.ai/search/v1/slow-search", payload=payload)
+            try:
+                resp.raise_for_status()
+            except requests.HTTPError as e:
+                raise ValueError(f"[{question!r}] HTTP {resp.status_code}: {resp.text}") from e
 
-        data = resp.json()
+            data = resp.json()
 
-        # Slow search: download & decrypt
-        download_from = data.get("download_from")
-        if ".zstd." in download_from:
-            download_from = download_from.replace(".zstd.", ".gzip.", 1)
-        decrypt_using = data.get("decrypt_using")
-        for _ in range(100):
-            dl = self._session.get(download_from, timeout=self.timeout)
-            if dl.ok:
-                fernet = Fernet(decrypt_using.encode())
-                decrypted = fernet.decrypt(dl.content)
-                decompressed = gzip.decompress(decrypted)
-                api_resp = json_loads(decompressed)
-                return ResultSet.from_dicts(api_resp.get("response", [])[:filter_responses])
-            time.sleep(10)
-        raise ValueError("Results were not retrieved from Nosible")
+            # Slow search: download & decrypt
+            download_from = data.get("download_from")
+            if ".zstd." in download_from:
+                download_from = download_from.replace(".zstd.", ".gzip.", 1)
+            decrypt_using = data.get("decrypt_using")
+            for _ in range(100):
+                dl = self._session.get(download_from, timeout=self.timeout)
+                if dl.ok:
+                    fernet = Fernet(decrypt_using.encode())
+                    decrypted = fernet.decrypt(dl.content)
+                    decompressed = gzip.decompress(decrypted)
+                    api_resp = json_loads(decompressed)
+                    return ResultSet.from_dicts(api_resp.get("response", [])[:filter_responses])
+                time.sleep(10)
+            raise ValueError("Results were not retrieved from Nosible")
+        except Exception as e:
+            self.logger.warning(f"Bulk search for {question!r} failed: {e}")
+            raise RuntimeError(f"Bulk search for {question!r} failed") from e
+        finally:
+            # Restore whatever logging level we had before
+            if verbose:
+                self.logger.setLevel(previous_level)
 
     @_rate_limited("visit")
     def visit(self, html: str = "", recrawl: bool = False, render: bool = False, url: str = None) -> WebPageData:
@@ -992,14 +981,16 @@ class Nosible:
 
         response_data = data["response"]
         return WebPageData(
-            languages=response_data["languages"],
-            metadata=response_data["metadata"],
-            page=response_data["page"],
-            request=response_data["request"],
-            snippets=response_data["snippets"],
-            statistics=response_data["statistics"],
-            structured=response_data["structured"],
-            url_tree=response_data["url_tree"],
+            companies=response_data.get("companies"),
+            full_text=response_data.get("full_text"),
+            languages=response_data.get("languages"),
+            metadata=response_data.get("metadata"),
+            page=response_data.get("page"),
+            request=response_data.get("request"),
+            snippets=response_data.get("snippets"),
+            statistics=response_data.get("statistics"),
+            structured=response_data.get("structured"),
+            url_tree=response_data.get("url_tree"),
         )
 
     def version(self) -> str:
@@ -1128,7 +1119,7 @@ class Nosible:
 
         return json.dumps(response.json(), indent=2, sort_keys=True)
 
-    def get_rate_limits(self) -> str:  # pragma: no cover
+    def get_rate_limits(self) -> str:
         """
         Generate a plaintext summary of rate limits for every subscription plan.
 
@@ -1245,17 +1236,35 @@ class Nosible:
         timeout : int, optional
             Override timeout for this request.
 
+        Raises
+        ------
+        ValueError
+            If the user API key is invalid.
+
         Returns
         -------
         requests.Response
             The HTTP response object.
         """
-        return self._session.post(
+        response = self._session.post(
             url=url,
             json=payload,
             headers=headers if headers is not None else self.headers,
             timeout=timeout if timeout is not None else self.timeout,
         )
+
+        # If unauthorized, or if the payload is “string too short,” treat as invalid API key
+        if response.status_code == 401:
+            raise ValueError("Your API key is not valid.")
+        if response.status_code == 422:
+            # Only inspect JSON if it’s a JSON response
+            content_type = response.headers.get("Content-Type", "")
+            if content_type.startswith("application/json"):
+                body = response.json()
+                if body.get("type") == "string_too_short":
+                    raise ValueError("Your API key is not valid: Too Short.")
+
+        return response
 
     def _get_user_plan(self) -> str:
         """
@@ -1280,7 +1289,7 @@ class Nosible:
         >>> nos = Nosible(nosible_api_key="test+|xyz")
         Traceback (most recent call last):
         ...
-        ValueError: test+ is not a valid plan prefix.
+        ValueError: test+ is not a valid plan prefix, your API key is invalid.
         """
         # Split off anything after the first '|'
         prefix = (self.nosible_api_key or "").split("|", 1)[0]
@@ -1289,7 +1298,7 @@ class Nosible:
         plans = {"test", "basic", "pro", "pro+", "bus", "bus+", "ent"}
 
         if prefix not in plans:
-            raise ValueError(f"{prefix} is not a valid plan prefix.")
+            raise ValueError(f"Your API key is not valid: {prefix} is not a valid plan prefix.")
 
         return prefix
 
@@ -1424,7 +1433,7 @@ class Nosible:
         exclude_companies: list = None,
         include_docs: list = None,
         exclude_docs: list = None,
-    ) -> str:  # pragma: no cover
+    ) -> str:
         """
         Construct an SQL SELECT statement with WHERE clauses based on provided filters.
 
@@ -1449,9 +1458,9 @@ class Nosible:
         exclude_languages : list of str, optional
             Languages to exclude.
         include_companies : list of str, optional
-            Company IDs to require.
+            Public Company Google KG IDs to require.
         exclude_companies : list of str, optional
-            Company IDs to forbid.
+            Public Company Google KG IDs to forbid.
         include_docs : list of str, optional
             URL hashes of documents to include.
         exclude_docs : list of str, optional
@@ -1465,22 +1474,22 @@ class Nosible:
         sql = ["SELECT loc FROM engine"]
         clauses: list[str] = []
 
-        # published date range
+        # Published date range
         if publish_start or publish_end:
             if publish_start and publish_end:
                 clauses.append(f"published >= '{publish_start}' AND published <= '{publish_end}'")
             elif publish_start:
                 clauses.append(f"published >= '{publish_start}'")
-            else:  # only publish_end
+            else:  # Only publish_end
                 clauses.append(f"published <= '{publish_end}'")
 
-        # visited date range
+        # Visited date range
         if visited_start or visited_end:
             if visited_start and visited_end:
                 clauses.append(f"visited >= '{visited_start}' AND visited <= '{visited_end}'")
             elif visited_start:
                 clauses.append(f"visited >= '{visited_start}'")
-            else:  # only visited_end
+            else:  # Only visited_end
                 clauses.append(f"visited <= '{visited_end}'")
 
         # date certainty filter
@@ -1489,44 +1498,52 @@ class Nosible:
         elif certain is False:
             clauses.append("certain = FALSE")
 
-        # include / exclude netlocs
+        # Include netlocs with both www/non-www variants
         if include_netlocs:
-            in_list = ", ".join(f"'{n}'" for n in include_netlocs)
+            variants = set()
+            for n in include_netlocs:
+                variants.add(n)
+                if n.startswith('www.'):
+                    variants.add(n[4:])
+                else:
+                    variants.add('www.' + n)
+            in_list = ", ".join(f"'{v}'" for v in sorted(variants))
             clauses.append(f"netloc IN ({in_list})")
+
+        # Exclude netlocs with both www/non-www variants
         if exclude_netlocs:
-            ex_list = ", ".join(f"'{n}'" for n in exclude_netlocs)
+            variants = set()
+            for n in exclude_netlocs:
+                variants.add(n)
+                if n.startswith('www.'):
+                    variants.add(n[4:])
+                else:
+                    variants.add('www.' + n)
+            ex_list = ", ".join(f"'{v}'" for v in sorted(variants))
             clauses.append(f"netloc NOT IN ({ex_list})")
 
-        # include / exclude languages
-        if include_languages:
-            langs = ", ".join(f"'{lang}'" for lang in include_languages)
-            clauses.append(f"language IN ({langs})")
-        if exclude_languages:
-            langs = ", ".join(f"'{lang}'" for lang in exclude_languages)
-            clauses.append(f"language NOT IN ({langs})")
-
-        # include companies (assign each to a company_N column)
+        # Include companies (assign each to a company_N column)
         if include_companies:
             for idx, gkg_id in enumerate(include_companies, start=1):
                 clauses.append(f"company_{idx} = '{gkg_id}'")
 
-        # exclude companies (none of the company_N columns may match)
+        # Exclude companies (none of the company_N columns may match)
         if exclude_companies:
             gkg_ids = ", ".join(f"'{c}'" for c in exclude_companies)
-            # assume up to 3 company columns; adjust if you support more
+            # Assume up to 3 company columns
             clauses.append(" AND ".join(f"company_{i} NOT IN ({gkg_ids})" for i in range(1, 4)))
 
         if include_docs:
-            # assume these are URL hashes, e.g. "ENNmqkF1mGNhVhvhmbUEs4U2"
+            # Assume these are URL hashes, e.g. "ENNmqkF1mGNhVhvhmbUEs4U2"
             doc_hashes = ", ".join(f"'{doc}'" for doc in include_docs)
             clauses.append(f"doc_hash IN ({doc_hashes})")
 
         if exclude_docs:
-            # assume these are URL hashes, e.g. "ENNmqkF1mGNhVhvhmbUEs4U2"
+            # Assume these are URL hashes, e.g. "ENNmqkF1mGNhVhvhmbUEs4U2"
             doc_hashes = ", ".join(f"'{doc}'" for doc in exclude_docs)
             clauses.append(f"doc_hash NOT IN ({doc_hashes})")
 
-        # join everything
+        # Join everything
         if clauses:
             sql.append("WHERE " + " AND ".join(clauses))
 
@@ -1537,6 +1554,7 @@ class Nosible:
             raise ValueError(f"Invalid SQL query: {sql_filter!r}. Please check your filters and try again.")
 
         self.logger.debug(f"Generated SQL filter: {sql_filter}")
+
         # Return the final SQL filter string
         return sql_filter
 

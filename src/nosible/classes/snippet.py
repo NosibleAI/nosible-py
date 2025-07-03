@@ -5,7 +5,7 @@ class Snippet:
     """
     A class representing a snippet of text, typically extracted from a web page.
 
-    Attributes
+    Parameters
     ----------
     content : str or None
         The text content of the snippet.
@@ -26,16 +26,18 @@ class Snippet:
     words : str or None
         The words in the snippet.
 
-    Methods
-    -------
-    to_dict()
-        Convert the Snippet to a dictionary representation.
-    to_json()
-        Convert the Snippet to a JSON string representation.
+    Examples
+    --------
+    >>> snippet = Snippet(content="Example snippet", language="en")
+    >>> print(snippet.content)
+    Example snippet
+
     """
 
     def __init__(
         self,
+        *,
+        companies: list = None,
         content: str = None,
         images: list = None,
         language: str = None,
@@ -51,6 +53,8 @@ class Snippet:
 
         Parameters
         ----------
+        companies : list, optional
+            A list of companies mentioned in the snippet, if applicable. (GKIDS)
         content : str
             The text content of the snippet.
         images : list, optional
@@ -70,6 +74,7 @@ class Snippet:
         >>> print(snippet.content)
         Example snippet
         """
+        self.companies = companies or []
         self.content = content
         self.images = images
         self.language = language

@@ -15,61 +15,50 @@ class Search:
     This class encapsulates all configurable options for performing a search,
     such as the query text, filters, result limits, and algorithm selection.
 
-    Attributes
+    Parameters
     ----------
     question : str, optional
-        The main search query.
+        The main search question or query.
     expansions : list of str, optional
-        Additional query expansions.
+        List of query expansions or related terms.
     sql_filter : str, optional
-        SQL filter to constrain results.
+        Additional SQL filter to apply to the search.
     n_results : int, optional
         Number of results to return.
     n_probes : int, optional
-        Number of probes for the search algorithm.
+        Number of probe queries to use.
     n_contextify : int, optional
-        Number of context tokens to consider.
+        Number of context documents to retrieve.
     algorithm : str, optional
         Search algorithm to use.
     output_type : str, optional
-        Format of the output.
+        Type of output to produce.
     publish_start : str, optional
-        Start date for publish filtering (ISO format).
+        Start date for published documents (ISO format).
     publish_end : str, optional
-        End date for publish filtering (ISO format).
+        End date for published documents (ISO format).
     include_netlocs : list of str, optional
-        Domains to include.
+        List of netlocs (domains) to include in the search.
     exclude_netlocs : list of str, optional
-        Domains to exclude.
+        List of netlocs (domains) to exclude from the search.
     visited_start : str, optional
-        Start date for visit filtering (ISO format).
+        Start date for visited documents (ISO format).
     visited_end : str, optional
-        End date for visit filtering (ISO format).
+        End date for visited documents (ISO format).
     certain : bool, optional
-        If True, restrict to high-certainty results.
+        Whether to only include certain results.
     include_languages : list of str, optional
-        Languages to include.
+        Languages to include in the search.
     exclude_languages : list of str, optional
-        Languages to exclude.
+        Languages to exclude from the search.
     include_companies : list of str, optional
-        Companies to include.
+        Companies to include in the search.
     exclude_companies : list of str, optional
-        Companies to exclude.
+        Companies to exclude from the search.
     include_docs : list of str, optional
-        URL hash of docs to include.
+        Document IDs to include in the search.
     exclude_docs : list of str, optional
-        URL hash of docs to exclude.
-
-    Methods
-    -------
-    to_dict()
-        Convert the Search instance into a dictionary.
-    from_dict(data)
-        Construct a Search instance from a dictionary.
-    save(path)
-        Save the current Search instance to a JSON file.
-    load(path)
-        Load a Search instance from a JSON file.
+        Document IDs to exclude from the search.
 
     Examples
     --------
@@ -87,7 +76,7 @@ class Search:
     What is Python?
     """
 
-    FIELDS = [
+    _FIELDS = [
         "question",
         "expansions",
         "sql_filter",
@@ -135,56 +124,6 @@ class Search:
         include_docs: list[str] = None,
         exclude_docs: list[str] = None,
     ) -> None:
-        """
-        Parameters
-        ----------
-        question : str, optional
-            The main search question or query.
-        expansions : list of str, optional
-            List of query expansions or related terms.
-        sql_filter : str, optional
-            Additional SQL filter to apply to the search.
-        n_results : int, optional
-            Number of results to return.
-        n_probes : int, optional
-            Number of probe queries to use.
-        n_contextify : int, optional
-            Number of context documents to retrieve.
-        algorithm : str, optional
-            Search algorithm to use.
-        output_type : str, optional
-            Type of output to produce.
-        publish_start : str, optional
-            Start date for published documents (ISO format).
-        publish_end : str, optional
-            End date for published documents (ISO format).
-        include_netlocs : list of str, optional
-            List of netlocs (domains) to include in the search.
-        exclude_netlocs : list of str, optional
-            List of netlocs (domains) to exclude from the search.
-        visited_start : str, optional
-            Start date for visited documents (ISO format).
-        visited_end : str, optional
-            End date for visited documents (ISO format).
-        certain : bool, optional
-            Whether to only include certain results.
-        include_languages : list of str, optional
-            Languages to include in the search.
-        exclude_languages : list of str, optional
-            Languages to exclude from the search.
-        include_companies : list of str, optional
-            Companies to include in the search.
-        exclude_companies : list of str, optional
-            Companies to exclude from the search.
-        include_docs : list of str, optional
-            Document IDs to include in the search.
-        exclude_docs : list of str, optional
-            Document IDs to exclude from the search.
-
-        Returns
-        -------
-        None
-        """
         self.question = question
         self.expansions = expansions
         self.sql_filter = sql_filter
@@ -213,7 +152,7 @@ class Search:
         Only non-None fields are shown, each on its own line for clarity.
         """
         attrs = []
-        for attr in self.FIELDS:
+        for attr in self._FIELDS:
             value = getattr(self, attr)
             if value is not None:
                 attrs.append(f"    {attr} = {value!r}")
@@ -274,7 +213,7 @@ class Search:
         >>> search.to_dict()["question"]
         'What is Python?'
         """
-        return {field: getattr(self, field) for field in self.FIELDS}
+        return {field: getattr(self, field) for field in self._FIELDS}
 
     @classmethod
     def from_dict(cls, data: dict) -> Search:
@@ -302,7 +241,7 @@ class Search:
         >>> print(search.question)
         What is Python?
         """
-        return cls(**{field: data.get(field) for field in cls.FIELDS})
+        return cls(**{field: data.get(field) for field in cls._FIELDS})
 
     def save(self, path: str) -> None:
         """

@@ -6,7 +6,7 @@ class WebPageData:
     """
     A data container for all extracted and processed information about a web page.
 
-    Attributes
+    Parameters
     ----------
     full_text : str or None
         The full textual content of the web page, or None if not available.
@@ -27,19 +27,6 @@ class WebPageData:
     url_tree : dict
         A hierarchical representation of the URL structure, such as breadcrumbs or navigation paths.
 
-    Methods
-    -------
-    to_dict(self)
-        Convert the WebPageData instance to a dictionary.
-    to_json(self)
-        Convert the WebPageData instance to a JSON string.
-    save(self, path)
-        Save the WebPageData instance to a JSON file at the given path.
-    from_json(cls, data)
-        Create a WebPageData instance from a JSON string.
-    load(cls, path)
-        Create a WebPageData instance from a JSON file at the given path.
-
     Examples
     --------
     >>> data = WebPageData(languages={"en": 1}, metadata={"description": "Example"})
@@ -51,6 +38,8 @@ class WebPageData:
 
     def __init__(
         self,
+        *,
+        companies: list = None,
         full_text: str = None,
         languages: dict = None,
         metadata: dict = None,
@@ -66,6 +55,8 @@ class WebPageData:
 
         Parameters
         ----------
+        companies : list, optional
+            A list of companies mentioned in the webpage, if applicable. (GKIDS)
         full_text : str, optional
             The full text content of the webpage.
         languages : dict, optional
@@ -91,6 +82,7 @@ class WebPageData:
         >>> data.languages
         {'en': 1}
         """
+        self.companies = companies or []
         if snippets is None:
             snippets = []
         self.full_text = full_text
@@ -104,7 +96,13 @@ class WebPageData:
         self.url_tree = url_tree or {}
 
     def __str__(self):
-        """Return a string representation of the WebPageData."""
+        """Return a string representation of the WebPageData.
+
+        Returns
+        -------
+        str
+            A string representation of the WebPageData instance, including languages, metadata, and other fields.
+        """
         return (
             f"WebPageData(languages={self.languages}, metadata={self.metadata}, "
             f"page={self.page}, request={self.request}, snippets={self.snippets}, "
@@ -132,10 +130,24 @@ class WebPageData:
         return json_dumps(self.to_dict())
 
     def __getattr__(self, name):
-        """Allow attribute access to the internal dictionaries."""
-        if name in ("languages", "metadata", "page", "request", "snippets", "statistics", "structured", "url_tree"):
+        """
+        Allow attribute access to the internal dictionaries.
+
+        Raises
+        ------
+        AttributeError
+            If the requested attribute does not exist in the WebPageData.
+
+        Returns
+        -------
+        Any
+            The value of the specified attribute if it exists, otherwise raises AttributeError.
+        """
+        try:
             return getattr(self, name)
-        raise AttributeError(f"'WebPageData' object has no attribute '{name}'")
+        except AttributeError as e:
+            # chain the new AttributeError onto the original one
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'") from e
 
     def to_dict(self) -> dict:
         """
@@ -156,6 +168,7 @@ class WebPageData:
         True
         """
         return {
+            "companies": self.companies,
             "full_text": self.full_text,
             "languages": self.languages,
             "metadata": self.metadata,
@@ -234,6 +247,7 @@ class WebPageData:
         """
         parsed_data = json_loads(data)
         return cls(
+            companies=parsed_data.get("companies", []),
             full_text=parsed_data.get("full_text"),
             languages=parsed_data.get("languages"),
             metadata=parsed_data.get("metadata"),
