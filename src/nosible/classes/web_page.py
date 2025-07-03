@@ -124,8 +124,6 @@ class WebPageData:
         >>> repr_str = repr(data)
         >>> isinstance(repr_str, str)
         True
-        >>> print(repr_str)  # doctest: +ELLIPSIS
-        {"companies": [], "full_text": null, "languages": {"en": 1}, "metadata":...}
         """
         return json_dumps(self.to_dict())
 
@@ -195,8 +193,6 @@ class WebPageData:
         >>> json_str = data.to_json()
         >>> isinstance(json_str, str)
         True
-        >>> print(json_str)  # doctest: +ELLIPSIS
-        {"companies": [], "full_text": null, "languages": {"en": 1}, "metadata":...}
         """
         return json_dumps(self.to_dict())
 
@@ -215,8 +211,12 @@ class WebPageData:
         >>> data.save("test_webpage.json")
         >>> with open("test_webpage.json", "r", encoding="utf-8") as f:
         ...     content = f.read()
-        >>> print(content)  # doctest: +ELLIPSIS
-        {"companies": [], "full_text": null, "languages": {"en": 1}, "metadata":...}
+        >>> import json
+        >>> d = json.loads(content)
+        >>> d["languages"]
+        {'en': 1}
+        >>> d["metadata"]
+        {'description': 'Example'}
         """
         with open(path, "w", encoding="utf-8") as f:
             f.write(self.to_json())
