@@ -266,9 +266,10 @@ Supported formats for saving and loading:
 
 --------------
 
-📡 Search Endpoints
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+📡 Swagger Docs
+~~~~~~~~~~~~~~~
 
-You can find online endpoints to the NOSIBLE Search API `here <https://www.nosible.ai/search/v1/docs/swagger#/>`__.
+You can find online endpoints to the NOSIBLE Search API Swagger Docs
+`here <https://www.nosible.ai/search/v1/docs/swagger#/>`__.
 
 --------------
