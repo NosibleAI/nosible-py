@@ -286,7 +286,8 @@ class Nosible:
             If both question and search are specified
         TypeError
             If neither question nor search are specified
-
+        RuntimeError
+            If the response fails in any way.
 
         Notes
         -----
@@ -346,13 +347,18 @@ class Nosible:
             exclude_docs=exclude_docs,
         )
 
-        return self._executor.submit(self._search_single, search_obj).result()
+        future = self._executor.submit(self._search_single, search_obj)
+        try:
+            return future.result()
+        except Exception as e:
+            self.logger.warning(f"Search for {search_obj.question!r} failed: {e}")
+            raise RuntimeError(f"Search for {search_obj.question!r} failed") from e
 
     def searches(
         self,
         *,
-        questions: list[str] = None,
         searches: Union[SearchSet, list[Search]] = None,
+        questions: list[str] = None,
         expansions: list[str] = None,
         sql_filter: list[str] = None,
         n_results: int = 100,
@@ -378,10 +384,10 @@ class Nosible:
 
         Parameters
         ----------
-        queries : list of str
-            The search queries to execute.
         searches: SearchSet or list of Search
             The searches execute.
+        queries : list of str
+            The search queries to execute.
         expansions : list of str, optional
             List of expansion terms to use for each search.
         sql_filter : list of str, optional
@@ -434,6 +440,8 @@ class Nosible:
             If both queries and searches are specified.
         TypeError
             If neither queries nor searches are specified.
+        RuntimeError
+            If the response fails in any way.
 
         Notes
         -----
@@ -509,7 +517,6 @@ class Nosible:
                     failed = future_to_search[future]
                     self.logger.warning(f"Search for {failed.question!r} failed: {e}")
                     yield None
-
         return _run_generator()
 
     @_rate_limited("fast")
@@ -742,6 +749,8 @@ class Nosible:
             If both question and search are specified.
         TypeError
             If neither question nor search are specified.
+        RuntimeError
+            If the response fails in any way.
 
         Notes
         -----
@@ -758,7 +767,6 @@ class Nosible:
         ...     print(len(results))  # doctest: +SKIP
         True
         2000
-
 
         >>> s = Search(question="OpenAI", n_results=1000)
         >>> with Nosible() as nos:
@@ -857,38 +865,42 @@ class Nosible:
         # slow search must ask for at least 1 000
         n_results = max(n_results, 1000)
 
-        payload = {
-            "question": question,
-            "expansions": expansions,
-            "sql_filter": sql_filter,
-            "n_results": n_results,
-            "n_probes": n_probes,
-            "n_contextify": n_contextify,
-            "algorithm": algorithm,
-        }
-        resp = self._post(url="https://www.nosible.ai/search/v1/slow-search", payload=payload)
         try:
-            resp.raise_for_status()
-        except requests.HTTPError as e:
-            raise ValueError(f"[{question!r}] HTTP {resp.status_code}: {resp.text}") from e
+            payload = {
+                "question": question,
+                "expansions": expansions,
+                "sql_filter": sql_filter,
+                "n_results": n_results,
+                "n_probes": n_probes,
+                "n_contextify": n_contextify,
+                "algorithm": algorithm,
+            }
+            resp = self._post(url="https://www.nosible.ai/search/v1/slow-search", payload=payload)
+            try:
+                resp.raise_for_status()
+            except requests.HTTPError as e:
+                raise ValueError(f"[{question!r}] HTTP {resp.status_code}: {resp.text}") from e
 
-        data = resp.json()
+            data = resp.json()
 
-        # Slow search: download & decrypt
-        download_from = data.get("download_from")
-        if ".zstd." in download_from:
-            download_from = download_from.replace(".zstd.", ".gzip.", 1)
-        decrypt_using = data.get("decrypt_using")
-        for _ in range(100):
-            dl = self._session.get(download_from, timeout=self.timeout)
-            if dl.ok:
-                fernet = Fernet(decrypt_using.encode())
-                decrypted = fernet.decrypt(dl.content)
-                decompressed = gzip.decompress(decrypted)
-                api_resp = json_loads(decompressed)
-                return ResultSet.from_dicts(api_resp.get("response", [])[:filter_responses])
-            time.sleep(10)
-        raise ValueError("Results were not retrieved from Nosible")
+            # Slow search: download & decrypt
+            download_from = data.get("download_from")
+            if ".zstd." in download_from:
+                download_from = download_from.replace(".zstd.", ".gzip.", 1)
+            decrypt_using = data.get("decrypt_using")
+            for _ in range(100):
+                dl = self._session.get(download_from, timeout=self.timeout)
+                if dl.ok:
+                    fernet = Fernet(decrypt_using.encode())
+                    decrypted = fernet.decrypt(dl.content)
+                    decompressed = gzip.decompress(decrypted)
+                    api_resp = json_loads(decompressed)
+                    return ResultSet.from_dicts(api_resp.get("response", [])[:filter_responses])
+                time.sleep(10)
+            raise ValueError("Results were not retrieved from Nosible")
+        except Exception as e:
+            self.logger.warning(f"Bulk search for {question!r} failed: {e}")
+            raise RuntimeError(f"Bulk search for {question!r} failed") from e
 
     @_rate_limited("visit")
     def visit(self, html: str = "", recrawl: bool = False, render: bool = False, url: str = None) -> WebPageData:
