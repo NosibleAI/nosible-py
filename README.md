@@ -13,6 +13,11 @@
 A high-level Python client for the [NOSIBLE Search API](https://www.nosible.ai/search/v1/docs/swagger#/).
 Easily integrate the Nosible Search API into your Python projects.
 
+### 📄 Documentation
+
+You can find the full NOSIBLE Search Client documentation 
+[here](https://nosible-py.readthedocs.io/).
+
 ### 📦 Installation
 
 ```bash
@@ -93,7 +98,6 @@ os.environ["LLM_API_KEY"] = "sk-..."
 | Multiple queries in parallel    | `searches`    | Dashboards, comparisons |
 | Thousands of results (100–10k)  | `bulk_search` | Analytics, offline jobs |
 
----
 
 ### 🚀 Examples
 
@@ -250,8 +254,10 @@ with Nosible(nosible_api_key="basic|abcd1234...") as client:
     rs_ndjson = ResultSet.from_ndjson("all_news.ndjson")
 ```
 
----
+### 📡 Swagger Docs
 
+You can find online endpoints to the NOSIBLE Search API Swagger Docs
+[here](https://www.nosible.ai/search/v1/docs/swagger#/).
 
 ### ⚙️ Rate Limiting
 
