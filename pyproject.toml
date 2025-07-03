@@ -47,9 +47,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/NosibleAI/nosible"
-Issues = "https://github.com/NosibleAI/nosible/issues"
-Documentation = "https://nosible.ai/docs"
-Stars = "https://github.com/NosibleAI/nosible-py/stargazers"
+Documentation = "https://nosible-py.readthedocs.io/en/latest/"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
