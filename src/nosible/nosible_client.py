@@ -1286,10 +1286,10 @@ class Nosible:
 
         Examples
         --------
-        >>> nos = Nosible(nosible_api_key="test+|xyz")  # doctest: +skip
-        Traceback (most recent call last):  # doctest: +skip
-        ...  # doctest: +skip
-        ValueError: test+ is not a valid plan prefix, your API key is invalid.  # doctest: +skip
+        >>> nos = Nosible(nosible_api_key="test+|xyz")  # doctest: +SKIP
+        Traceback (most recent call last):
+        ...
+        ValueError: test+ is not a valid plan prefix, your API key is invalid.
         """
         # Split off anything after the first '|'
         prefix = (self.nosible_api_key or "").split("|", 1)[0]
@@ -1326,13 +1326,13 @@ class Nosible:
         Examples
         --------
 
-        >>> from nosible import Nosible  # doctest: +skip
-        >>> nos = Nosible(llm_api_key=None)  # doctest: +skip
-        >>> nos.llm_api_key = None  # doctest: +skip
-        >>> nos._generate_expansions("anything")  # doctest: +skip
-        Traceback (most recent call last):  # doctest: +skip
-        ...  # doctest: +skip
-        ValueError: LLM API key is required for generating expansions.  # doctest: +skip
+        >>> from nosible import Nosible  # doctest: +SKIP
+        >>> nos = Nosible(llm_api_key=None)  # doctest: +SKIP
+        >>> nos.llm_api_key = None  # doctest: +SKIP
+        >>> nos._generate_expansions("anything")  # doctest: +SKIP
+        Traceback (most recent call last):
+        ...
+        ValueError: LLM API key is required for generating expansions.
         """
         if not self.llm_api_key:
             raise ValueError("LLM API key is required for generating expansions.")
