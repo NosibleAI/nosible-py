@@ -6,6 +6,8 @@ on:
       - Windows Tests
     types:
       - completed
+    conclusion: success
+
 jobs:
   build:
     name: Build distribution 📦

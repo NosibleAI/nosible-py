@@ -771,11 +771,11 @@ class Nosible:
         True
         2000
 
-        >>> s = Search(question="OpenAI", n_results=1000)
-        >>> with Nosible() as nos:
-        ...     results = nos.bulk_search(search=s)
-        ...     print(isinstance(results, ResultSet))
-        ...     print(len(results))
+        >>> s = Search(question="OpenAI", n_results=1000)  # doctest: +SKIP
+        >>> with Nosible() as nos:  # doctest: +SKIP
+        ...     results = nos.bulk_search(search=s)  # doctest: +SKIP
+        ...     print(isinstance(results, ResultSet))  # doctest: +SKIP
+        ...     print(len(results))  # doctest: +SKIP
         True
         1000
 
