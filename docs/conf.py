@@ -41,7 +41,7 @@ html_theme_options = {
     'logo_only': True,
     'prev_next_buttons_location': 'bottom',
     'style_external_links': False,
-    'vcs_pageview_mode': '',
+    'vcs_pageview_mode': 'edit',
     'style_nav_header_background': 'black',
     'flyout_display': 'attached',
     'version_selector': True,
@@ -62,6 +62,14 @@ html_favicon = "_static/favicon.ico"
 html_css_files = [
     'css/custom.css',
 ]
+
+html_context = {
+    "display_github": True,
+    "github_user": "NosibleAI",
+    "github_repo": "nosible-py",
+    "github_version": "main/docs/",
+    # "conf_py_path": "",
+}
 
 pygments_style = "monokai"
 

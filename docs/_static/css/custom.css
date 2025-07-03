@@ -320,6 +320,52 @@ img.rounded-image {
   border-radius: 8px;
 }
 
-/*a.reference.internal {*/
-/*    color: blue;*/
-/*}*/
+/* For the github and website links below the main logo */
+.wy-side-nav-search {
+  display: flex;
+  flex-direction: column;
+}
+
+.wy-side-nav-search > .links {
+  order: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75em;
+  margin-top: 0.5em;
+}
+
+.wy-side-nav-search > a.icon-home { order: 0; }
+.wy-side-nav-search > .switch-menus,
+.wy-side-nav-search > .wy-version { order: 2; }
+.wy-side-nav-search > form.wy-form { order: 3; }
+
+.wy-side-nav-search .links a {
+  font-size: 1.1em;
+  color: #fff !important;
+}
+.wy-side-nav-search .links a:visited {
+  color: #fff !important;
+}
+
+.wy-side-nav-search a.icon-nosible::before .links a.icon-github::before {
+  color: #fff !important;
+}
+
+a.icon-nosible::before {
+  width: 1em;
+  height: 1em;
+  background-color: #fff;
+  mask: url("../favicon.png") no-repeat center;
+  color: #fff !important;
+  -webkit-mask: url("../favicon.png") no-repeat center;
+  content: "";
+  mask-size: contain;
+  display: inline-block;
+  margin-bottom: -0.1em;
+}
+
+a.icon-nosible {
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+}
