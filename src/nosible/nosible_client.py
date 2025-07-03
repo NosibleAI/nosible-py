@@ -33,7 +33,6 @@ from nosible.utils.rate_limiter import PLAN_RATE_LIMITS, RateLimiter, _rate_limi
 logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.INFO)
 logging.basicConfig(level=logging.DEBUG)
-
 logging.disable(logging.CRITICAL)
 
 
@@ -688,6 +687,7 @@ class Nosible:
         exclude_companies: list = None,
         include_docs: list = None,
         exclude_docs: list = None,
+        verbose: bool = False,
     ) -> ResultSet:
         """
         Perform a bulk (slow) search query (1,000–10,000 results) against the Nosible API.
@@ -736,6 +736,8 @@ class Nosible:
             URL hashes of documents to include.
         exclude_docs : list of str, optional
             URL hashes of documents to exclude.
+        verbose : bool, optional
+            Show verbose output, Bulk search will print more information.
 
         Returns
         -------
@@ -801,6 +803,10 @@ class Nosible:
         ...
         ValueError: Bulk search cannot have more than 10000 results per query.
         """
+        previous_level = self.logger.level
+        if verbose:
+            self.logger.setLevel(logging.INFO)
+
         if question is not None and search is not None:
             raise TypeError("Question and search cannot be both specified")
 
@@ -863,8 +869,10 @@ class Nosible:
 
         # Enforce Minimums
         filter_responses = n_results
-        # slow search must ask for at least 1 000
+        # Slow search must ask for at least 1 000
         n_results = max(n_results, 1000)
+
+        self.logger.info(f"Performing bulk search for {question!r}...")
 
         try:
             payload = {
@@ -902,6 +910,10 @@ class Nosible:
         except Exception as e:
             self.logger.warning(f"Bulk search for {question!r} failed: {e}")
             raise RuntimeError(f"Bulk search for {question!r} failed") from e
+        finally:
+            # Restore whatever logging level we had before
+            if verbose:
+                self.logger.setLevel(previous_level)
 
     @_rate_limited("visit")
     def visit(self, html: str = "", recrawl: bool = False, render: bool = False, url: str = None) -> WebPageData:
@@ -1224,6 +1236,11 @@ class Nosible:
         timeout : int, optional
             Override timeout for this request.
 
+        Raises
+        ------
+        ValueError
+            If the user API key is invalid.
+
         Returns
         -------
         requests.Response
@@ -1235,6 +1252,19 @@ class Nosible:
             headers=headers if headers is not None else self.headers,
             timeout=timeout if timeout is not None else self.timeout,
         )
+
+        # If unauthorized, or if the payload is “string too short,” treat as invalid API key
+        if resp.status_code == 401:
+            raise ValueError("Your API key is not valid.")
+        if resp.status_code == 422:
+            # Only inspect JSON if it’s a JSON response
+            content_type = resp.headers.get("Content-Type", "")
+            if content_type.startswith("application/json"):
+                body = resp.json()
+                if body.get("type") == "string_too_short":
+                    raise ValueError("Your API key is not valid: Too Short.")
+
+        return resp
 
     def _get_user_plan(self) -> str:
         """
@@ -1259,7 +1289,7 @@ class Nosible:
         >>> nos = Nosible(nosible_api_key="test+|xyz")
         Traceback (most recent call last):
         ...
-        ValueError: test+ is not a valid plan prefix.
+        ValueError: test+ is not a valid plan prefix, your API key is invalid.
         """
         # Split off anything after the first '|'
         prefix = (self.nosible_api_key or "").split("|", 1)[0]
@@ -1268,7 +1298,7 @@ class Nosible:
         plans = {"test", "basic", "pro", "pro+", "bus", "bus+", "ent"}
 
         if prefix not in plans:
-            raise ValueError(f"{prefix} is not a valid plan prefix.")
+            raise ValueError(f"Your API key is not valid: {prefix} is not a valid plan prefix.")
 
         return prefix
 
