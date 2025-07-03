@@ -154,6 +154,7 @@ class WebPageData:
         True
         """
         return {
+            "companies": self.companies,
             "full_text": self.full_text,
             "languages": self.languages,
             "metadata": self.metadata,
@@ -232,6 +233,7 @@ class WebPageData:
         """
         parsed_data = json_loads(data)
         return cls(
+            companies=parsed_data.get("companies", []),
             full_text=parsed_data.get("full_text"),
             languages=parsed_data.get("languages"),
             metadata=parsed_data.get("metadata"),
