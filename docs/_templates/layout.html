@@ -1,0 +1,21 @@
+{# docs/_templates/layout.html #}
+{% extends "!layout.html" %}
+
+{% block sidebartitle %}
+  {{ super() }}
+  {# Inject a GitHub icon/link next to the project logo/home link #}
+  <div class="links">
+    <a class="icon icon-github"
+       href="https://github.com/NosibleAI/nosible-py"
+       title="View project on GitHub">
+      GitHub
+    </a>
+    <a class="icon icon-nosible"
+       href="https://www.nosible.ai/"
+       title="View Nosible website">
+      Website
+    </a>
+  </div>
+{% endblock %}
+
+
