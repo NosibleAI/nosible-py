@@ -36,6 +36,8 @@ class Snippet:
 
     def __init__(
         self,
+        *,
+        companies: list = None,
         content: str = None,
         images: list = None,
         language: str = None,
@@ -46,6 +48,33 @@ class Snippet:
         url_hash: str = None,
         words: str = None,
     ):
+        """
+        Initialize a Snippet instance.
+
+        Parameters
+        ----------
+        companies : list, optional
+            A list of companies mentioned in the snippet, if applicable. (GKIDS)
+        content : str
+            The text content of the snippet.
+        images : list, optional
+            List of image URLs associated with the snippet.
+        language : str, optional
+            The language of the snippet.
+        snippet_hash : str, optional
+            A unique hash for the snippet.
+        statistics : dict, optional
+            Statistical information about the snippet (e.g., word count).
+        words : str, optional
+            The words in the snippet.
+
+        Examples
+        --------
+        >>> snippet = Snippet(content="Example snippet", language="en")
+        >>> print(snippet.content)
+        Example snippet
+        """
+        self.companies = companies or []
         self.content = content
         self.images = images
         self.language = language
