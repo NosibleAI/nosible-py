@@ -26,8 +26,8 @@ class SearchSet(Iterator[Search]):
     0: What is Python?
     1: What is PEP8?
     >>> searches.add(Search(question="What is AI?", n_results=1))
-    >>> searches.save("searches.json")
-    >>> loaded = SearchSet.load("searches.json")
+    >>> searches.to_json("searches.json")
+    >>> loaded = SearchSet.from_json("searches.json")
     >>> print(loaded[2].question)
     What is AI?
     """
