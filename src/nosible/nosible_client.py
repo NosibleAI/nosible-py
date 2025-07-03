@@ -981,16 +981,16 @@ class Nosible:
 
         response_data = data["response"]
         return WebPageData(
-            companies=response_data["companies"],
-            full_text=response_data["full_text"],
-            languages=response_data["languages"],
-            metadata=response_data["metadata"],
-            page=response_data["page"],
-            request=response_data["request"],
-            snippets=response_data["snippets"],
-            statistics=response_data["statistics"],
-            structured=response_data["structured"],
-            url_tree=response_data["url_tree"],
+            companies=response_data.get("companies"),
+            full_text=response_data.get("full_text"),
+            languages=response_data.get("languages"),
+            metadata=response_data.get("metadata"),
+            page=response_data.get("page"),
+            request=response_data.get("request"),
+            snippets=response_data.get("snippets"),
+            statistics=response_data.get("statistics"),
+            structured=response_data.get("structured"),
+            url_tree=response_data.get("url_tree"),
         )
 
     def version(self) -> str:
