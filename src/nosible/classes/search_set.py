@@ -26,8 +26,8 @@ class SearchSet(Iterator[Search]):
     0: What is Python?
     1: What is PEP8?
     >>> searches.add(Search(question="What is AI?", n_results=1))
-    >>> searches.save("searches.json")
-    >>> loaded = SearchSet.load("searches.json")
+    >>> searches.to_json("searches.json")
+    >>> loaded = SearchSet.from_json("searches.json")
     >>> print(loaded[2].question)
     What is AI?
     """
@@ -51,6 +51,16 @@ class SearchSet(Iterator[Search]):
     def __next__(self) -> Search:
         """
         Return the next Search in the collection or stop iteration.
+
+        Raises
+        ------
+        StopIteration
+            If there are no more searches to return.
+
+        Returns
+        -------
+        Search
+            The next Search instance in the collection.
         """
         if self._index < len(self.searches):
             search = self.searches[self._index]
@@ -61,6 +71,11 @@ class SearchSet(Iterator[Search]):
     def __str__(self) -> str:
         """
         List all questions in the collection, one per line with index.
+
+        Returns
+        -------
+        str
+            A string representation of the SearchSet, showing each search's question with its index.
         """
         return "\n".join(f"{i}: {s.question}" for i, s in enumerate(self.searches))
 
@@ -68,14 +83,20 @@ class SearchSet(Iterator[Search]):
         """
         Get a Search by its index.
 
-        Args:
-            index (int): Index of the search to retrieve.
+        Parameters
+        ----------
+        index : int
+            Index of the search to retrieve.
 
-        Returns:
-            Search: The search at the specified index.
+        Returns
+        -------
+        Search
+            The search at the specified index.
 
-        Raises:
-            IndexError: If index is out of range.
+        Raises
+        ------
+        IndexError
+            If index is out of range.
         """
         if 0 <= index < len(self.searches):
             return self.searches[index]
@@ -94,11 +115,20 @@ class SearchSet(Iterator[Search]):
         """
         Combine two SearchSet instances into a new SearchSet.
 
-        Args:
-            other (SearchSet): Another SearchSet instance to combine with.
+        Parameters
+        ----------
+        other : SearchSet
+            Another SearchSet instance to combine with.
 
-        Returns:
-            SearchSet: A new SearchSet containing searches from both instances.
+        Returns
+        -------
+        SearchSet
+            A new SearchSet containing searches from both instances.
+
+        Raises
+        ------
+        TypeError
+            If 'other' is not a SearchSet instance.
         """
         if not isinstance(other, SearchSet):
             raise TypeError("Can only add another SearchSet instance")
@@ -108,12 +138,17 @@ class SearchSet(Iterator[Search]):
         """
         Set a Search at a specific index.
 
-        Args:
-            index (int): Index to set the search at.
-            value (Search): The Search instance to set.
+        Parameters
+        ----------
+        index : int
+            Index to set the search at.
+        value : Search
+            The Search instance to set.
 
-        Raises:
-            IndexError: If index is out of range.
+        Raises
+        ------
+        IndexError
+            If index is out of range.
         """
         if 0 <= index < len(self.searches):
             self.searches[index] = value
@@ -149,11 +184,6 @@ class SearchSet(Iterator[Search]):
         ----------
         index : int
             The index of the Search instance to remove from the collection.
-
-        Raises
-        ------
-        IndexError
-            If the index is out of range.
 
         Examples
         --------
@@ -212,10 +242,6 @@ class SearchSet(Iterator[Search]):
         str
             A JSON string representation of the SearchSet collection if no path is provided.
 
-        Raises
-        ------
-        IOError
-            If the file cannot be written.
 
         Examples
         --------
@@ -254,13 +280,6 @@ class SearchSet(Iterator[Search]):
         -------
         SearchSet
             An instance of the SearchSet class containing all loaded Search objects.
-
-        Raises
-        ------
-        IOError
-            If the file cannot be read.
-        json.JSONDecodeError
-            If the file content is not valid JSON.
 
         Examples
         --------
