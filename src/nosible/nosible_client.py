@@ -79,11 +79,15 @@ class Nosible:
         Google KG IDs to require.
     exclude_companies : list of str, optional
         Google KG IDs to forbid.
+    include_docs : list of str, optional
+        URL hashes of docs to include.
+    exclude_docs : list of str, optional
+        URL hashes of docs to exclude.
     openai_base_url : str, optional
         Base URL for the OpenAI API (default is OpenRouter).
     sentiment_model : str, optional
         Model to use for sentiment analysis (default is "openai/gpt-4o").
-    
+
     Notes
     -----
     - The `nosible_api_key` is required to access the Nosible Search API.
@@ -94,9 +98,9 @@ class Nosible:
 
     Examples
     --------
-    >>> from nosible import Nosible # doctest: +SKIP
-    >>> nos = Nosible(nosible_api_key="your_api_key_here") # doctest: +SKIP
-    >>> search = nos.search(question="What is Nosible?", n_results=5) # doctest: +SKIP
+    >>> from nosible import Nosible  # doctest: +SKIP
+    >>> nos = Nosible(nosible_api_key="your_api_key_here")  # doctest: +SKIP
+    >>> search = nos.search(question="What is Nosible?", n_results=5)  # doctest: +SKIP
 
     """
 
