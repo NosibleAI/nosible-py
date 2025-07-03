@@ -1428,9 +1428,9 @@ class Nosible:
         exclude_languages : list of str, optional
             Languages to exclude.
         include_companies : list of str, optional
-            Company IDs to require.
+            Public Company Google KG IDs to require.
         exclude_companies : list of str, optional
-            Company IDs to forbid.
+            Public Company Google KG IDs to forbid.
         include_docs : list of str, optional
             URL hashes of documents to include.
         exclude_docs : list of str, optional
@@ -1444,22 +1444,22 @@ class Nosible:
         sql = ["SELECT loc FROM engine"]
         clauses: list[str] = []
 
-        # published date range
+        # Published date range
         if publish_start or publish_end:
             if publish_start and publish_end:
                 clauses.append(f"published >= '{publish_start}' AND published <= '{publish_end}'")
             elif publish_start:
                 clauses.append(f"published >= '{publish_start}'")
-            else:  # only publish_end
+            else:  # Only publish_end
                 clauses.append(f"published <= '{publish_end}'")
 
-        # visited date range
+        # Visited date range
         if visited_start or visited_end:
             if visited_start and visited_end:
                 clauses.append(f"visited >= '{visited_start}' AND visited <= '{visited_end}'")
             elif visited_start:
                 clauses.append(f"visited >= '{visited_start}'")
-            else:  # only visited_end
+            else:  # Only visited_end
                 clauses.append(f"visited <= '{visited_end}'")
 
         # date certainty filter
@@ -1468,44 +1468,52 @@ class Nosible:
         elif certain is False:
             clauses.append("certain = FALSE")
 
-        # include / exclude netlocs
+        # Include netlocs with both www/non-www variants
         if include_netlocs:
-            in_list = ", ".join(f"'{n}'" for n in include_netlocs)
+            variants = set()
+            for n in include_netlocs:
+                variants.add(n)
+                if n.startswith('www.'):
+                    variants.add(n[4:])
+                else:
+                    variants.add('www.' + n)
+            in_list = ", ".join(f"'{v}'" for v in sorted(variants))
             clauses.append(f"netloc IN ({in_list})")
+
+        # Exclude netlocs with both www/non-www variants
         if exclude_netlocs:
-            ex_list = ", ".join(f"'{n}'" for n in exclude_netlocs)
+            variants = set()
+            for n in exclude_netlocs:
+                variants.add(n)
+                if n.startswith('www.'):
+                    variants.add(n[4:])
+                else:
+                    variants.add('www.' + n)
+            ex_list = ", ".join(f"'{v}'" for v in sorted(variants))
             clauses.append(f"netloc NOT IN ({ex_list})")
 
-        # include / exclude languages
-        if include_languages:
-            langs = ", ".join(f"'{lang}'" for lang in include_languages)
-            clauses.append(f"language IN ({langs})")
-        if exclude_languages:
-            langs = ", ".join(f"'{lang}'" for lang in exclude_languages)
-            clauses.append(f"language NOT IN ({langs})")
-
-        # include companies (assign each to a company_N column)
+        # Include companies (assign each to a company_N column)
         if include_companies:
             for idx, gkg_id in enumerate(include_companies, start=1):
                 clauses.append(f"company_{idx} = '{gkg_id}'")
 
-        # exclude companies (none of the company_N columns may match)
+        # Exclude companies (none of the company_N columns may match)
         if exclude_companies:
             gkg_ids = ", ".join(f"'{c}'" for c in exclude_companies)
-            # assume up to 3 company columns; adjust if you support more
+            # Assume up to 3 company columns
             clauses.append(" AND ".join(f"company_{i} NOT IN ({gkg_ids})" for i in range(1, 4)))
 
         if include_docs:
-            # assume these are URL hashes, e.g. "ENNmqkF1mGNhVhvhmbUEs4U2"
+            # Assume these are URL hashes, e.g. "ENNmqkF1mGNhVhvhmbUEs4U2"
             doc_hashes = ", ".join(f"'{doc}'" for doc in include_docs)
             clauses.append(f"doc_hash IN ({doc_hashes})")
 
         if exclude_docs:
-            # assume these are URL hashes, e.g. "ENNmqkF1mGNhVhvhmbUEs4U2"
+            # Assume these are URL hashes, e.g. "ENNmqkF1mGNhVhvhmbUEs4U2"
             doc_hashes = ", ".join(f"'{doc}'" for doc in exclude_docs)
             clauses.append(f"doc_hash NOT IN ({doc_hashes})")
 
-        # join everything
+        # Join everything
         if clauses:
             sql.append("WHERE " + " AND ".join(clauses))
 
@@ -1516,6 +1524,7 @@ class Nosible:
             raise ValueError(f"Invalid SQL query: {sql_filter!r}. Please check your filters and try again.")
 
         self.logger.debug(f"Generated SQL filter: {sql_filter}")
+
         # Return the final SQL filter string
         return sql_filter
 
