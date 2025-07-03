@@ -395,8 +395,8 @@ class Nosible:
     def searches(
         self,
         *,
-        questions: list[str] = None,
         searches: Union[SearchSet, list[Search]] = None,
+        questions: list[str] = None,
         expansions: list[str] = None,
         sql_filter: list[str] = None,
         n_results: int = 100,
@@ -422,10 +422,10 @@ class Nosible:
 
         Parameters
         ----------
-        queries : list of str
-            The search queries to execute.
         searches: SearchSet or list of Search
             The searches execute.
+        queries : list of str
+            The search queries to execute.
         expansions : list of str, optional
             List of expansion terms to use for each search.
         sql_filter : list of str, optional
