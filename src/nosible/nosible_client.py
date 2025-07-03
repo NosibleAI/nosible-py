@@ -76,9 +76,9 @@ class Nosible:
     exclude_languages : list of str, optional
         Language codes to exclude.
     include_companies : list of str, optional
-        Google KG IDs to require.
+        Google KG IDs of public companies to require.
     exclude_companies : list of str, optional
-        Google KG IDs to forbid.
+        Google KG IDs of public companies to forbid.
     include_docs : list of str, optional
         URL hashes of docs to include.
     exclude_docs : list of str, optional
@@ -267,9 +267,9 @@ class Nosible:
         exclude_languages : list of str, optional
             Language codes to exclude.
         include_companies : list of str, optional
-            Google KG IDs to require.
+            Google KG IDs of public companies to require.
         exclude_companies : list of str, optional
-            Google KG IDs to forbid.
+            Google KG IDs of public companies to forbid.
         include_docs : list of str, optional
             URL hashes of docs to include.
         exclude_docs : list of str, optional
@@ -293,6 +293,7 @@ class Nosible:
         -----
         You must provide either a `question` string or a `Search` object, not both.
         The search parameters will be set from the provided object or string and any additional keyword arguments.
+        include_companies and exclude_companies must be the Google KG IDs of public companies.
 
         Examples
         --------
