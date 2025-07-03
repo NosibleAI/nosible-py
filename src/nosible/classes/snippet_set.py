@@ -106,6 +106,8 @@ class SnippetSet(Iterator[Snippet]):
         IndexError
             If the index is out of range.
         """
+        if index < 0 or index >= len(self._snippets):
+            raise IndexError("Index out of range.")
         return self._snippets[index]
 
     def __str__(self):
@@ -116,6 +118,17 @@ class SnippetSet(Iterator[Snippet]):
         str
         """
         return "\n".join(str(s) for s in self)
+
+    def __repr__(self):
+        """
+        Returns a string representation of the SnippetSet object.
+
+        Returns
+        -------
+        str
+            A string representation of the SnippetSet.
+        """
+        return f"SnippetSet(snippets={len(self._snippets)})"
 
     def to_dict(self) -> dict:
         """
