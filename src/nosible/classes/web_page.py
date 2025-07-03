@@ -45,7 +45,7 @@ class WebPageData:
         metadata: dict = None,
         page: dict = None,
         request: dict = None,
-        snippets: list = None,
+        snippets: dict = None,
         statistics: dict = None,
         structured: list = None,
         url_tree: dict = None,
@@ -84,7 +84,7 @@ class WebPageData:
         """
         self.companies = companies or []
         if snippets is None:
-            snippets = []
+            snippets = {}
         self.full_text = full_text
         self.languages = languages or {}
         self.metadata = metadata or {}
@@ -125,7 +125,7 @@ class WebPageData:
         >>> isinstance(repr_str, str)
         True
         >>> print(repr_str)  # doctest: +ELLIPSIS
-        {"full_text":null,"languages":{"en":1},"metadata":{"description":"Example"},...}
+        {"companies": [], "full_text": null, "languages": {"en": 1}, "metadata":...}
         """
         return json_dumps(self.to_dict())
 
@@ -196,7 +196,7 @@ class WebPageData:
         >>> isinstance(json_str, str)
         True
         >>> print(json_str)  # doctest: +ELLIPSIS
-        {"full_text":null,"languages":{"en":1},"metadata":{"description":"Example"},...}
+        {"companies": [], "full_text": null, "languages": {"en": 1}, "metadata":...}
         """
         return json_dumps(self.to_dict())
 
@@ -216,7 +216,7 @@ class WebPageData:
         >>> with open("test_webpage.json", "r", encoding="utf-8") as f:
         ...     content = f.read()
         >>> print(content)  # doctest: +ELLIPSIS
-        {"full_text":null,"languages":{"en":1},"metadata":{"description":"Example"},...}
+        {"companies": [], "full_text": null, "languages": {"en": 1}, "metadata":...}
         """
         with open(path, "w", encoding="utf-8") as f:
             f.write(self.to_json())
@@ -253,7 +253,7 @@ class WebPageData:
             metadata=parsed_data.get("metadata"),
             page=parsed_data.get("page"),
             request=parsed_data.get("request"),
-            snippets=parsed_data.get("snippets", []),
+            snippets=parsed_data.get("snippets", {}),
             statistics=parsed_data.get("statistics"),
             structured=parsed_data.get("structured"),
             url_tree=parsed_data.get("url_tree"),
