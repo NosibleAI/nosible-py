@@ -20,7 +20,7 @@ autodoc_default_options = {
     "special-members": False,
     "inherited-members": False,
     "show-inheritance": False,
-    "exclude-members": "FIELDS,__init__,__enter__,Nosible.__exit__()",
+    "exclude-members": "__init__,__enter__,Nosible.__exit__()",
 }
 autodoc_member_order = "bysource"
 autodoc_typehints = "description"
