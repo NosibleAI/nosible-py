@@ -1246,7 +1246,7 @@ class Nosible:
         requests.Response
             The HTTP response object.
         """
-        return self._session.post(
+        response = self._session.post(
             url=url,
             json=payload,
             headers=headers if headers is not None else self.headers,
@@ -1254,17 +1254,17 @@ class Nosible:
         )
 
         # If unauthorized, or if the payload is “string too short,” treat as invalid API key
-        if resp.status_code == 401:
+        if response.status_code == 401:
             raise ValueError("Your API key is not valid.")
-        if resp.status_code == 422:
+        if response.status_code == 422:
             # Only inspect JSON if it’s a JSON response
-            content_type = resp.headers.get("Content-Type", "")
+            content_type = response.headers.get("Content-Type", "")
             if content_type.startswith("application/json"):
-                body = resp.json()
+                body = response.json()
                 if body.get("type") == "string_too_short":
                     raise ValueError("Your API key is not valid: Too Short.")
 
-        return resp
+        return response
 
     def _get_user_plan(self) -> str:
         """
