@@ -8,23 +8,26 @@ class SnippetSet(Iterator[Snippet]):
     """
     An iterator and container for a collection of Snippet objects.
     This class allows iteration over, indexing into, and serialization of a set of Snippet objects.
-    It supports initialization from a list of Snippet instances, dictionaries, or strings, and provides
+    It supports initialization from a dictionary of snippet data, and provides
     methods for converting the collection to dictionary and JSON representations.
 
     Parameters
     ----------
-    snippets : list
-        A list of Snippet objects.
+    snippets : dict
+        A dictionary where keys are snippet hashes and values are dictionaries of snippet attributes.
 
     Examples
     --------
-    >>> snippets = SnippetSet([Snippet(content="Example snippet")])
+    >>> snippets_data = {
+    ...     "hash1": {"content": "Example snippet", "snippet_hash": "hash1"}
+    ... }
+    >>> snippets = SnippetSet(snippets_data)
     >>> for snippet in snippets:
     ...     print(snippet.content)
     Example snippet
     """
 
-    def __init__(self, snippets: list[Snippet]) -> None:
+    def __init__(self, snippets: dict) -> None:
         self._snippets = []
 
         for key, value in snippets.items():
@@ -141,7 +144,10 @@ class SnippetSet(Iterator[Snippet]):
 
         Examples
         --------
-        >>> snippets = SnippetSet([Snippet(content="Example snippet", snippet_hash="hash1")])
+        >>> snippets_data = {
+        ...     "hash1": {"content": "Example snippet", "snippet_hash": "hash1"}
+        ... }
+        >>> snippets = SnippetSet(snippets_data)
         >>> snippets_dict = snippets.to_dict()
         >>> isinstance(snippets_dict, dict)
         True
@@ -159,7 +165,10 @@ class SnippetSet(Iterator[Snippet]):
 
         Examples
         --------
-        >>> snippets = SnippetSet([Snippet(content="Example snippet", snippet_hash="hash1")])
+        >>> snippets_data = {
+        ...     "hash1": {"content": "Example snippet", "snippet_hash": "hash1"}
+        ... }
+        >>> snippets = SnippetSet(snippets_data)
         >>> json_str = snippets.to_json()
         >>> isinstance(json_str, str)
         True
