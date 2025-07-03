@@ -968,6 +968,8 @@ class Nosible:
 
         response_data = data["response"]
         return WebPageData(
+            companies=response_data["companies"],
+            full_text=response_data["full_text"],
             languages=response_data["languages"],
             metadata=response_data["metadata"],
             page=response_data["page"],
