@@ -25,10 +25,24 @@ class SnippetSet(Iterator[Snippet]):
     """
 
     def __init__(self, snippets: list[Snippet]) -> None:
-        self._snippets: list[Snippet] = [
-            s if isinstance(s, Snippet) else Snippet(**s) if isinstance(s, dict) else Snippet(content=str(s))
-            for s in snippets
-        ]
+        self._snippets = []
+
+        for key, value in snippets.items():
+            self._snippets.append(
+                Snippet(
+                    companies=value.get("companies", []),
+                    content=value.get("content", ""),
+                    images=value.get("images", []),
+                    language=value.get("language", ""),
+                    next_snippet_hash=value.get("next_snippet_hash", ""),
+                    prev_snippet_hash=value.get("prev_snippet_hash", ""),
+                    snippet_hash=key,
+                    statistics=value.get("statistics", {}),
+                    url_hash=value.get("url_hash", ""),
+                    words=value.get("words", ""),
+                )
+            )
+
         self._index = 0
 
     def __iter__(self):
