@@ -251,8 +251,7 @@ class SearchSet(Iterator[Search]):
         >>> json_str = searches.to_json()
         >>> isinstance(json_str, str)
         True
-        >>> searches.to_json("searches.json")
-        # The file 'searches.json' will contain both search queries in JSON format.
+        >>> searches.to_json("searches.json")  # The file 'searches.json' will contain both search queries in JSON format.
         """
         data = json_dumps(self.to_list())
         if path:
@@ -288,7 +287,7 @@ class SearchSet(Iterator[Search]):
         >>> s1 = Search(question="Python basics", n_results=2)
         >>> s2 = Search(question="PEP8 guidelines", n_results=1)
         >>> searches = SearchSet([s1, s2])
-        >>> searches.save("searches.json")
+        >>> searches.to_json("searches.json")
         >>> loaded_searches = SearchSet.from_json("searches.json")
         >>> print([s.question for s in loaded_searches])
         ['Python basics', 'PEP8 guidelines']
