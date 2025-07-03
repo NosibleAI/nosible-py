@@ -38,6 +38,8 @@ class WebPageData:
 
     def __init__(
         self,
+        *,
+        companies: list = None,
         full_text: str = None,
         languages: dict = None,
         metadata: dict = None,
@@ -48,6 +50,39 @@ class WebPageData:
         structured: list = None,
         url_tree: dict = None,
     ):
+        """
+        Initialize a WebPageData instance.
+
+        Parameters
+        ----------
+        companies : list, optional
+            A list of companies mentioned in the webpage, if applicable. (GKIDS)
+        full_text : str, optional
+            The full text content of the webpage.
+        languages : dict, optional
+            Detected languages and their probabilities or counts.
+        metadata : dict, optional
+            Metadata extracted from the webpage (e.g., description, keywords).
+        page : dict, optional
+            Page-specific details such as title, canonical URL, etc.
+        request : dict, optional
+            Information about the HTTP request/response.
+        snippets : list, optional
+            Extracted text snippets or highlights from the page.
+        statistics : dict, optional
+            Statistical information about the page (e.g., word count).
+        structured : list, optional
+            Structured data (e.g., schema.org, OpenGraph).
+        url_tree : dict, optional
+            Hierarchical representation of the URL structure.
+
+        Examples
+        --------
+        >>> data = WebPageData(full_text="Example Domain", languages={"en": 1})
+        >>> data.languages
+        {'en': 1}
+        """
+        self.companies = companies or []
         if snippets is None:
             snippets = []
         self.full_text = full_text
