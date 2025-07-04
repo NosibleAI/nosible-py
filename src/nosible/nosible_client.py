@@ -308,7 +308,7 @@ class Nosible:
         --------
         >>> from nosible.classes.search import Search
         >>> from nosible import Nosible
-        >>> s = Search(question="OpenAI", n_results=10)
+        >>> s = Search(question="Hedge funds seek to expand into private credit", n_results=10)
         >>> with Nosible() as nos:
         ...     results = nos.search(search=s)
         ...     print(isinstance(results, ResultSet))
@@ -469,7 +469,7 @@ class Nosible:
         --------
         >>> from nosible import Nosible
         >>> queries = SearchSet(
-        ...     [Search(question="OpenAI", n_results=5), Search(question="Python programming", n_results=5)]
+        ...     [Search(question="Hedge funds seek to expand into private credit", n_results=5), Search(question="How have the Trump tariffs impacted the US economy?", n_results=5)]
         ... )
         >>> with Nosible() as nos:
         ...     results_list = list(nos.searches(searches=queries))
@@ -480,7 +480,10 @@ class Nosible:
         True True
         True True
         >>> with Nosible() as nos:
-        ...     results_list_str = list(nos.searches(questions=["Python programming", "C++ programming"]))
+        ...     results_list_str = list(nos.searches(questions=[
+        ...     "What are the terms of the partnership between Microsoft and OpenAI?",
+        ...     "What are the terms of the partnership between Volkswagen and Uber?"
+        ...     ]))
         >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +ELLIPSIS
         >>> nos.searches()  # doctest: +ELLIPSIS
         Traceback (most recent call last):
@@ -558,7 +561,7 @@ class Nosible:
         --------
         >>> from nosible.classes.search import Search
         >>> from nosible import Nosible
-        >>> s = Search(question="OpenAI", n_results=200)
+        >>> s = Search(question="Nvidia insiders dump more than $1 billion in stock", n_results=200)
         >>> with Nosible() as nos:
         ...     results = nos.search(search=s)  # doctest: +ELLIPSIS
         Traceback (most recent call last):
@@ -790,7 +793,7 @@ class Nosible:
         >>> from nosible.classes.search import Search
         >>> from nosible import Nosible
         >>> with Nosible(include_netlocs=["bbc.com"]) as nos:  # doctest: +SKIP
-        ...     results = nos.bulk_search(question="OpenAI", n_results=2000)  # doctest: +SKIP
+        ...     results = nos.bulk_search(question="Nvidia insiders dump more than $1 billion in stock", n_results=2000)  # doctest: +SKIP
         ...     print(isinstance(results, ResultSet))  # doctest: +SKIP
         ...     print(len(results))  # doctest: +SKIP
         True
