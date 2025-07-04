@@ -1111,6 +1111,8 @@ class Nosible:
             msg = data.get("message")
             if msg == "The URL is in the system.":
                 return True
+            if msg == "The URL could not be retrieved.":
+                return False
             if msg == "The URL is nowhere to be found.":
                 return False
             raise ValueError(f"Unexpected response from indexed endpoint: {data!r}")
