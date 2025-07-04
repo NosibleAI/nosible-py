@@ -1509,7 +1509,27 @@ class Nosible:
         -------
         str
             An SQL query string with appropriate WHERE clauses.
+
+        Raises
+        ------
+
+        ValueError
+            If more than 50 items in a filter are given.
         """
+        # Validate list lengths
+        for name, lst in [
+            ('include_netlocs', include_netlocs),
+            ('exclude_netlocs', exclude_netlocs),
+            ('include_languages', include_languages),
+            ('exclude_languages', exclude_languages),
+            ('include_companies', include_companies),
+            ('exclude_companies', exclude_companies),
+            ('include_docs', include_docs),
+            ('exclude_docs', exclude_docs),
+        ]:
+            if lst is not None and len(lst) > 50:
+                raise ValueError(f"Too many items for '{name}' filter ({len(lst)}); maximum allowed is 50.")
+
         sql = ["SELECT loc FROM engine"]
         clauses: list[str] = []
 
