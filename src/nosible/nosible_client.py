@@ -762,7 +762,7 @@ class Nosible:
         Raises
         ------
         ValueError
-            If `n_results` is out of bounds (<100 or >10000).
+            If `n_results` is out of bounds (<1000 or >10000).
         TypeError
             If both question and search are specified.
         TypeError
@@ -880,9 +880,9 @@ class Nosible:
         self.logger.debug(f"SQL Filter: {sql_filter}")
 
         # Validate n_result bounds
-        if n_results <= 100:
+        if n_results <= 1000:
             raise ValueError(
-                "Bulk search must have at least 100 results per query; use search() for smaller result sets."
+                "Bulk search must have at least 1000 results per query; use search() for smaller result sets."
             )
         if n_results > 10000:
             raise ValueError("Bulk search cannot have more than 10000 results per query.")
@@ -1561,6 +1561,17 @@ class Nosible:
             ex_list = ", ".join(f"'{v}'" for v in sorted(variants))
             clauses.append(f"netloc NOT IN ({ex_list})")
 
+        # Include / exclude companies
+        if include_companies:
+            company_list = ", ".join(f"'{c}'" for c in include_companies)
+            clauses.append(
+                f"(company_1 IN ({company_list}) OR company_2 IN ({company_list}) OR company_3 IN ({company_list}))"
+            )
+        if exclude_companies:
+            company_list = ", ".join(f"'{c}'" for c in exclude_companies)
+            clauses.append(
+                f"(company_1 NOT IN ({company_list}) AND company_2 NOT IN ({company_list}) AND company_3 NOT IN ({company_list}))"
+            )
 
         # Include / exclude languages
         if include_languages:
@@ -1569,22 +1580,6 @@ class Nosible:
         if exclude_languages:
             langs = ", ".join(f"'{lang}-{lang}'" for lang in exclude_languages)
             clauses.append(f"language NOT IN ({langs})")
-
-        # Include companies (assign each to a company_N column)
-        if include_companies:
-            # Build a list of single-column companies: company_1 = 'X', company_2 = 'Y'
-            companies = [
-                f"company_{idx} = '{gkg_id}'"
-                for idx, gkg_id in enumerate(include_companies, start=1)
-            ]
-            # OR-join them inside parentheses
-            clauses.append("(" + " OR ".join(companies) + ")")
-
-        # Exclude companies (none of the company_N columns may match)
-        if exclude_companies:
-            gkg_ids = ", ".join(f"'{c}'" for c in exclude_companies)
-            # Assume up to 3 company columns
-            clauses.append(" AND ".join(f"company_{i} NOT IN ({gkg_ids})" for i in range(1, 4)))
 
         if include_docs:
             # Assume these are URL hashes, e.g. "ENNmqkF1mGNhVhvhmbUEs4U2"
