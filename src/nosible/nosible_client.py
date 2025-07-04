@@ -71,17 +71,21 @@ class Nosible:
     certain : bool, optional
         True if we are 100% sure of the date.
     include_languages : list of str, optional
-        Language codes to include.
+        Language codes to include (Max: 50).
     exclude_languages : list of str, optional
-        Language codes to exclude.
+        Language codes to exclude (Max: 50).
+    include_netlocs : list of str, optional
+        Only include results from these domains (Max: 50).
+    exclude_netlocs : list of str, optional
+        Exclude results from these domains (Max: 50).
     include_companies : list of str, optional
-        Google KG IDs of public companies to require.
+        Google KG IDs of public companies to require (Max: 50).
     exclude_companies : list of str, optional
-        Google KG IDs of public companies to forbid.
+        Google KG IDs of public companies to forbid (Max: 50).
     include_docs : list of str, optional
-        URL hashes of docs to include.
+        URL hashes of docs to include (Max: 50).
     exclude_docs : list of str, optional
-        URL hashes of docs to exclude.
+        URL hashes of docs to exclude (Max: 50).
     openai_base_url : str, optional
         Base URL for the OpenAI API (default is OpenRouter).
     sentiment_model : str, optional
@@ -100,7 +104,6 @@ class Nosible:
     >>> from nosible import Nosible  # doctest: +SKIP
     >>> nos = Nosible(nosible_api_key="your_api_key_here")  # doctest: +SKIP
     >>> search = nos.search(question="What is Nosible?", n_results=5)  # doctest: +SKIP
-
     """
 
     def __init__(
@@ -265,17 +268,21 @@ class Nosible:
         certain : bool, optional
             True if we are 100% sure of the date.
         include_languages : list of str, optional
-            Language codes to include.
+            Language codes to include (Max: 50).
         exclude_languages : list of str, optional
-            Language codes to exclude.
+            Language codes to exclude (Max: 50).
+        include_netlocs : list of str, optional
+            Only include results from these domains (Max: 50).
+        exclude_netlocs : list of str, optional
+            Exclude results from these domains (Max: 50).
         include_companies : list of str, optional
-            Google KG IDs of public companies to require.
+            Google KG IDs of public companies to require (Max: 50).
         exclude_companies : list of str, optional
-            Google KG IDs of public companies to forbid.
+            Google KG IDs of public companies to forbid (Max: 50).
         include_docs : list of str, optional
-            URL hashes of docs to include.
+            URL hashes of docs to include (Max: 50).
         exclude_docs : list of str, optional
-            URL hashes of docs to exclude.
+            URL hashes of docs to exclude (Max: 50).
 
         Returns
         -------
@@ -301,25 +308,25 @@ class Nosible:
         --------
         >>> from nosible.classes.search import Search
         >>> from nosible import Nosible
-        >>> s = Search(question="OpenAI", n_results=10)
+        >>> s = Search(question="Hedge funds seek to expand into private credit", n_results=10)
         >>> with Nosible() as nos:
         ...     results = nos.search(search=s)
         ...     print(isinstance(results, ResultSet))
         ...     print(len(results))
         True
         10
-        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> nos.search()  # doctest: +SKIP
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.search()  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         TypeError: Specify exactly one of 'question' or 'search'.
-        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> nos.search(question="foo", search=s)  # doctest: +SKIP
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.search(question="foo", search=s)  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         TypeError: Specify exactly one of 'question' or 'search'.
-        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> nos.search(question="foo", n_results=101)  # doctest: +SKIP
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.search(question="foo", n_results=101)  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         ValueError: Search can not have more than 100 results - Use bulk search instead.
@@ -354,6 +361,9 @@ class Nosible:
         future = self._executor.submit(self._search_single, search_obj)
         try:
             return future.result()
+        except ValueError:
+            # Propagate our own “too many results” error directly
+            raise
         except Exception as e:
             self.logger.warning(f"Search for {search_obj.question!r} failed: {e}")
             raise RuntimeError(f"Search for {search_obj.question!r} failed") from e
@@ -422,17 +432,17 @@ class Nosible:
         certain : bool, optional
             Only include results with high certainty.
         include_languages : list of str, optional
-            Only include results in these languages.
+            Only include results in these languages (Max: 50).
         exclude_languages : list of str, optional
-            Exclude results in these languages.
+            Exclude results in these languages (Max: 50).
         include_companies : list of str, optional
-            Only include results from these companies.
+            Only include results from these companies (Max: 50).
         exclude_companies : list of str, optional
-            Exclude results from these companies.
+            Exclude results from these companies (Max: 50).
         include_netlocs : list of str, optional
-            Only include results from these domains.
+            Only include results from these domains (Max: 50).
         exclude_netlocs : list of str, optional
-            Exclude results from these domains.
+            Exclude results from these domains (Max: 50).
 
         Yields
         ------
@@ -459,7 +469,7 @@ class Nosible:
         --------
         >>> from nosible import Nosible
         >>> queries = SearchSet(
-        ...     [Search(question="OpenAI", n_results=5), Search(question="Python programming", n_results=5)]
+        ...     [Search(question="Hedge funds seek to expand into private credit", n_results=5), Search(question="How have the Trump tariffs impacted the US economy?", n_results=5)]
         ... )
         >>> with Nosible() as nos:
         ...     results_list = list(nos.searches(searches=queries))
@@ -470,15 +480,18 @@ class Nosible:
         True True
         True True
         >>> with Nosible() as nos:
-        ...     results_list_str = list(nos.searches(questions=["Python programming", "C++ programming"]))
-        >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.searches()
+        ...     results_list_str = list(nos.searches(questions=[
+        ...     "What are the terms of the partnership between Microsoft and OpenAI?",
+        ...     "What are the terms of the partnership between Volkswagen and Uber?"
+        ...     ]))
+        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +ELLIPSIS
+        >>> nos.searches()  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         TypeError: Specify exactly one of 'questions' or 'searches'.
         >>> from nosible import Nosible
         >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.searches(questions=["A"], searches=SearchSet(searches=["A"]))
+        >>> nos.searches(questions=["A"], searches=SearchSet(searches=["A"]))  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         TypeError: Specify exactly one of 'questions' or 'searches'.
@@ -514,16 +527,13 @@ class Nosible:
                 exclude_docs=exclude_docs,
             )
 
-            # Submit all searches concurrently
-            future_to_search = {self._executor.submit(self._search_single, s): s for s in searches_list}
+            futures = [self._executor.submit(self._search_single, s) for s in searches_list]
 
-            # Yield results as they complete
-            for future in as_completed(future_to_search):
+            for future in futures:
                 try:
                     yield future.result()
                 except Exception as e:
-                    failed = future_to_search[future]
-                    self.logger.warning(f"Search for {failed.question!r} failed: {e}")
+                    self.logger.warning(f"Search failed: {e!r}")
                     yield None
         return _run_generator()
 
@@ -549,12 +559,11 @@ class Nosible:
 
         Examples
         --------
-
-        >>> from nosible.classes.search import Search  # doctest: +SKIP
-        >>> from nosible import Nosible  # doctest: +SKIP
-        >>> s = Search(question="OpenAI", n_results=200)  # doctest: +SKIP
-        >>> with Nosible() as nos:  # doctest: +SKIP
-        ...     results = nos.search(search=s)  # doctest: +SKIP
+        >>> from nosible.classes.search import Search
+        >>> from nosible import Nosible
+        >>> s = Search(question="Nvidia insiders dump more than $1 billion in stock", n_results=200)
+        >>> with Nosible() as nos:
+        ...     results = nos.search(search=s)  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         ValueError: Search can not have more than 100 results - Use bulk search instead.
@@ -740,17 +749,21 @@ class Nosible:
         certain : bool, optional
             True if we are 100% sure of the date.
         include_languages : list of str, optional
-            Languages to include.
+            Languages to include (Max: 50).
         exclude_languages : list of str, optional
-            Languages to exclude.
+            Languages to exclude (Max: 50).
+        include_netlocs : list of str, optional
+            Only include results from these domains (Max: 50).
+        exclude_netlocs : list of str, optional
+            Exclude results from these domains (Max: 50).
         include_companies : list of str, optional
-            Company IDs to require.
+            Company IDs to require (Max: 50).
         exclude_companies : list of str, optional
-            Company IDs to forbid.
+            Company IDs to forbid (Max: 50).
         include_docs : list of str, optional
-            URL hashes of documents to include.
+            URL hashes of documents to include (Max: 50).
         exclude_docs : list of str, optional
-            URL hashes of documents to exclude.
+            URL hashes of documents to exclude (Max: 50).
         verbose : bool, optional
             Show verbose output, Bulk search will print more information.
 
@@ -762,7 +775,7 @@ class Nosible:
         Raises
         ------
         ValueError
-            If `n_results` is out of bounds (<100 or >10000).
+            If `n_results` is out of bounds (<1000 or >10000).
         TypeError
             If both question and search are specified.
         TypeError
@@ -780,7 +793,7 @@ class Nosible:
         >>> from nosible.classes.search import Search
         >>> from nosible import Nosible
         >>> with Nosible(include_netlocs=["bbc.com"]) as nos:  # doctest: +SKIP
-        ...     results = nos.bulk_search(question="OpenAI", n_results=2000)  # doctest: +SKIP
+        ...     results = nos.bulk_search(question="Nvidia insiders dump more than $1 billion in stock", n_results=2000)  # doctest: +SKIP
         ...     print(isinstance(results, ResultSet))  # doctest: +SKIP
         ...     print(len(results))  # doctest: +SKIP
         True
@@ -880,9 +893,9 @@ class Nosible:
         self.logger.debug(f"SQL Filter: {sql_filter}")
 
         # Validate n_result bounds
-        if n_results <= 100:
+        if n_results <= 1000:
             raise ValueError(
-                "Bulk search must have at least 100 results per query; use search() for smaller result sets."
+                "Bulk search must have at least 1000 results per query; use search() for smaller result sets."
             )
         if n_results > 10000:
             raise ValueError("Bulk search cannot have more than 10000 results per query.")
@@ -1095,14 +1108,17 @@ class Nosible:
         """
         response = self._post(url="https://www.nosible.ai/search/v1/indexed", payload={"url": url})
 
-        response.raise_for_status()
-        data = response.json()
-        msg = data.get("message")
-        if msg == "The URL is in the system.":
-            return True
-        if msg == "The URL is nowhere to be found.":
+        try:
+            response.raise_for_status()
+            data = response.json()
+            msg = data.get("message")
+            if msg == "The URL is in the system.":
+                return True
+            if msg == "The URL is nowhere to be found.":
+                return False
+            raise ValueError(f"Unexpected response from indexed endpoint: {data!r}")
+        except requests.HTTPError:
             return False
-        raise ValueError(f"Unexpected response from indexed endpoint: {data!r}")
 
     def preflight(self, url: str = None) -> str:
         """
@@ -1269,6 +1285,14 @@ class Nosible:
         ------
         ValueError
             If the user API key is invalid.
+        ValueError
+            If the user hits their rate limit.
+        ValueError
+            If an unexpected error occurs.
+        ValueError
+            If NOSIBLE is currently restarting.
+        ValueError
+            If NOSIBLE is currently overloaded.
 
         Returns
         -------
@@ -1282,7 +1306,7 @@ class Nosible:
             timeout=timeout if timeout is not None else self.timeout,
         )
 
-        # If unauthorized, or if the payload is “string too short,” treat as invalid API key
+        # If unauthorized, or if the payload is string too short, treat as invalid API key
         if response.status_code == 401:
             raise ValueError("Your API key is not valid.")
         if response.status_code == 422:
@@ -1292,6 +1316,16 @@ class Nosible:
                 body = response.json()
                 if body.get("type") == "string_too_short":
                     raise ValueError("Your API key is not valid: Too Short.")
+            else:
+                raise ValueError("You made a bad request.")
+        if response.status_code == 429:
+            raise ValueError("You have hit your rate limit.")
+        if response.status_code == 500:
+            raise ValueError("An unexpected error occurred.")
+        if response.status_code == 502:
+            raise ValueError("NOSIBLE is currently restarting.")
+        if response.status_code == 504:
+            raise ValueError("NOSIBLE is currently overloaded.")
 
         return response
 
@@ -1483,23 +1517,47 @@ class Nosible:
         certain : bool, optional
             True if we are 100% sure of the date.
         include_languages : list of str, optional
-            Languages to include.
+            Languages to include (Max: 50).
         exclude_languages : list of str, optional
-            Languages to exclude.
+            Languages to exclude (Max: 50).
+        include_netlocs : list of str, optional
+            Only include results from these domains (Max: 50).
+        exclude_netlocs : list of str, optional
+            Exclude results from these domains (Max: 50).
         include_companies : list of str, optional
-            Public Company Google KG IDs to require.
+            Public Company Google KG IDs to require (Max: 50).
         exclude_companies : list of str, optional
-            Public Company Google KG IDs to forbid.
+            Public Company Google KG IDs to forbid (Max: 50).
         include_docs : list of str, optional
-            URL hashes of documents to include.
+            URL hashes of documents to include (Max: 50).
         exclude_docs : list of str, optional
-            URL hashes of documents to exclude.
+            URL hashes of documents to exclude (Max: 50).
 
         Returns
         -------
         str
             An SQL query string with appropriate WHERE clauses.
+
+        Raises
+        ------
+
+        ValueError
+            If more than 50 items in a filter are given.
         """
+        # Validate list lengths
+        for name, lst in [
+            ('include_netlocs', include_netlocs),
+            ('exclude_netlocs', exclude_netlocs),
+            ('include_languages', include_languages),
+            ('exclude_languages', exclude_languages),
+            ('include_companies', include_companies),
+            ('exclude_companies', exclude_companies),
+            ('include_docs', include_docs),
+            ('exclude_docs', exclude_docs),
+        ]:
+            if lst is not None and len(lst) > 50:
+                raise ValueError(f"Too many items for '{name}' filter ({len(lst)}); maximum allowed is 50.")
+
         sql = ["SELECT loc FROM engine"]
         clauses: list[str] = []
 
@@ -1551,6 +1609,17 @@ class Nosible:
             ex_list = ", ".join(f"'{v}'" for v in sorted(variants))
             clauses.append(f"netloc NOT IN ({ex_list})")
 
+        # Include / exclude companies
+        if include_companies:
+            company_list = ", ".join(f"'{c}'" for c in include_companies)
+            clauses.append(
+                f"(company_1 IN ({company_list}) OR company_2 IN ({company_list}) OR company_3 IN ({company_list}))"
+            )
+        if exclude_companies:
+            company_list = ", ".join(f"'{c}'" for c in exclude_companies)
+            clauses.append(
+                f"(company_1 NOT IN ({company_list}) AND company_2 NOT IN ({company_list}) AND company_3 NOT IN ({company_list}))"
+            )
 
         # Include / exclude languages
         if include_languages:
@@ -1559,22 +1628,6 @@ class Nosible:
         if exclude_languages:
             langs = ", ".join(f"'{lang}-{lang}'" for lang in exclude_languages)
             clauses.append(f"language NOT IN ({langs})")
-
-        # Include companies (assign each to a company_N column)
-        if include_companies:
-            # Build a list of single-column companies: company_1 = 'X', company_2 = 'Y'
-            companies = [
-                f"company_{idx} = '{gkg_id}'"
-                for idx, gkg_id in enumerate(include_companies, start=1)
-            ]
-            # OR-join them inside parentheses
-            clauses.append("(" + " OR ".join(companies) + ")")
-
-        # Exclude companies (none of the company_N columns may match)
-        if exclude_companies:
-            gkg_ids = ", ".join(f"'{c}'" for c in exclude_companies)
-            # Assume up to 3 company columns
-            clauses.append(" AND ".join(f"company_{i} NOT IN ({gkg_ids})" for i in range(1, 4)))
 
         if include_docs:
             # Assume these are URL hashes, e.g. "ENNmqkF1mGNhVhvhmbUEs4U2"
