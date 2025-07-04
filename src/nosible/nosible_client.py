@@ -514,16 +514,13 @@ class Nosible:
                 exclude_docs=exclude_docs,
             )
 
-            # Submit all searches concurrently
-            future_to_search = {self._executor.submit(self._search_single, s): s for s in searches_list}
+            futures = [self._executor.submit(self._search_single, s) for s in searches_list]
 
-            # Yield results as they complete
-            for future in as_completed(future_to_search):
+            for future in futures:
                 try:
                     yield future.result()
                 except Exception as e:
-                    failed = future_to_search[future]
-                    self.logger.warning(f"Search for {failed.question!r} failed: {e}")
+                    self.logger.warning(f"Search failed: {e!r}")
                     yield None
         return _run_generator()
 
@@ -1095,14 +1092,17 @@ class Nosible:
         """
         response = self._post(url="https://www.nosible.ai/search/v1/indexed", payload={"url": url})
 
-        response.raise_for_status()
-        data = response.json()
-        msg = data.get("message")
-        if msg == "The URL is in the system.":
-            return True
-        if msg == "The URL is nowhere to be found.":
+        try:
+            response.raise_for_status()
+            data = response.json()
+            msg = data.get("message")
+            if msg == "The URL is in the system.":
+                return True
+            if msg == "The URL is nowhere to be found.":
+                return False
+            raise ValueError(f"Unexpected response from indexed endpoint: {data!r}")
+        except requests.HTTPError:
             return False
-        raise ValueError(f"Unexpected response from indexed endpoint: {data!r}")
 
     def preflight(self, url: str = None) -> str:
         """
