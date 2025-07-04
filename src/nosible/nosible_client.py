@@ -209,6 +209,7 @@ class Nosible:
         n_probes: int = 30,
         n_contextify: int = 128,
         algorithm: str = "hybrid-2",
+        autogenerate_expansions: bool = False,
         publish_start: str = None,
         publish_end: str = None,
         include_netlocs: list = None,
@@ -247,6 +248,8 @@ class Nosible:
             Context window size per result.
         algorithm : str, default="hybrid-2"
             Search algorithm type.
+        autogenerate_expansions : bool, default=False
+            Do you want to generate expansions automatically using a LLM?
         publish_start : str, optional
             Earliest publish date filter (ISO formatted date).
         publish_end : str, optional
@@ -332,6 +335,7 @@ class Nosible:
             n_probes=n_probes,
             n_contextify=n_contextify,
             algorithm=algorithm,
+            autogenerate_expansions=autogenerate_expansions,
             publish_start=publish_start,
             publish_end=publish_end,
             include_netlocs=include_netlocs,
@@ -365,6 +369,7 @@ class Nosible:
         n_probes: int = 30,
         n_contextify: int = 128,
         algorithm: str = "hybrid-2",
+        autogenerate_expansions: bool = False,
         publish_start: str = None,
         publish_end: str = None,
         include_netlocs: list = None,
@@ -400,6 +405,8 @@ class Nosible:
             Context window size for the search.
         algorithm : str, default="hybrid-2"
             Search algorithm to use.
+        autogenerate_expansions : bool, default=False
+            Do you want to generate expansions automatically using a LLM?
         publish_start : str, optional
             Filter results published after this date (ISO formatted date).
         publish_end : str, optional
@@ -491,6 +498,7 @@ class Nosible:
                 n_probes=n_probes,
                 n_contextify=n_contextify,
                 algorithm=algorithm,
+                autogenerate_expansions=autogenerate_expansions,
                 publish_start=publish_start,
                 publish_end=publish_end,
                 include_netlocs=include_netlocs,
@@ -561,6 +569,7 @@ class Nosible:
         n_probes = search_obj.n_probes if search_obj.n_probes is not None else 30
         n_contextify = search_obj.n_contextify if search_obj.n_contextify is not None else 128
         algorithm = search_obj.algorithm if search_obj.algorithm is not None else "hybrid-2"
+        autogenerate_expansions = search_obj.autogenerate_expansions if search_obj.autogenerate_expansions is not None else False
         publish_start = search_obj.publish_start if search_obj.publish_start is not None else self.publish_start
         publish_end = search_obj.publish_end if search_obj.publish_end is not None else self.publish_end
         include_netlocs = search_obj.include_netlocs if search_obj.include_netlocs is not None else self.include_netlocs
@@ -584,6 +593,9 @@ class Nosible:
         # Generate expansions if not provided
         if expansions is None:
             expansions = []
+        if autogenerate_expansions is True:
+            expansions = self._generate_expansions(question=question)
+
         # Generate sql_filter if not provided
         if sql_filter is None:
             sql_filter = self._format_sql(
@@ -670,10 +682,11 @@ class Nosible:
         question: str = None,
         expansions: list[str] = None,
         sql_filter: list[str] = None,
-        n_results: int = 100,
+        n_results: int = 1000,
         n_probes: int = 30,
         n_contextify: int = 128,
         algorithm: str = "hybrid-2",
+        autogenerate_expansions: bool = False,
         publish_start: str = None,
         publish_end: str = None,
         include_netlocs: list = None,
@@ -710,6 +723,8 @@ class Nosible:
             Context window size per result.
         algorithm : str, default="hybrid-2"
             Search algorithm identifier.
+        autogenerate_expansions : bool, default=False
+            Do you want to generate expansions automatically using a LLM?
         publish_start : str, optional
             Filter for earliest publish date.
         publish_end : str, optional
@@ -822,6 +837,8 @@ class Nosible:
             n_probes = search.n_probes if search.n_probes is not None else n_probes
             n_contextify = search.n_contextify if search.n_contextify is not None else n_contextify
             algorithm = search.algorithm if search.algorithm is not None else algorithm
+            autogenerate_expansions = search.autogenerate_expansions if search.autogenerate_expansions is not None \
+                else autogenerate_expansions
             publish_start = search.publish_start if search.publish_start is not None else publish_start
             publish_end = search.publish_end if search.publish_end is not None else publish_end
             include_netlocs = search.include_netlocs if search.include_netlocs is not None else include_netlocs
@@ -838,7 +855,10 @@ class Nosible:
 
         # Default expansions and filters
         if expansions is None:
+            expansions = []
+        if autogenerate_expansions is True:
             expansions = self._generate_expansions(question=question)
+
         # Generate sql_filter if unset
         if sql_filter is None:
             sql_filter = self._format_sql(
@@ -940,6 +960,12 @@ class Nosible:
         ------
         TypeError
             If URL is not provided.
+        ValueError
+            If invalid JSON response from the server.
+        ValueError
+            If URL is not found.
+        ValueError
+            If the server did not send back a 'response' key.
 
         Examples
         --------
@@ -974,6 +1000,9 @@ class Nosible:
         except Exception as e:
             self.logger.error(f"Failed to parse JSON from response: {e}")
             raise ValueError("Invalid JSON response from server") from e
+
+        if data == {'message': 'Sorry, the URL could not be fetched.'}:
+            raise ValueError("The URL could not be found.")
 
         if "response" not in data:
             self.logger.error(f"No 'response' key in server response: {data}")
@@ -1522,10 +1551,24 @@ class Nosible:
             ex_list = ", ".join(f"'{v}'" for v in sorted(variants))
             clauses.append(f"netloc NOT IN ({ex_list})")
 
+
+        # Include / exclude languages
+        if include_languages:
+            langs = ", ".join(f"'{lang}-{lang}'" for lang in include_languages)
+            clauses.append(f"language IN ({langs})")
+        if exclude_languages:
+            langs = ", ".join(f"'{lang}-{lang}'" for lang in exclude_languages)
+            clauses.append(f"language NOT IN ({langs})")
+
         # Include companies (assign each to a company_N column)
         if include_companies:
-            for idx, gkg_id in enumerate(include_companies, start=1):
-                clauses.append(f"company_{idx} = '{gkg_id}'")
+            # Build a list of single-column companies: company_1 = 'X', company_2 = 'Y'
+            companies = [
+                f"company_{idx} = '{gkg_id}'"
+                for idx, gkg_id in enumerate(include_companies, start=1)
+            ]
+            # OR-join them inside parentheses
+            clauses.append("(" + " OR ".join(companies) + ")")
 
         # Exclude companies (none of the company_N columns may match)
         if exclude_companies:
@@ -1554,6 +1597,8 @@ class Nosible:
             raise ValueError(f"Invalid SQL query: {sql_filter!r}. Please check your filters and try again.")
 
         self.logger.debug(f"Generated SQL filter: {sql_filter}")
+
+        print(sql_filter)
 
         # Return the final SQL filter string
         return sql_filter
