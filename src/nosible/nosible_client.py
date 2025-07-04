@@ -1598,8 +1598,6 @@ class Nosible:
 
         self.logger.debug(f"Generated SQL filter: {sql_filter}")
 
-        print(sql_filter)
-
         # Return the final SQL filter string
         return sql_filter
 
