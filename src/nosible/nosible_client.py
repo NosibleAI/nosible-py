@@ -1551,10 +1551,24 @@ class Nosible:
             ex_list = ", ".join(f"'{v}'" for v in sorted(variants))
             clauses.append(f"netloc NOT IN ({ex_list})")
 
+
+        # Include / exclude languages
+        if include_languages:
+            langs = ", ".join(f"'{lang}-{lang}'" for lang in include_languages)
+            clauses.append(f"language IN ({langs})")
+        if exclude_languages:
+            langs = ", ".join(f"'{lang}-{lang}'" for lang in exclude_languages)
+            clauses.append(f"language NOT IN ({langs})")
+
         # Include companies (assign each to a company_N column)
         if include_companies:
-            for idx, gkg_id in enumerate(include_companies, start=1):
-                clauses.append(f"company_{idx} = '{gkg_id}'")
+            # Build a list of single-column companies: company_1 = 'X', company_2 = 'Y'
+            companies = [
+                f"company_{idx} = '{gkg_id}'"
+                for idx, gkg_id in enumerate(include_companies, start=1)
+            ]
+            # OR-join them inside parentheses
+            clauses.append("(" + " OR ".join(companies) + ")")
 
         # Exclude companies (none of the company_N columns may match)
         if exclude_companies:
@@ -1583,6 +1597,8 @@ class Nosible:
             raise ValueError(f"Invalid SQL query: {sql_filter!r}. Please check your filters and try again.")
 
         self.logger.debug(f"Generated SQL filter: {sql_filter}")
+
+        print(sql_filter)
 
         # Return the final SQL filter string
         return sql_filter

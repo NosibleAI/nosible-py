@@ -312,7 +312,7 @@ class Result:
             raise ValueError("LLM API key is required for getting result sentiment.")
 
         content = self.content
-        print(content)
+
         prompt = f"""
             # TASK DESCRIPTION
             On a scale from -1.0 (very negative) to 1.0 (very positive),
