@@ -1116,6 +1116,8 @@ class Nosible:
                 return True
             if msg == "The URL is nowhere to be found.":
                 return False
+            if msg == "The URL could not be retrieved.":
+                return False
             raise ValueError(f"Unexpected response from indexed endpoint: {data!r}")
         except requests.HTTPError:
             return False
