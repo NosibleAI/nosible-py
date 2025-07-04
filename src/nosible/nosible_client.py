@@ -1123,7 +1123,8 @@ class Nosible:
                 return False
         except requests.HTTPError:
             return False
-
+        except:
+            return False
     def preflight(self, url: str = None) -> str:
         """
         Run a preflight check for crawling/preprocessing on a URL.
