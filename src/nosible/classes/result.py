@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
-from openai import OpenAI
-
 from nosible.classes.web_page import WebPageData
+from openai import OpenAI
 
 if TYPE_CHECKING:
     from nosible.classes.result_set import ResultSet
@@ -99,15 +99,14 @@ class Result:
         Examples
         --------
         >>> result = Result(title="Example Domain", similarity=0.9876)
-        >>> print(str(result))
-          0.99 | Example Domain
+        >>> print(str(result)) # doctest: +ELLIPSIS
+        {...}
         >>> result = Result(title=None, similarity=None)
-        >>> print(str(result))
-           N/A | No Title
+        >>> print(str(result)) # doctest: +ELLIPSIS
+        {...}
         """
-        similarity = f"{self.similarity:.2f}" if self.similarity is not None else "N/A"
-        title = self.title or "No Title"
-        return f"{similarity:>6} | {title}"
+
+        return json.dumps(self.to_dict(), indent=2)
 
     def __repr__(self):
         """
