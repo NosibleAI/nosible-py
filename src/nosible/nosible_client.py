@@ -71,17 +71,21 @@ class Nosible:
     certain : bool, optional
         True if we are 100% sure of the date.
     include_languages : list of str, optional
-        Language codes to include.
+        Language codes to include (Max: 50).
     exclude_languages : list of str, optional
-        Language codes to exclude.
+        Language codes to exclude (Max: 50).
+    include_netlocs : list of str, optional
+        Only include results from these domains (Max: 50).
+    exclude_netlocs : list of str, optional
+        Exclude results from these domains (Max: 50).
     include_companies : list of str, optional
-        Google KG IDs of public companies to require.
+        Google KG IDs of public companies to require (Max: 50).
     exclude_companies : list of str, optional
-        Google KG IDs of public companies to forbid.
+        Google KG IDs of public companies to forbid (Max: 50).
     include_docs : list of str, optional
-        URL hashes of docs to include.
+        URL hashes of docs to include (Max: 50).
     exclude_docs : list of str, optional
-        URL hashes of docs to exclude.
+        URL hashes of docs to exclude (Max: 50).
     openai_base_url : str, optional
         Base URL for the OpenAI API (default is OpenRouter).
     sentiment_model : str, optional
@@ -100,7 +104,6 @@ class Nosible:
     >>> from nosible import Nosible  # doctest: +SKIP
     >>> nos = Nosible(nosible_api_key="your_api_key_here")  # doctest: +SKIP
     >>> search = nos.search(question="What is Nosible?", n_results=5)  # doctest: +SKIP
-
     """
 
     def __init__(
@@ -265,17 +268,21 @@ class Nosible:
         certain : bool, optional
             True if we are 100% sure of the date.
         include_languages : list of str, optional
-            Language codes to include.
+            Language codes to include (Max: 50).
         exclude_languages : list of str, optional
-            Language codes to exclude.
+            Language codes to exclude (Max: 50).
+        include_netlocs : list of str, optional
+            Only include results from these domains (Max: 50).
+        exclude_netlocs : list of str, optional
+            Exclude results from these domains (Max: 50).
         include_companies : list of str, optional
-            Google KG IDs of public companies to require.
+            Google KG IDs of public companies to require (Max: 50).
         exclude_companies : list of str, optional
-            Google KG IDs of public companies to forbid.
+            Google KG IDs of public companies to forbid (Max: 50).
         include_docs : list of str, optional
-            URL hashes of docs to include.
+            URL hashes of docs to include (Max: 50).
         exclude_docs : list of str, optional
-            URL hashes of docs to exclude.
+            URL hashes of docs to exclude (Max: 50).
 
         Returns
         -------
@@ -308,18 +315,18 @@ class Nosible:
         ...     print(len(results))
         True
         10
-        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> nos.search()  # doctest: +SKIP
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.search()  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         TypeError: Specify exactly one of 'question' or 'search'.
-        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> nos.search(question="foo", search=s)  # doctest: +SKIP
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.search(question="foo", search=s)  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         TypeError: Specify exactly one of 'question' or 'search'.
-        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> nos.search(question="foo", n_results=101)  # doctest: +SKIP
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.search(question="foo", n_results=101)  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         ValueError: Search can not have more than 100 results - Use bulk search instead.
@@ -354,6 +361,9 @@ class Nosible:
         future = self._executor.submit(self._search_single, search_obj)
         try:
             return future.result()
+        except ValueError:
+            # Propagate our own “too many results” error directly
+            raise
         except Exception as e:
             self.logger.warning(f"Search for {search_obj.question!r} failed: {e}")
             raise RuntimeError(f"Search for {search_obj.question!r} failed") from e
@@ -422,17 +432,17 @@ class Nosible:
         certain : bool, optional
             Only include results with high certainty.
         include_languages : list of str, optional
-            Only include results in these languages.
+            Only include results in these languages (Max: 50).
         exclude_languages : list of str, optional
-            Exclude results in these languages.
+            Exclude results in these languages (Max: 50).
         include_companies : list of str, optional
-            Only include results from these companies.
+            Only include results from these companies (Max: 50).
         exclude_companies : list of str, optional
-            Exclude results from these companies.
+            Exclude results from these companies (Max: 50).
         include_netlocs : list of str, optional
-            Only include results from these domains.
+            Only include results from these domains (Max: 50).
         exclude_netlocs : list of str, optional
-            Exclude results from these domains.
+            Exclude results from these domains (Max: 50).
 
         Yields
         ------
@@ -471,14 +481,14 @@ class Nosible:
         True True
         >>> with Nosible() as nos:
         ...     results_list_str = list(nos.searches(questions=["Python programming", "C++ programming"]))
-        >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.searches()
+        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +ELLIPSIS
+        >>> nos.searches()  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         TypeError: Specify exactly one of 'questions' or 'searches'.
         >>> from nosible import Nosible
         >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.searches(questions=["A"], searches=SearchSet(searches=["A"]))
+        >>> nos.searches(questions=["A"], searches=SearchSet(searches=["A"]))  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         TypeError: Specify exactly one of 'questions' or 'searches'.
@@ -546,12 +556,11 @@ class Nosible:
 
         Examples
         --------
-
-        >>> from nosible.classes.search import Search  # doctest: +SKIP
-        >>> from nosible import Nosible  # doctest: +SKIP
-        >>> s = Search(question="OpenAI", n_results=200)  # doctest: +SKIP
-        >>> with Nosible() as nos:  # doctest: +SKIP
-        ...     results = nos.search(search=s)  # doctest: +SKIP
+        >>> from nosible.classes.search import Search
+        >>> from nosible import Nosible
+        >>> s = Search(question="OpenAI", n_results=200)
+        >>> with Nosible() as nos:
+        ...     results = nos.search(search=s)  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         ValueError: Search can not have more than 100 results - Use bulk search instead.
@@ -737,17 +746,21 @@ class Nosible:
         certain : bool, optional
             True if we are 100% sure of the date.
         include_languages : list of str, optional
-            Languages to include.
+            Languages to include (Max: 50).
         exclude_languages : list of str, optional
-            Languages to exclude.
+            Languages to exclude (Max: 50).
+        include_netlocs : list of str, optional
+            Only include results from these domains (Max: 50).
+        exclude_netlocs : list of str, optional
+            Exclude results from these domains (Max: 50).
         include_companies : list of str, optional
-            Company IDs to require.
+            Company IDs to require (Max: 50).
         exclude_companies : list of str, optional
-            Company IDs to forbid.
+            Company IDs to forbid (Max: 50).
         include_docs : list of str, optional
-            URL hashes of documents to include.
+            URL hashes of documents to include (Max: 50).
         exclude_docs : list of str, optional
-            URL hashes of documents to exclude.
+            URL hashes of documents to exclude (Max: 50).
         verbose : bool, optional
             Show verbose output, Bulk search will print more information.
 
@@ -1265,10 +1278,18 @@ class Nosible:
         timeout : int, optional
             Override timeout for this request.
 
-        Raises TODO
+        Raises
         ------
         ValueError
             If the user API key is invalid.
+        ValueError
+            If the user hits their rate limit.
+        ValueError
+            If an unexpected error occurs.
+        ValueError
+            If NOSIBLE is currently restarting.
+        ValueError
+            If NOSIBLE is currently overloaded.
 
         Returns
         -------
@@ -1493,17 +1514,21 @@ class Nosible:
         certain : bool, optional
             True if we are 100% sure of the date.
         include_languages : list of str, optional
-            Languages to include.
+            Languages to include (Max: 50).
         exclude_languages : list of str, optional
-            Languages to exclude.
+            Languages to exclude (Max: 50).
+        include_netlocs : list of str, optional
+            Only include results from these domains (Max: 50).
+        exclude_netlocs : list of str, optional
+            Exclude results from these domains (Max: 50).
         include_companies : list of str, optional
-            Public Company Google KG IDs to require.
+            Public Company Google KG IDs to require (Max: 50).
         exclude_companies : list of str, optional
-            Public Company Google KG IDs to forbid.
+            Public Company Google KG IDs to forbid (Max: 50).
         include_docs : list of str, optional
-            URL hashes of documents to include.
+            URL hashes of documents to include (Max: 50).
         exclude_docs : list of str, optional
-            URL hashes of documents to exclude.
+            URL hashes of documents to exclude (Max: 50).
 
         Returns
         -------
