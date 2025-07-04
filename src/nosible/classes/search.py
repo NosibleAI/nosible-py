@@ -33,6 +33,8 @@ class Search:
         Search algorithm to use.
     output_type : str, optional
         Type of output to produce.
+    autogenerate_expansions : bool, default=False
+        Do you want to generate expansions automatically using a LLM?
     publish_start : str, optional
         Start date for published documents (ISO format).
     publish_end : str, optional
@@ -85,6 +87,7 @@ class Search:
         "n_contextify",
         "algorithm",
         "output_type",
+        "autogenerate_expansions",
         "publish_start",
         "publish_end",
         "include_netlocs",
@@ -110,6 +113,7 @@ class Search:
         n_contextify: int = None,
         algorithm: str = None,
         output_type: str = None,
+        autogenerate_expansions: bool = False,
         publish_start: str = None,
         publish_end: str = None,
         include_netlocs: list[str] = None,
@@ -132,6 +136,7 @@ class Search:
         self.n_contextify = n_contextify
         self.algorithm = algorithm
         self.output_type = output_type
+        self.autogenerate_expansions = autogenerate_expansions
         self.publish_start = publish_start
         self.publish_end = publish_end
         self.include_netlocs = include_netlocs
