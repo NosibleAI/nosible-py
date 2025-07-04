@@ -50,17 +50,21 @@ class Search:
     certain : bool, optional
         Whether to only include certain results.
     include_languages : list of str, optional
-        Languages to include in the search.
+        Languages to include in the search (Max: 50).
     exclude_languages : list of str, optional
-        Languages to exclude from the search.
+        Languages to exclude from the search (Max: 50).
+    include_netlocs : list of str, optional
+        Only include results from these domains (Max: 50).
+    exclude_netlocs : list of str, optional
+        Exclude results from these domains (Max: 50).
     include_companies : list of str, optional
-        Companies to include in the search.
+        Companies to include in the search (Max: 50).
     exclude_companies : list of str, optional
-        Companies to exclude from the search.
+        Companies to exclude from the search (Max: 50).
     include_docs : list of str, optional
-        Document IDs to include in the search.
+        Document IDs to include in the search (Max: 50).
     exclude_docs : list of str, optional
-        Document IDs to exclude from the search.
+        Document IDs to exclude from the search (Max: 50).
 
     Examples
     --------
