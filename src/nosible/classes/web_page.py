@@ -127,26 +127,6 @@ class WebPageData:
         """
         return json_dumps(self.to_dict())
 
-    def __getattr__(self, name):
-        """
-        Allow attribute access to the internal dictionaries.
-
-        Raises
-        ------
-        AttributeError
-            If the requested attribute does not exist in the WebPageData.
-
-        Returns
-        -------
-        Any
-            The value of the specified attribute if it exists, otherwise raises AttributeError.
-        """
-        try:
-            return getattr(self, name)
-        except AttributeError as e:
-            # chain the new AttributeError onto the original one
-            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'") from e
-
     def to_dict(self) -> dict:
         """
         Convert the WebPageData instance to a dictionary.
