@@ -401,7 +401,7 @@ class Nosible:
         ----------
         searches: SearchSet or list of Search
             The searches execute.
-        queries : list of str
+        questions : list of str
             The search queries to execute.
         expansions : list of str, optional
             List of expansion terms to use for each search.
@@ -443,6 +443,10 @@ class Nosible:
             Only include results from these domains (Max: 50).
         exclude_netlocs : list of str, optional
             Exclude results from these domains (Max: 50).
+        include_docs : list of str, optional
+            URL hashes of documents to include (Max: 50).
+        exclude_docs : list of str, optional
+            URL hashes of documents to exclude (Max: 50).
 
         Yields
         ------
@@ -1102,8 +1106,7 @@ class Nosible:
         --------
         >>> from nosible import Nosible
         >>> with Nosible() as nos:
-        ...     idx = nos.indexed(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")
-        ...     print(idx)
+        ...     print(nos.indexed(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/"))
         True
         """
         response = self._post(url="https://www.nosible.ai/search/v1/indexed", payload={"url": url})
@@ -1118,7 +1121,6 @@ class Nosible:
                 return False
             if msg == "The URL could not be retrieved.":
                 return False
-            raise ValueError(f"Unexpected response from indexed endpoint: {data!r}")
         except requests.HTTPError:
             return False
 
