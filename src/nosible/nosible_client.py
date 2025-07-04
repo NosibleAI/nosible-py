@@ -1265,7 +1265,7 @@ class Nosible:
         timeout : int, optional
             Override timeout for this request.
 
-        Raises
+        Raises TODO
         ------
         ValueError
             If the user API key is invalid.
@@ -1282,7 +1282,7 @@ class Nosible:
             timeout=timeout if timeout is not None else self.timeout,
         )
 
-        # If unauthorized, or if the payload is “string too short,” treat as invalid API key
+        # If unauthorized, or if the payload is string too short, treat as invalid API key
         if response.status_code == 401:
             raise ValueError("Your API key is not valid.")
         if response.status_code == 422:
@@ -1292,6 +1292,16 @@ class Nosible:
                 body = response.json()
                 if body.get("type") == "string_too_short":
                     raise ValueError("Your API key is not valid: Too Short.")
+            else:
+                raise ValueError("You made a bad request.")
+        if response.status_code == 429:
+            raise ValueError("You have hit your rate limit.")
+        if response.status_code == 500:
+            raise ValueError("An unexpected error occurred.")
+        if response.status_code == 502:
+            raise ValueError("NOSIBLE is currently restarting.")
+        if response.status_code == 504:
+            raise ValueError("NOSIBLE is currently overloaded.")
 
         return response
 
