@@ -897,7 +897,7 @@ class Nosible:
         self.logger.debug(f"SQL Filter: {sql_filter}")
 
         # Validate n_result bounds
-        if n_results <= 1000:
+        if n_results < 1000:
             raise ValueError(
                 "Bulk search must have at least 1000 results per query; use search() for smaller result sets."
             )
