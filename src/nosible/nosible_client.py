@@ -940,6 +940,12 @@ class Nosible:
         ------
         TypeError
             If URL is not provided.
+        ValueError
+            If invalid JSON response from the server.
+        ValueError
+            If URL is not found.
+        ValueError
+            If the server did not send back a 'response' key.
 
         Examples
         --------
@@ -974,6 +980,9 @@ class Nosible:
         except Exception as e:
             self.logger.error(f"Failed to parse JSON from response: {e}")
             raise ValueError("Invalid JSON response from server") from e
+
+        if data == {'message': 'Sorry, the URL could not be fetched.'}:
+            raise ValueError("The URL could not be found.")
 
         if "response" not in data:
             self.logger.error(f"No 'response' key in server response: {data}")

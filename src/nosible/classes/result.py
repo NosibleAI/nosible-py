@@ -231,8 +231,8 @@ class Result:
         Examples
         --------
         >>> from nosible import Nosible, Result
-        >>> with Nosible() as nos:  # doctest: +SKIP
-        ...     result = Result(url="https://example.com")
+        >>> with Nosible() as nos:
+        ...     result = Result(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")
         ...     page = result.visit(client=nos)
         ...     isinstance(page, WebPageData)
         True
@@ -458,7 +458,7 @@ class Result:
                 include_companies=include_companies,
                 exclude_companies=exclude_companies,
             )
-            return client.search(s)
+            return client.search(search=s)
         except Exception as e:
             raise RuntimeError(f"Failed to find similar results for title '{self.title}': {e}") from e
 
