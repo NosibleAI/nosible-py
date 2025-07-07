@@ -25,7 +25,7 @@ Search Capabilities
   agentic, and bespoke finance-optimized search algorithms, depending on your use case.
 
 - **Query Expansion:** You can submit up to 10 related search terms in one shot to retrieve
-  higher-quality search results. We will treat that as one API request, so it’s a 10-for-1 special.
+  higher-quality search results. We will treat that as one API request, so it's a 10-for-1 special.
 
 - **Native Pre-filtering:** You can filter your search results by specific publishers, date
   ranges, languages, and more without sacrificing search quality. We natively support
@@ -40,7 +40,7 @@ Search Capabilities
 Scale and Coverage
 ------------------
 
-- **25× Larger Than Wikipedia:** Nosible has indexed over 500 million content webpages from
+- **25x Larger Than Wikipedia:** Nosible has indexed over 500 million content webpages from
   across the web. Our index contains billions of embeddings and hundreds of billions of
   tokens of text.
 
@@ -50,8 +50,8 @@ Scale and Coverage
 - **Non-news Content:** Nosible is rapidly expanding coverage of non-news content from the web,
   including all asset manager websites, public company blogs, financial regulators, and more.
 
-- **Over 75 Languages:** Nosible has content in over 75 languages, including—but not limited
-  to—Mandarin, Arabic, Hindi, Japanese, German, Spanish, French, Bengali, Portuguese, and more.
+- **Over 75 Languages:** Nosible has content in over 75 languages, including - but not limited
+  to - Mandarin, Arabic, Hindi, Japanese, German, Spanish, French, Bengali, Portuguese, and more.
 
 ----
 
@@ -62,7 +62,7 @@ Features for Quants
   (people, places, or companies) worldwide, going back to 1998, with commercial rights.
 
 - **Summaries:** Get summaries of all media coverage for any entity in the world dating
-  back to 1998. It’s time that you ran your backtest on the signal—not the noise.
+  back to 1998. It's time that you ran your backtest on the signal—not the noise.
 
 - **Event Feeds:** You can also get summaries and sentiments for current and historical
   events that affected markets, including geopolitical events such as elections and crashes.
