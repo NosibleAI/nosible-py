@@ -796,41 +796,39 @@ class Nosible:
         --------
         >>> from nosible.classes.search import Search
         >>> from nosible import Nosible
-        >>> with Nosible(include_netlocs=["bbc.com"]) as nos:  # doctest: +SKIP
-        ...     results = nos.bulk_search(question="Nvidia insiders dump more than $1 billion in stock", n_results=2000)  # doctest: +SKIP
-        ...     print(isinstance(results, ResultSet))  # doctest: +SKIP
-        ...     print(len(results))  # doctest: +SKIP
+        >>> with Nosible(exclude_netlocs=["bbc.com"]) as nos:
+        ...     results = nos.bulk_search(question="Nvidia insiders dump more than $1 billion in stock", n_results=2000)
+        ...     print(isinstance(results, ResultSet))
+        ...     print(len(results))
         True
         2000
 
-        >>> s = Search(question="OpenAI", n_results=1000)  # doctest: +SKIP
-        >>> with Nosible() as nos:  # doctest: +SKIP
-        ...     results = nos.bulk_search(search=s)  # doctest: +SKIP
-        ...     print(isinstance(results, ResultSet))  # doctest: +SKIP
-        ...     print(len(results))  # doctest: +SKIP
+        >>> s = Search(question="OpenAI", n_results=1000)
+        >>> with Nosible() as nos:
+        ...     results = nos.bulk_search(search=s)
+        ...     print(isinstance(results, ResultSet))
+        ...     print(len(results))
         True
         1000
 
-        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> nos.bulk_search()  # doctest: +SKIP
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.bulk_search()  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         TypeError: Either question or search must be specified
 
-        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> nos.bulk_search(question="foo", search=Search(question="foo"))  # doctest: +SKIP
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.bulk_search(question="foo", search=Search(question="foo")) # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         TypeError: Question and search cannot be both specified
-
-        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> nos.bulk_search(question="foo", n_results=100)  # doctest: +SKIP
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.bulk_search(question="foo", n_results=100) # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
-        ValueError: Bulk search must have at least 100 results per query; use search() for smaller result sets.
-
-        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> nos.bulk_search(question="foo", n_results=10001)  # doctest: +SKIP
+        ValueError: Bulk search must have at least 1000 results per query; use search() for smaller result sets.
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> nos.bulk_search(question="foo", n_results=10001)  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         ValueError: Bulk search cannot have more than 10000 results per query.
@@ -986,25 +984,24 @@ class Nosible:
 
         Examples
         --------
-        >>> from nosible import Nosible  # doctest: +SKIP
-        >>> with Nosible() as nos:  # doctest: +SKIP
-        ...     out = nos.visit(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")  # doctest: +SKIP
-        ...     print(isinstance(out, type(WebPageData)))  # doctest: +SKIP
-        ...     print(hasattr(out, "languages"))  # doctest: +SKIP
-        ...     print(hasattr(out, "page"))  # doctest: +SKIP
+        >>> from nosible import Nosible
+        >>> with Nosible() as nos:
+        ...     out = nos.visit(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")
+        ...     print(isinstance(out, WebPageData))
+        ...     print(hasattr(out, "languages"))
+        ...     print(hasattr(out, "page"))
         True
         True
         True
-        >>> with Nosible() as nos:  # doctest: +SKIP
-        ...     out = nos.visit()  # doctest: +SKIP
-        ...     print(isinstance(out, type(WebPageData)))  # doctest: +SKIP
-        ...     print(hasattr(out, "languages"))  # doctest: +SKIP
-        ...     print(hasattr(out, "page"))  # doctest: +SKIP
+        >>> with Nosible() as nos:
+        ...     out = nos.visit()
+        ...     print(isinstance(out, type(WebPageData)))
+        ...     print(hasattr(out, "languages"))
+        ...     print(hasattr(out, "page"))  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         TypeError: URL must be provided
         """
-
         if url is None:
             raise TypeError("URL must be provided")
         response = self._post(
@@ -1179,16 +1176,19 @@ class Nosible:
 
         Examples
         --------
-        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> print(nos.get_rate_limits())  # doctest: +SKIP
-        Free (Your current plan)
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> print(nos.get_rate_limits())  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+        Below are the rate limits for all NOSIBLE plans.
+        To upgrade your package, visit https://www.nosible.ai/products.
+        <BLANKLINE>
+        Free: (Your current plan)
         | Endpoint    | Per Month | Per Day | Per Minute |
         | ----------- | --------- | ------- | ---------- |
-        | Fast Search |     3 000 |     100 |         10 |
+        | Search      |      3000 |     100 |         10 |
         | URL Visits  |       300 |      10 |          1 |
-        | Slow Search |       300 |      10 |          1 |
-
-        Basic
+        | Bulk Search |       300 |      10 |          1 |
+        <BLANKLINE>
+        Basic:
         | Endpoint    | Per Month | Per Day | Per Minute |
         ...
         """
@@ -1204,7 +1204,7 @@ class Nosible:
         }
 
         # Human-friendly endpoint names
-        endpoint_name = {"fast": "Fast Search", "visit": "URL Visits", "slow": "Bulk Search"}
+        endpoint_name = {"fast": "Search", "visit": "URL Visits", "slow": "Bulk Search"}
 
         out = [
             "Below are the rate limits for all NOSIBLE plans.",
@@ -1353,15 +1353,15 @@ class Nosible:
 
         Examples
         --------
-        >>> nos = Nosible(nosible_api_key="test+|xyz")  # doctest: +SKIP
+        >>> nos = Nosible(nosible_api_key="test+|xyz")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
         Traceback (most recent call last):
         ...
-        ValueError: test+ is not a valid plan prefix, your API key is invalid.
+        ValueError: Your API key is not valid: test+ is not a valid plan prefix.
         """
         # Split off anything after the first '|'
         prefix = (self.nosible_api_key or "").split("|", 1)[0]
 
-        # Map prefixes -> human-friendly plan names
+        # Map prefixes -> plan names
         plans = {"test", "basic", "pro", "pro+", "bus", "bus+", "ent"}
 
         if prefix not in plans:
@@ -1392,10 +1392,10 @@ class Nosible:
 
         Examples
         --------
-        >>> from nosible import Nosible  # doctest: +SKIP
-        >>> nos = Nosible(llm_api_key=None)  # doctest: +SKIP
-        >>> nos.llm_api_key = None  # doctest: +SKIP
-        >>> nos._generate_expansions("anything")  # doctest: +SKIP
+        >>> from nosible import Nosible
+        >>> nos = Nosible(llm_api_key=None)
+        >>> nos.llm_api_key = None
+        >>> nos._generate_expansions("anything")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
         Traceback (most recent call last):
         ...
         ValueError: LLM API key is required for generating expansions.
