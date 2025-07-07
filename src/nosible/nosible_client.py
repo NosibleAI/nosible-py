@@ -52,9 +52,9 @@ class Nosible:
         Model to use for sentiment analysis and expansions.
     timeout : int
         Request timeout for HTTP calls.
-    retries : int, default=5
+    retries : int,
         Number of retry attempts for transient HTTP errors.
-    concurrency : int, default=10
+    concurrency : int,
         Maximum concurrent search requests.
     publish_start : str, optional
         Earliest publish date filter (ISO formatted date).
@@ -87,9 +87,9 @@ class Nosible:
     exclude_docs : list of str, optional
         URL hashes of docs to exclude (Max: 50).
     openai_base_url : str, optional
-        Base URL for the OpenAI API (default is OpenRouter).
+        Base URL for the OpenAI API.
     sentiment_model : str, optional
-        Model to use for sentiment analysis (default is "openai/gpt-4o").
+        Model to use for sentiment analysis.
 
     Notes
     -----
@@ -243,15 +243,15 @@ class Nosible:
             List of LLM‐generated expansions.
         sql_filter : list of str, optional
             SQL‐style filter clauses.
-        n_results : int, default=100
+        n_results : int
             Max number of results (max 100).
-        n_probes : int, default=30
+        n_probes : int
             Number of index shards to probe.
-        n_contextify : int, default=128
+        n_contextify : int
             Context window size per result.
-        algorithm : str, default="hybrid-2"
+        algorithm : str
             Search algorithm type.
-        autogenerate_expansions : bool, default=False
+        autogenerate_expansions : bool
             Do you want to generate expansions automatically using a LLM?
         publish_start : str, optional
             Earliest publish date filter (ISO formatted date).
@@ -407,15 +407,15 @@ class Nosible:
             List of expansion terms to use for each search.
         sql_filter : list of str, optional
             SQL-like filters to apply to the search.
-        n_results : int, default=100
+        n_results : int
             Number of results to return per search.
-        n_probes : int, default=30
+        n_probes : int
             Number of probes to use for the search algorithm.
-        n_contextify : int, default=128
+        n_contextify : int
             Context window size for the search.
-        algorithm : str, default="hybrid-2"
+        algorithm : str
             Search algorithm to use.
-        autogenerate_expansions : bool, default=False
+        autogenerate_expansions : bool
             Do you want to generate expansions automatically using a LLM?
         publish_start : str, optional
             Filter results published after this date (ISO formatted date).
@@ -728,15 +728,15 @@ class Nosible:
             Optional list of expanded query strings.
         sql_filter : list of str, optional
             Optional SQL WHERE clause filters.
-        n_results : int, default=100
+        n_results : int
             Number of results per query (1,000–10,000).
-        n_probes : int, default=30
+        n_probes : int
             Number of shards to probe.
-        n_contextify : int, default=128
+        n_contextify : int
             Context window size per result.
-        algorithm : str, default="hybrid-2"
+        algorithm : str
             Search algorithm identifier.
-        autogenerate_expansions : bool, default=False
+        autogenerate_expansions : bool
             Do you want to generate expansions automatically using a LLM?
         publish_start : str, optional
             Filter for earliest publish date.
@@ -959,13 +959,13 @@ class Nosible:
 
         Parameters
         ----------
-        html : str, default=""
+        html : str
             Raw HTML to process instead of fetching.
-        recrawl : bool, default=False
+        recrawl : bool
             If True, force a fresh crawl.
-        render : bool, default=False
+        render : bool
             If True, allow JavaScript rendering before extraction.
-        url : str, default=None
+        url : str
             The URL to fetch and parse.
 
         Returns
@@ -1005,7 +1005,6 @@ class Nosible:
         TypeError: URL must be provided
         """
 
-        # self._enforce("visit")
         if url is None:
             raise TypeError("URL must be provided")
         response = self._post(
@@ -1393,7 +1392,6 @@ class Nosible:
 
         Examples
         --------
-
         >>> from nosible import Nosible  # doctest: +SKIP
         >>> nos = Nosible(llm_api_key=None)  # doctest: +SKIP
         >>> nos.llm_api_key = None  # doctest: +SKIP
@@ -1545,7 +1543,6 @@ class Nosible:
 
         Raises
         ------
-
         ValueError
             If more than 50 items in a filter are given.
         """

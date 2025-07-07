@@ -7,8 +7,8 @@
 NOSIBLE Client Documentation
 ============================
 
-Welcome to the NOSIBLE Client package! This documentation will give you an in-depth overview of the NOSIBLE search
-API, and how to harness the power of the NOSIBLE search engine.
+Welcome to the NOSIBLE Client package! This documentation will give you an in-depth overview of the NOSIBLE Search
+API, and show you how to harness the power of the NOSIBLE Search Engine.
 
 Our mission is to be the undisputed **BEST** source of data for artificial intelligence agents
 operating in the financial services sector. Engineered for quant funds and financial innovators
@@ -81,6 +81,7 @@ the Nosible Search API is for you.
    :hidden:
 
    getting_started
+   configuration
    rate_limits
 
 API reference
