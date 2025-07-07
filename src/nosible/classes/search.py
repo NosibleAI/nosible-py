@@ -31,8 +31,6 @@ class Search:
         Number of context documents to retrieve.
     algorithm : str, optional
         Search algorithm to use.
-    output_type : str, optional
-        Type of output to produce.
     autogenerate_expansions : bool, default=False
         Do you want to generate expansions automatically using a LLM?
     publish_start : str, optional
@@ -65,7 +63,6 @@ class Search:
     Examples
     --------
     Create a search with specific parameters:
-
     >>> search = Search(
     ...     question="What is Python?",
     ...     n_results=5,
@@ -86,7 +83,6 @@ class Search:
         "n_probes",
         "n_contextify",
         "algorithm",
-        "output_type",
         "autogenerate_expansions",
         "publish_start",
         "publish_end",
@@ -112,7 +108,6 @@ class Search:
         n_probes: int = None,
         n_contextify: int = None,
         algorithm: str = None,
-        output_type: str = None,
         autogenerate_expansions: bool = False,
         publish_start: str = None,
         publish_end: str = None,
@@ -135,7 +130,6 @@ class Search:
         self.n_probes = n_probes
         self.n_contextify = n_contextify
         self.algorithm = algorithm
-        self.output_type = output_type
         self.autogenerate_expansions = autogenerate_expansions
         self.publish_start = publish_start
         self.publish_end = publish_end
