@@ -36,7 +36,37 @@ def json_dumps(obj: object) -> Union[bytes, str]:
 
     Examples
     --------
+    # Standard dict serialization (no orjson)
+    >>> _use_orjson = False
+    >>> json_dumps({"a": 1})
+    '{"a":1}'
 
+    # List serialization
+    >>> _use_orjson = False
+    >>> json_dumps([1, 2, 3])
+    '[1,2,3]'
+
+    # orjson path returns unicode str
+    >>> import orjson
+    >>> _use_orjson = True
+    >>> orjson.dumps = lambda o: b'{"b":2}'
+    >>> json_dumps({"b": 2})
+    '{"b":2}'
+
+    # Non-str dict keys are coerced to str when using orjson
+    >>> _use_orjson = True
+    >>> orjson.dumps = lambda o: b'{"1":"one"}'
+    >>> json_dumps({1: "one"})
+    '{"1":"one"}'
+
+    # Error path: un-serializable object
+    >>> _use_orjson = False
+    >>> class Bad: pass
+    >>> try:
+    ...     json_dumps(Bad())
+    ... except RuntimeError as e:
+    ...     "Failed to serialize object to JSON" in str(e)
+    '{"1":"one"}'
     """
     try:
         if _use_orjson:
