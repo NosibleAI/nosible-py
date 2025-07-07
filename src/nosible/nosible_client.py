@@ -47,9 +47,9 @@ class Nosible:
     llm_api_key : str, optional
         API key for LLM-based query expansions.
     openai_base_url : str
-        Base URL for the OpenAI-compatible LLM API.
-    sentiment_model : str
-        Model to use for sentiment analysis and expansions.
+        Base URL for the OpenAI-compatible LLM API. (default is OpenRouter's API endpoint)
+    sentiment_model : str, optional
+        Model to use for sentiment analysis (default is "openai/gpt-4o").
     timeout : int
         Request timeout for HTTP calls.
     retries : int, default=5
@@ -57,27 +57,23 @@ class Nosible:
     concurrency : int, default=10
         Maximum concurrent search requests.
     publish_start : str, optional
-        Earliest publish date filter (ISO formatted date).
+        Start date for when the document was published (ISO format).
     publish_end : str, optional
-        Latest publish date filter (ISO formatted date).
-    include_netlocs : list of str, optional
-        Domains to include.
-    exclude_netlocs : list of str, optional
-        Domains to exclude.
+        End date for when the document was published (ISO format).
     visited_start : str, optional
-        Earliest visit date filter (ISO formatted date).
+        Start date for when the document was visited by NOSIBLE (ISO format).
     visited_end : str, optional
-        Latest visit date filter (ISO formatted date).
+        End date for when the document was visited by NOSIBLE (ISO format).
     certain : bool, optional
-        True if we are 100% sure of the date.
-    include_languages : list of str, optional
-        Language codes to include (Max: 50).
-    exclude_languages : list of str, optional
-        Language codes to exclude (Max: 50).
+        Only include documents where we are 100% sure of the date.
     include_netlocs : list of str, optional
-        Only include results from these domains (Max: 50).
+        List of netlocs (domains) to include in the search. (Max: 50)
     exclude_netlocs : list of str, optional
-        Exclude results from these domains (Max: 50).
+        List of netlocs (domains) to exclude in the search. (Max: 50)
+    include_languages : list of str, optional
+        Languages to include in the search. (Max: 50, ISO 639-1 language codes).
+    exclude_languages : list of str, optional
+        Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
     include_companies : list of str, optional
         Google KG IDs of public companies to require (Max: 50).
     exclude_companies : list of str, optional
@@ -86,10 +82,6 @@ class Nosible:
         URL hashes of docs to include (Max: 50).
     exclude_docs : list of str, optional
         URL hashes of docs to exclude (Max: 50).
-    openai_base_url : str, optional
-        Base URL for the OpenAI API (default is OpenRouter).
-    sentiment_model : str, optional
-        Model to use for sentiment analysis (default is "openai/gpt-4o").
 
     Notes
     -----
@@ -254,27 +246,23 @@ class Nosible:
         autogenerate_expansions : bool, default=False
             Do you want to generate expansions automatically using a LLM?
         publish_start : str, optional
-            Earliest publish date filter (ISO formatted date).
+            Start date for when the document was published (ISO format).
         publish_end : str, optional
-            Latest publish date filter (ISO formatted date).
-        include_netlocs : list of str, optional
-            Domains to include.
-        exclude_netlocs : list of str, optional
-            Domains to exclude.
+            End date for when the document was published (ISO format).
         visited_start : str, optional
-            Earliest visit date filter (ISO formatted date).
+            Start date for when the document was visited by NOSIBLE (ISO format).
         visited_end : str, optional
-            Latest visit date filter (ISO formatted date).
+            End date for when the document was visited by NOSIBLE (ISO format).
         certain : bool, optional
-            True if we are 100% sure of the date.
-        include_languages : list of str, optional
-            Language codes to include (Max: 50).
-        exclude_languages : list of str, optional
-            Language codes to exclude (Max: 50).
+            Only include documents where we are 100% sure of the date.
         include_netlocs : list of str, optional
-            Only include results from these domains (Max: 50).
+            List of netlocs (domains) to include in the search. (Max: 50)
         exclude_netlocs : list of str, optional
-            Exclude results from these domains (Max: 50).
+            List of netlocs (domains) to exclude in the search. (Max: 50)
+        include_languages : list of str, optional
+            Languages to include in the search. (Max: 50, ISO 639-1 language codes).
+        exclude_languages : list of str, optional
+            Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
         include_companies : list of str, optional
             Google KG IDs of public companies to require (Max: 50).
         exclude_companies : list of str, optional
@@ -297,6 +285,8 @@ class Nosible:
             If neither question nor search are specified
         RuntimeError
             If the response fails in any way.
+        ValueError
+            If `n_results` is greater than 100.
 
         Notes
         -----
@@ -418,37 +408,33 @@ class Nosible:
         autogenerate_expansions : bool, default=False
             Do you want to generate expansions automatically using a LLM?
         publish_start : str, optional
-            Filter results published after this date (ISO formatted date).
+            Start date for when the document was published (ISO format).
         publish_end : str, optional
-            Filter results published before this date (ISO formatted date).
-        include_netlocs : list of str, optional
-            Only include results from these domains.
-        exclude_netlocs : list of str, optional
-            Exclude results from these domains.
+            End date for when the document was published (ISO format).
         visited_start : str, optional
-            Only include results visited after this date (ISO formatted date).
+            Start date for when the document was visited by NOSIBLE (ISO format).
         visited_end : str, optional
-            Only include results visited before this date (ISO formatted date).
+            End date for when the document was visited by NOSIBLE (ISO format).
         certain : bool, optional
-            Only include results with high certainty.
-        include_languages : list of str, optional
-            Only include results in these languages (Max: 50).
-        exclude_languages : list of str, optional
-            Exclude results in these languages (Max: 50).
-        include_companies : list of str, optional
-            Only include results from these companies (Max: 50).
-        exclude_companies : list of str, optional
-            Exclude results from these companies (Max: 50).
+            Only include documents where we are 100% sure of the date.
         include_netlocs : list of str, optional
-            Only include results from these domains (Max: 50).
+            List of netlocs (domains) to include in the search. (Max: 50)
         exclude_netlocs : list of str, optional
-            Exclude results from these domains (Max: 50).
+            List of netlocs (domains) to exclude in the search. (Max: 50)
+        include_languages : list of str, optional
+            Languages to include in the search. (Max: 50, ISO 639-1 language codes).
+        exclude_languages : list of str, optional
+            Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
+        include_companies : list of str, optional
+            Google KG IDs of public companies to require (Max: 50).
+        exclude_companies : list of str, optional
+            Google KG IDs of public companies to forbid (Max: 50).
         include_docs : list of str, optional
-            URL hashes of documents to include (Max: 50).
+            URL hashes of docs to include (Max: 50).
         exclude_docs : list of str, optional
-            URL hashes of documents to exclude (Max: 50).
+            URL hashes of docs to exclude (Max: 50).
 
-        Yields
+        Returns
         ------
         ResultSet or None
             Each completed search’s results, or None on failure.
@@ -461,8 +447,6 @@ class Nosible:
             If both queries and searches are specified.
         TypeError
             If neither queries nor searches are specified.
-        RuntimeError
-            If the response fails in any way.
 
         Notes
         -----
@@ -473,7 +457,10 @@ class Nosible:
         --------
         >>> from nosible import Nosible
         >>> queries = SearchSet(
-        ...     [Search(question="Hedge funds seek to expand into private credit", n_results=5), Search(question="How have the Trump tariffs impacted the US economy?", n_results=5)]
+        ...     [
+        ...         Search(question="Hedge funds seek to expand into private credit", n_results=5),
+        ...         Search(question="How have the Trump tariffs impacted the US economy?", n_results=5),
+        ...     ]
         ... )
         >>> with Nosible() as nos:
         ...     results_list = list(nos.searches(searches=queries))
@@ -484,10 +471,14 @@ class Nosible:
         True True
         True True
         >>> with Nosible() as nos:
-        ...     results_list_str = list(nos.searches(questions=[
-        ...     "What are the terms of the partnership between Microsoft and OpenAI?",
-        ...     "What are the terms of the partnership between Volkswagen and Uber?"
-        ...     ]))
+        ...     results_list_str = list(
+        ...         nos.searches(
+        ...             questions=[
+        ...                 "What are the terms of the partnership between Microsoft and OpenAI?",
+        ...                 "What are the terms of the partnership between Volkswagen and Uber?",
+        ...             ]
+        ...         )
+        ...     )
         >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +ELLIPSIS
         >>> nos.searches()  # doctest: +ELLIPSIS
         Traceback (most recent call last):
@@ -539,6 +530,7 @@ class Nosible:
                 except Exception as e:
                     self.logger.warning(f"Search failed: {e!r}")
                     yield None
+
         return _run_generator()
 
     @_rate_limited("fast")
@@ -582,7 +574,9 @@ class Nosible:
         n_probes = search_obj.n_probes if search_obj.n_probes is not None else 30
         n_contextify = search_obj.n_contextify if search_obj.n_contextify is not None else 128
         algorithm = search_obj.algorithm if search_obj.algorithm is not None else "hybrid-2"
-        autogenerate_expansions = search_obj.autogenerate_expansions if search_obj.autogenerate_expansions is not None else False
+        autogenerate_expansions = (
+            search_obj.autogenerate_expansions if search_obj.autogenerate_expansions is not None else False
+        )
         publish_start = search_obj.publish_start if search_obj.publish_start is not None else self.publish_start
         publish_end = search_obj.publish_end if search_obj.publish_end is not None else self.publish_end
         include_netlocs = search_obj.include_netlocs if search_obj.include_netlocs is not None else self.include_netlocs
@@ -739,35 +733,31 @@ class Nosible:
         autogenerate_expansions : bool, default=False
             Do you want to generate expansions automatically using a LLM?
         publish_start : str, optional
-            Filter for earliest publish date.
+            Start date for when the document was published (ISO format).
         publish_end : str, optional
-            Filter for latest publish date.
-        include_netlocs : list of str, optional
-            Domains to include.
-        exclude_netlocs : list of str, optional
-            Domains to exclude.
+            End date for when the document was published (ISO format).
         visited_start : str, optional
-            Filter for earliest visit date.
+            Start date for when the document was visited by NOSIBLE (ISO format).
         visited_end : str, optional
-            Filter for latest visit date.
+            End date for when the document was visited by NOSIBLE (ISO format).
         certain : bool, optional
-            True if we are 100% sure of the date.
-        include_languages : list of str, optional
-            Languages to include (Max: 50).
-        exclude_languages : list of str, optional
-            Languages to exclude (Max: 50).
+            Only include documents where we are 100% sure of the date.
         include_netlocs : list of str, optional
-            Only include results from these domains (Max: 50).
+            List of netlocs (domains) to include in the search. (Max: 50)
         exclude_netlocs : list of str, optional
-            Exclude results from these domains (Max: 50).
+            List of netlocs (domains) to exclude in the search. (Max: 50)
+        include_languages : list of str, optional
+            Languages to include in the search. (Max: 50, ISO 639-1 language codes).
+        exclude_languages : list of str, optional
+            Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
         include_companies : list of str, optional
-            Company IDs to require (Max: 50).
+            Google KG IDs of public companies to require (Max: 50).
         exclude_companies : list of str, optional
-            Company IDs to forbid (Max: 50).
+            Google KG IDs of public companies to forbid (Max: 50).
         include_docs : list of str, optional
-            URL hashes of documents to include (Max: 50).
+            URL hashes of docs to include (Max: 50).
         exclude_docs : list of str, optional
-            URL hashes of documents to exclude (Max: 50).
+            URL hashes of docs to exclude (Max: 50).
         verbose : bool, optional
             Show verbose output, Bulk search will print more information.
 
@@ -797,7 +787,9 @@ class Nosible:
         >>> from nosible.classes.search import Search
         >>> from nosible import Nosible
         >>> with Nosible(include_netlocs=["bbc.com"]) as nos:  # doctest: +SKIP
-        ...     results = nos.bulk_search(question="Nvidia insiders dump more than $1 billion in stock", n_results=2000)  # doctest: +SKIP
+        ...     results = nos.bulk_search(
+        ...         question="Nvidia insiders dump more than $1 billion in stock", n_results=2000
+        ...     )  # doctest: +SKIP
         ...     print(isinstance(results, ResultSet))  # doctest: +SKIP
         ...     print(len(results))  # doctest: +SKIP
         True
@@ -854,8 +846,11 @@ class Nosible:
             n_probes = search.n_probes if search.n_probes is not None else n_probes
             n_contextify = search.n_contextify if search.n_contextify is not None else n_contextify
             algorithm = search.algorithm if search.algorithm is not None else algorithm
-            autogenerate_expansions = search.autogenerate_expansions if search.autogenerate_expansions is not None \
+            autogenerate_expansions = (
+                search.autogenerate_expansions
+                if search.autogenerate_expansions is not None
                 else autogenerate_expansions
+            )
             publish_start = search.publish_start if search.publish_start is not None else publish_start
             publish_end = search.publish_end if search.publish_end is not None else publish_end
             include_netlocs = search.include_netlocs if search.include_netlocs is not None else include_netlocs
@@ -1018,7 +1013,7 @@ class Nosible:
             self.logger.error(f"Failed to parse JSON from response: {e}")
             raise ValueError("Invalid JSON response from server") from e
 
-        if data == {'message': 'Sorry, the URL could not be fetched.'}:
+        if data == {"message": "Sorry, the URL could not be fetched."}:
             raise ValueError("The URL could not be found.")
 
         if "response" not in data:
@@ -1125,6 +1120,7 @@ class Nosible:
             return False
         except:
             return False
+
     def preflight(self, url: str = None) -> str:
         """
         Run a preflight check for crawling/preprocessing on a URL.
@@ -1508,35 +1504,31 @@ class Nosible:
         Parameters
         ----------
         publish_start : str, optional
-            Earliest published date filter.
+            Start date for when the document was published (ISO format).
         publish_end : str, optional
-            Latest published date filter.
-        include_netlocs : list of str, optional
-            Domains to whitelist.
-        exclude_netlocs : list of str, optional
-            Domains to blacklist.
+            End date for when the document was published (ISO format).
         visited_start : str, optional
-            Earliest visit date filter.
+            Start date for when the document was visited by NOSIBLE (ISO format).
         visited_end : str, optional
-            Latest visit date filter.
+            End date for when the document was visited by NOSIBLE (ISO format).
         certain : bool, optional
-            True if we are 100% sure of the date.
-        include_languages : list of str, optional
-            Languages to include (Max: 50).
-        exclude_languages : list of str, optional
-            Languages to exclude (Max: 50).
+            Only include documents where we are 100% sure of the date.
         include_netlocs : list of str, optional
-            Only include results from these domains (Max: 50).
+            List of netlocs (domains) to include in the search. (Max: 50)
         exclude_netlocs : list of str, optional
-            Exclude results from these domains (Max: 50).
+            List of netlocs (domains) to exclude in the search. (Max: 50)
+        include_languages : list of str, optional
+            Languages to include in the search. (Max: 50, ISO 639-1 language codes).
+        exclude_languages : list of str, optional
+            Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
         include_companies : list of str, optional
-            Public Company Google KG IDs to require (Max: 50).
+            Google KG IDs of public companies to require (Max: 50).
         exclude_companies : list of str, optional
-            Public Company Google KG IDs to forbid (Max: 50).
+            Google KG IDs of public companies to forbid (Max: 50).
         include_docs : list of str, optional
-            URL hashes of documents to include (Max: 50).
+            URL hashes of docs to include (Max: 50).
         exclude_docs : list of str, optional
-            URL hashes of documents to exclude (Max: 50).
+            URL hashes of docs to exclude (Max: 50).
 
         Returns
         -------
@@ -1551,14 +1543,14 @@ class Nosible:
         """
         # Validate list lengths
         for name, lst in [
-            ('include_netlocs', include_netlocs),
-            ('exclude_netlocs', exclude_netlocs),
-            ('include_languages', include_languages),
-            ('exclude_languages', exclude_languages),
-            ('include_companies', include_companies),
-            ('exclude_companies', exclude_companies),
-            ('include_docs', include_docs),
-            ('exclude_docs', exclude_docs),
+            ("include_netlocs", include_netlocs),
+            ("exclude_netlocs", exclude_netlocs),
+            ("include_languages", include_languages),
+            ("exclude_languages", exclude_languages),
+            ("include_companies", include_companies),
+            ("exclude_companies", exclude_companies),
+            ("include_docs", include_docs),
+            ("exclude_docs", exclude_docs),
         ]:
             if lst is not None and len(lst) > 50:
                 raise ValueError(f"Too many items for '{name}' filter ({len(lst)}); maximum allowed is 50.")
@@ -1595,10 +1587,10 @@ class Nosible:
             variants = set()
             for n in include_netlocs:
                 variants.add(n)
-                if n.startswith('www.'):
+                if n.startswith("www."):
                     variants.add(n[4:])
                 else:
-                    variants.add('www.' + n)
+                    variants.add("www." + n)
             in_list = ", ".join(f"'{v}'" for v in sorted(variants))
             clauses.append(f"netloc IN ({in_list})")
 
@@ -1607,10 +1599,10 @@ class Nosible:
             variants = set()
             for n in exclude_netlocs:
                 variants.add(n)
-                if n.startswith('www.'):
+                if n.startswith("www."):
                     variants.add(n[4:])
                 else:
-                    variants.add('www.' + n)
+                    variants.add("www." + n)
             ex_list = ", ".join(f"'{v}'" for v in sorted(variants))
             clauses.append(f"netloc NOT IN ({ex_list})")
 
