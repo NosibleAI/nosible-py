@@ -385,31 +385,31 @@ class Result:
         algorithm : str, default="hybrid-2"
             Search algorithm type.
         publish_start : str, optional
-            Earliest publish date filter (ISO formatted date).
+            Start date for when the document was published (ISO format).
         publish_end : str, optional
-            Latest publish date filter (ISO formatted date).
-        include_netlocs : list of str, optional
-            Domains to include.
-        exclude_netlocs : list of str, optional
-            Domains to exclude.
+            End date for when the document was published (ISO format).
         visited_start : str, optional
-            Earliest visit date filter (ISO formatted date).
+            Start date for when the document was visited by NOSIBLE (ISO format).
         visited_end : str, optional
-            Latest visit date filter (ISO formatted date).
+            End date for when the document was visited by NOSIBLE (ISO format).
         certain : bool, optional
-            True if we are 100% sure of the date.
+            Only include documents where we are 100% sure of the date.
+        include_netlocs : list of str, optional
+            List of netlocs (domains) to include in the search. (Max: 50)
+        exclude_netlocs : list of str, optional
+            List of netlocs (domains) to exclude in the search. (Max: 50)
         include_languages : list of str, optional
-            Language codes to include.
+            Languages to include in the search. (Max: 50, ISO 639-1 language codes).
         exclude_languages : list of str, optional
-            Language codes to exclude.
+            Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
         include_companies : list of str, optional
-            Google KG IDs of public companies to require.
+            Google KG IDs of public companies to require (Max: 50).
         exclude_companies : list of str, optional
-            Google KG IDs of public companies to forbid.
+            Google KG IDs of public companies to forbid (Max: 50).
         include_docs : list of str, optional
-            URL hashes of docs to include.
+            URL hashes of docs to include (Max: 50).
         exclude_docs : list of str, optional
-            URL hashes of docs to exclude.
+            URL hashes of docs to exclude (Max: 50).
 
         Returns
         -------
