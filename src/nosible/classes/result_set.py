@@ -435,6 +435,39 @@ class ResultSet(Iterator[Result]):
         ...     summary = results.analyze(by="language")
         ...     print(summary)
         {'en': 100}
+        >>> import polars as pl
+        >>> from nosible.classes.result_set import Result, ResultSet
+
+        # -- date grouping (published) --------------------------------------------
+        >>> data = [
+        ...     {"published": "2021-01-15", "netloc": "a.com", "author": "", "language": "en", "similarity": 0.5},
+        ...     {"published": "2021-02-20", "netloc": "a.com", "author": "", "language": "en", "similarity": 0.8},
+        ...     {"published": "2021-02-25", "netloc": "b.org", "author": "", "language": "fr", "similarity": 0.2},
+        ... ]
+        >>> results = ResultSet([Result(**d) for d in data])
+        >>> results.analyze(by="published")  # doctest: +NORMALIZE_WHITESPACE
+        {'2021-01': 1, '2021-02': 2}
+
+        # -- numeric stats (similarity) ------------------------------------------
+        >>> stats = results.analyze(by="similarity")
+        >>> set(stats) == {"count","null_count","mean","std","min","25%","50%","75%","max"}
+        True
+        >>> round(stats["mean"], 2)
+        0.5
+
+        # -- categorical counts (language) --------------------------------------
+        >>> results.analyze(by="language")
+        {'en': 2, 'fr': 1}
+
+        # -- author special case ------------------------------------------------
+        # empty author strings get mapped to "Author Unknown"
+        >>> results.analyze(by="author")
+        {'Author Unknown': 3}
+
+        # -- invalid field -------------------------------------------------------
+        >>> results.analyze(by="foobar")  # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+        ValueError: Cannot analyze by 'foobar' - not a valid field.
         """
         # Convert to Polars DataFrame
         df: pl.DataFrame = self.to_polars()
@@ -451,7 +484,7 @@ class ResultSet(Iterator[Result]):
         # Handle author unknown
         if by == "author":
             df = df.with_columns(
-                pl.when(pl.col("author").str.strip() == "")
+                pl.when(pl.col("author") == "")
                 .then(pl.lit("Author Unknown"))
                 .otherwise(pl.col("author"))
                 .alias("author")
@@ -464,7 +497,7 @@ class ResultSet(Iterator[Result]):
             # Extract year-month
             df = df.with_columns(pl.col(by).dt.strftime("%Y-%m").alias("year_month"))
             # Count per month
-            vc = df.groupby("year_month").agg(pl.count().alias("count")).sort("year_month")
+            vc = df.group_by("year_month").agg(pl.count().alias("count")).sort("year_month")
             rows = vc.rows()
             if not rows:
                 return {}
@@ -477,13 +510,15 @@ class ResultSet(Iterator[Result]):
                 result[month] = cnt
             return result
 
+        # Numeric stats for similarity
+        if by == "similarity":
+            desc_df = df["similarity"].describe()
+            # print({row[0]: float(row[1]) for row in desc_df.rows()})
+            return {row[0]: float(row[1]) for row in desc_df.rows()}
+
         # Non-date: analyze numeric vs. categorical Non-date: analyze numeric vs. categorical
         series = df[by]
-        dtype = series.dtype
-        # Numeric analysis: descriptive stats
-        if dtype in (pl.Float64, pl.Float32, pl.Int64, pl.Int32):
-            desc_df = series.describe()
-            return {row[0]: float(row[1]) for row in desc_df.rows()}
+
         # Categorical/value counts
         vc = series.value_counts()
         _, count_col = vc.columns
