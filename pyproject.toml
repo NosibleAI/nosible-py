@@ -12,16 +12,15 @@ authors = [
 ]
 
 dependencies = [
-  'requests',
-  'polars',
-  'duckdb',
-  'openai',
-  'tantivy',
-  'pyrate-limiter',
-  'tenacity',
-  'cryptography',
-  'pandas',
-  'pyarrow',
+  "requests",
+  "polars",
+  "duckdb",
+  "openai",
+  "tantivy",
+  "pyrate-limiter",
+  "tenacity",
+  "cryptography",
+  "pandas",
 ]
 
 license = "MIT"
