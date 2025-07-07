@@ -5,7 +5,7 @@ import os
 import time
 import traceback
 from collections.abc import Iterator
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from typing import Union
 
 import polars as pl
@@ -573,7 +573,7 @@ class Nosible:
         ValueError: Search can not have more than 100 results - Use bulk search instead.
         """
         # --------------------------------------------------------------------------------------------------------------
-        # Setting search params. Individual search will overide Nosible defaults.
+        # Setting search params. Individual search will override Nosible defaults.
         # --------------------------------------------------------------------------------------------------------------
         question = search_obj.question  # No default
         expansions = search_obj.expansions if search_obj.expansions is not None else []  # Default to empty list
