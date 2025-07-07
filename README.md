@@ -238,6 +238,10 @@ with Nosible(nosible_api_key="basic|abcd1234...") as client:
     rs_ndjson = ResultSet.from_ndjson("all_news.ndjson")
 ```
 
+#### More Examples
+
+For more examples, checkout `/examples` for in-depth usage of the NOSIBLE Client Package
+
 ### 📡 Swagger Docs
 
 You can find online endpoints to the NOSIBLE Search API Swagger Docs
