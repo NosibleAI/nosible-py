@@ -33,25 +33,10 @@ pip install nosible
 * tantivy
 * openai
 
-### ⚙️ Configuration
-
-You can specify a custom base URL for all endpoints (e.g., OpenRouter, Google, or your own proxy):
-
-```python
-from nosible import Nosible
-
-client = Nosible(
-    nosible_api_key="basic|abcd1234...",
-    llm_api_key="sk-...",
-    base_url="https://api.openrouter.ai/v1"
-)
-```
-
 ### 🔑 Authentication
 
 1. Sign in to [NOSIBLE.AI](https://www.nosible.ai/) and grab your free API key.
 2. Set it as an environment variable or pass directly:
-
 
 On Windows
 
@@ -252,6 +237,10 @@ with Nosible(nosible_api_key="basic|abcd1234...") as client:
     rs_duckdb = ResultSet.from_duckdb("all_news.duckdb")
     rs_ndjson = ResultSet.from_ndjson("all_news.ndjson")
 ```
+
+#### More Examples
+
+For more examples, checkout `/examples` for in-depth usage of the NOSIBLE Client Package
 
 ### 📡 Swagger Docs
 
