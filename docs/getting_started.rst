@@ -1,4 +1,4 @@
-Getting-Started
+Getting Started
 ===============
 
 A high-level Python client for the `NOSIBLE Search
@@ -26,7 +26,7 @@ integrate the Nosible Search API into your Python projects.
 🔑 Authentication
 ~~~~~~~~~~~~~~~~~
 
-1. Sign in to nosible.ai and grab your free API key.
+1. Sign in to NOSIBLE.AI and grab your free API key.
 2. Set it as an environment variable or pass directly:
 
 On Windows
@@ -63,8 +63,8 @@ Or in code:
    from nosible import Nosible
    import os
 
-    os.environ["NOSIBLE_API_KEY"] = "basic|abcd1234..."
-    os.environ["LLM_API_KEY"] = "sk-..."
+   os.environ["NOSIBLE_API_KEY"] = "basic|abcd1234..."
+   os.environ["LLM_API_KEY"] = "sk-..."
 
 🎯 Core Workflows
 ~~~~~~~~~~~~~~~~~
@@ -199,7 +199,7 @@ Use the ``Search`` class to encapsulate parameters:
 Sentiment Analysis
 ^^^^^^^^^^^^^^^^^^
 
-Compute sentiment for a single result (Uses GPT-4o; requires LLM API
+Compute sentiment for a single result (uses GPT-4o; requires LLM API
 key):
 
 .. code:: python

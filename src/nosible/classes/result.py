@@ -196,7 +196,7 @@ class Result:
         True
         >>> result.__getattr__("nonexistent")
         Traceback (most recent call last):
-            ...
+        ...
         AttributeError: Attribute 'nonexistent' not found in Result
         """
         try:
@@ -376,13 +376,13 @@ class Result:
             An instance of the Nosible client to use for finding similar results.
         sql_filter : list of str, optional
             SQL‐style filter clauses.
-        n_results : int, default=100
+        n_results : int
             Max number of results (max 100).
-        n_probes : int, default=30
+        n_probes : int
             Number of index shards to probe.
-        n_contextify : int, default=128
+        n_contextify : int
             Context window size per result.
-        algorithm : str, default="hybrid-2"
+        algorithm : str
             Search algorithm type.
         publish_start : str, optional
             Start date for when the document was published (ISO format).
@@ -428,7 +428,7 @@ class Result:
         >>> from nosible import Nosible, Result
         >>> with Nosible() as nos:
         ...     result = Result(url="https://example.com", title="Example Domain")
-        ...     similar_results = result.similar(client=nos)  # doctest: +SKIP
+        ...     similar_results = result.similar(client=nos)
         """
         if client is None:
             raise ValueError("A Nosible client instance must be provided as 'client'.")
