@@ -49,7 +49,7 @@ client = Nosible(
 
 ### 🔑 Authentication
 
-1. Sign in to nosible.ai and grab your free API key.
+1. Sign in to [NOSIBLE.AI](https://www.nosible.ai/) and grab your free API key.
 2. Set it as an environment variable or pass directly:
 
 
@@ -206,7 +206,7 @@ with Nosible(nosible_api_key="basic|abcd1234...") as client:
 
 #### Sentiment Analysis
 
-Compute sentiment for a single result (Uses GPT-4o; requires LLM API key):
+Compute sentiment for a single result (uses GPT-4o; requires an LLM API key):
 
 ```python
 from nosible import Nosible

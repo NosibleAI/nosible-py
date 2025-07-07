@@ -321,7 +321,7 @@ class ResultSet(Iterator[Result]):
         ----------
         query : str
             The search string to rank within these results.
-        top_k : int, default=10
+        top_k : int
             Number of top results to return.
 
         Returns
@@ -502,11 +502,11 @@ class ResultSet(Iterator[Result]):
         Parameters
         ----------
         file_path : str or None, optional
-            Path to save the CSV file. If None, defaults to "search_results.csv".
+            Path to save the CSV file.
         delimiter : str, optional
-            Delimiter to use in the CSV file. Default is ','.
+            Delimiter to use in the CSV file.
         encoding : str, optional
-            Encoding for the CSV file. Default is "utf-8".
+            Encoding for the CSV file.
 
         Returns
         -------
@@ -738,7 +738,6 @@ class ResultSet(Iterator[Result]):
         ----------
         file_path : str or None, optional
             Path to save the NDJSON file. If None, returns the NDJSON string.
-            Default is None.
 
         Returns
         -------
@@ -789,7 +788,7 @@ class ResultSet(Iterator[Result]):
         Parameters
         ----------
         file_path : str or None, optional
-            Path to save the Parquet file. If None, defaults to "results.parquet".
+            Path to save the Parquet file.
 
         Returns
         -------
@@ -830,7 +829,7 @@ class ResultSet(Iterator[Result]):
         Parameters
         ----------
         file_path : str or None, optional
-            Path to save the Arrow IPC file. If None, defaults to "results.arrow".
+            Path to save the Arrow IPC file.
 
         Returns
         -------
@@ -872,9 +871,9 @@ class ResultSet(Iterator[Result]):
         Parameters
         ----------
         file_path : str or None, optional
-            Path to save the DuckDB file. If None, defaults to "results.duckdb".
+            Path to save the DuckDB file.
         table_name : str, optional
-            Name of the table to write the results to. Default is "results".
+            Name of the table to write the results to.
 
         Returns
         -------
@@ -1006,11 +1005,6 @@ class ResultSet(Iterator[Result]):
         --------
         >>> import json
         >>> from nosible import ResultSet
-        >>> # Suppose 'data.json' contains:
-        >>> # [
-        >>> #   {"url": "https://example.com", "title": "Example Domain"},
-        >>> #   {"url": "https://openai.com", "title": "OpenAI"}
-        >>> # ]
         >>> with open("data.json", "w") as f:
         ...     json.dump(
         ...         [
