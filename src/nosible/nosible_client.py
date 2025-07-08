@@ -797,7 +797,8 @@ class Nosible:
         ...     "Why are Nvidia executives dumping over $1,000,000,000 in stock?",
         ...     "What’s the story behind Nvidia insiders selling $1B worth of shares?",
         ...     "What reasons did Nvidia insiders give for selling over $1 billion in stock?",
-        ...     "How did Nvidia insiders manage to sell more than $1B in company stock?" ]
+        ...     "How did Nvidia insiders manage to sell more than $1B in company stock?"
+        ...     ]
         >>> with Nosible(exclude_netlocs=["bbc.com"]) as nos:
         ...     results = nos.bulk_search(question=random.choice(questions), n_results=2000)
         ...     print(isinstance(results, ResultSet))
