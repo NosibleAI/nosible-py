@@ -1209,7 +1209,7 @@ class Nosible:
         current_plan = ""
 
         # Preserve the order you care about:
-        for plan in ["test", "basic", "pro", "pro+", "bus", "bus+", "ent"]:
+        for plan in ["test", "basic", "pro", "pro+", "bus", "bus+", "ent", "chat"]:
             name = display.get(plan, plan)
             if plan == user_plan:
                 current_plan = " (Your current plan)"
@@ -1356,7 +1356,7 @@ class Nosible:
         prefix = (self.nosible_api_key or "").split("|", 1)[0]
 
         # Map prefixes -> plan names
-        plans = {"test", "basic", "pro", "pro+", "bus", "bus+", "ent"}
+        plans = {"test", "basic", "pro", "pro+", "bus", "bus+", "ent", "chat"}
 
         if prefix not in plans:
             raise ValueError(f"Your API key is not valid: {prefix} is not a valid plan prefix.")
