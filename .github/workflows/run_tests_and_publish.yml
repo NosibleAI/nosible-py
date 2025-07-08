@@ -16,6 +16,7 @@ jobs:
     env:
       NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY }}
       LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      UV_SYSTEM_PYTHON: 1
     steps:
       - uses: actions/checkout@v3
       - name: Install uv and set the python version
@@ -23,11 +24,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install project and dependencies
-        run: uv sync
+        run: uv pip install -r docs/requirements.txt
       - name: Install pytest and pytest-doctestplus
-        run: uv add pytest pytest-doctestplus --dev
+        run: uv pip install pytest pytest-doctestplus
       - name: Run tests
-        run: uv run pytest --maxfail=1 --disable-warnings -q
+        run: pytest --maxfail=1 --disable-warnings -q
 
   build:
     name: Build distribution
