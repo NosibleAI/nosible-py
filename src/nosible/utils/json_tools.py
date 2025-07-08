@@ -111,7 +111,7 @@ def json_loads(s: Union[bytes, str]) -> dict:
     # Standard library path (disable orjson)
     >>> _use_orjson = False
     >>> json_dumps({'a': 1})
-    '{"a":1}'
+    '{"1":"one"}'
 
     # orjson path with monkey-patched dumping
     >>> _use_orjson = True
