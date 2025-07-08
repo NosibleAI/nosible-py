@@ -77,6 +77,49 @@ class Search:
     What is Python?
     """
 
+    question: str | None = None
+    """The main search question or query."""
+    expansions: list[str] | None = None
+    """List of query expansions or related terms."""
+    sql_filter: str | None = None
+    """Additional SQL filter to apply to the search."""
+    n_results: int | None = None
+    """Number of results to return."""
+    n_probes: int | None = None
+    """Number of probe queries to use."""
+    n_contextify: int | None = None
+    """Number of context documents to retrieve."""
+    algorithm: str | None = None
+    """Search algorithm to use."""
+    autogenerate_expansions: bool = False
+    """Do you want to generate expansions automatically using a LLM?"""
+    publish_start: str | None = None
+    """Start date for when the document was published."""
+    publish_end: str | None = None
+    """End date for when the document was published."""
+    visited_start: str | None = None
+    """Start date for when the document was visited by NOSIBLE."""
+    visited_end: str | None = None
+    """End date for when the document was visited by NOSIBLE."""
+    certain: bool | None = None
+    """Only include documents where we are 100% sure of the date."""
+    include_netlocs: list[str] | None = None
+    """List of netlocs (domains) to include in the search (Max 50)."""
+    exclude_netlocs: list[str] | None = None
+    """List of netlocs (domains) to exclude in the search (Max 50)."""
+    include_languages: list[str] | None = None
+    """Languages to include in the search. (Max 50)"""
+    exclude_languages: list[str] | None = None
+    """Language codes to exclude in the search (Max 50)"""
+    include_companies: list[str] | None = None
+    """Google KG IDs of public companies to require (Max 50)."""
+    exclude_companies: list[str] | None = None
+    """Google KG IDs of public companies to forbid (Max 50)."""
+    include_docs: list[str] | None = None
+    """URL hashes of docs to include (Max 50)."""
+    exclude_docs: list[str] | None = None
+    """URL hashes of docs to exclude (Max 50)."""
+
     _FIELDS = [
         "question",
         "expansions",
@@ -100,52 +143,6 @@ class Search:
         "include_docs",
         "exclude_docs",
     ]
-
-    def __init__(
-        self,
-        question: str = None,
-        expansions: list[str] = None,
-        sql_filter: str = None,
-        n_results: int = None,
-        n_probes: int = None,
-        n_contextify: int = None,
-        algorithm: str = None,
-        autogenerate_expansions: bool = False,
-        publish_start: str = None,
-        publish_end: str = None,
-        include_netlocs: list[str] = None,
-        exclude_netlocs: list[str] = None,
-        visited_start: str = None,
-        visited_end: str = None,
-        certain: bool = None,
-        include_languages: list[str] = None,
-        exclude_languages: list[str] = None,
-        include_companies: list[str] = None,
-        exclude_companies: list[str] = None,
-        include_docs: list[str] = None,
-        exclude_docs: list[str] = None,
-    ) -> None:
-        self.question = question
-        self.expansions = expansions
-        self.sql_filter = sql_filter
-        self.n_results = n_results
-        self.n_probes = n_probes
-        self.n_contextify = n_contextify
-        self.algorithm = algorithm
-        self.autogenerate_expansions = autogenerate_expansions
-        self.publish_start = publish_start
-        self.publish_end = publish_end
-        self.include_netlocs = include_netlocs
-        self.exclude_netlocs = exclude_netlocs
-        self.visited_start = visited_start
-        self.visited_end = visited_end
-        self.certain = certain
-        self.include_languages = include_languages
-        self.exclude_languages = exclude_languages
-        self.include_companies = include_companies
-        self.exclude_companies = exclude_companies
-        self.include_docs = include_docs
-        self.exclude_docs = exclude_docs
 
     def __str__(self) -> str:
         """
@@ -214,7 +211,7 @@ class Search:
         >>> search.to_dict()["question"]
         'What is Python?'
         """
-        return {field: getattr(self, field) for field in self._FIELDS}
+        return asdict(self, dict_factory=dict)
 
     @classmethod
     def from_dict(cls, data: dict) -> Search:
