@@ -56,6 +56,8 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.uv.extras.dev]
-pytest = "*"
-pytest-doctestplus = "*"
+[tool.uv]
+dev-dependencies = [
+  "pytest",
+  "pytest-doctestplus",
+]
