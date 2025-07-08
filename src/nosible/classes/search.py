@@ -46,21 +46,21 @@ class Search:
     certain : bool, optional
         Only include documents where we are 100% sure of the date.
     include_netlocs : list of str, optional
-        List of netlocs (domains) to include in the search. (Max: 50)
+        List of netlocs (domains) to include in the search. (Max 50)
     exclude_netlocs : list of str, optional
-        List of netlocs (domains) to exclude in the search. (Max: 50)
+        List of netlocs (domains) to exclude in the search. (Max 50)
     include_languages : list of str, optional
-        Languages to include in the search. (Max: 50, ISO 639-1 language codes).
+        Languages to include in the search. (Max 50, ISO 639-1 language codes).
     exclude_languages : list of str, optional
-        Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
+        Language codes to exclude in the search (Max 50, ISO 639-1 language codes).
     include_companies : list of str, optional
-        Google KG IDs of public companies to require (Max: 50).
+        Google KG IDs of public companies to require (Max 50).
     exclude_companies : list of str, optional
-        Google KG IDs of public companies to forbid (Max: 50).
+        Google KG IDs of public companies to forbid (Max 50).
     include_docs : list of str, optional
-        URL hashes of docs to include (Max: 50).
+        URL hashes of docs to include (Max 50).
     exclude_docs : list of str, optional
-        URL hashes of docs to exclude (Max: 50).
+        URL hashes of docs to exclude (Max 50).
 
     Examples
     --------
