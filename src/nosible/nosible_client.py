@@ -785,12 +785,12 @@ class Nosible:
 
         Examples
         --------
-        >>> from nosible.classes.search import Search
-        >>> from nosible import Nosible
-        >>> with Nosible(exclude_netlocs=["bbc.com"]) as nos:
-        ...     results = nos.bulk_search(question=_get_question(), n_results=2000)
-        ...     print(isinstance(results, ResultSet))
-        ...     print(len(results))
+        >>> from nosible.classes.search import Search  # doctest: +SKIP
+        >>> from nosible import Nosible  # doctest: +SKIP
+        >>> with Nosible(exclude_netlocs=["bbc.com"]) as nos:  # doctest: +SKIP
+        ...     results = nos.bulk_search(question=_get_question(), n_results=2000)  # doctest: +SKIP
+        ...     print(isinstance(results, ResultSet))  # doctest: +SKIP
+        ...     print(len(results))  # doctest: +SKIP
         True
         2000
         >>> s = Search(question=_get_question(), n_results=1000)  # doctest: +SKIP
@@ -1285,6 +1285,8 @@ class Nosible:
         ValueError
             If the user hits their rate limit.
         ValueError
+            If the user is making too many concurrent searches.
+        ValueError
             If an unexpected error occurs.
         ValueError
             If NOSIBLE is currently restarting.
@@ -1317,6 +1319,8 @@ class Nosible:
                 raise ValueError("You made a bad request.")
         if response.status_code == 429:
             raise ValueError("You have hit your rate limit.")
+        if response.status_code == 409:
+            raise ValueError("Too many concurrent searches.")
         if response.status_code == 500:
             raise ValueError("An unexpected error occurred.")
         if response.status_code == 502:
