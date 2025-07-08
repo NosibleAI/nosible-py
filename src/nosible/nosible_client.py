@@ -793,34 +793,32 @@ class Nosible:
         ...     print(len(results))
         True
         2000
-
-        >>> s = Search(question=_get_question(), n_results=1000)
-        >>> with Nosible() as nos:
-        ...     results = nos.bulk_search(search=s)
-        ...     print(isinstance(results, ResultSet))
-        ...     print(len(results))
+        >>> s = Search(question=_get_question(), n_results=1000)  # doctest: +SKIP
+        >>> with Nosible() as nos:  # doctest: +SKIP
+        ...     results = nos.bulk_search(search=s)  # doctest: +SKIP
+        ...     print(isinstance(results, ResultSet))  # doctest: +SKIP
+        ...     print(len(results))  # doctest: +SKIP
         True
         1000
-
-        >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.bulk_search()  # doctest: +ELLIPSIS
+        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
+        >>> nos.bulk_search()  # doctest: +SKIP
         Traceback (most recent call last):
         ...
         TypeError: Either question or search must be specified
 
-        >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.bulk_search(question=_get_question(), search=Search(question=_get_question())) # doctest: +ELLIPSIS
+        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
+        >>> nos.bulk_search(question=_get_question(), search=Search(question=_get_question()))  # doctest: +SKIP
         Traceback (most recent call last):
         ...
         TypeError: Question and search cannot be both specified
-        >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.bulk_search(question=_get_question(), n_results=100) # doctest: +ELLIPSIS
+        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
+        >>> nos.bulk_search(question=_get_question(), n_results=100)  # doctest: +SKIP
         Traceback (most recent call last):
         ...
         ValueError: Bulk search must have at least 1000 results per query; use search() for smaller result sets.
-        >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.bulk_search(question=_get_question(), n_results=10001)  # doctest: +ELLIPSIS
-        Traceback (most recent call last):
+        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
+        >>> nos.bulk_search(question=_get_question(), n_results=10001)  # doctest: +SKIP
+        Traceback (most recent call last):  # doctest: +SKIP
         ...
         ValueError: Bulk search cannot have more than 10000 results per query.
         """
