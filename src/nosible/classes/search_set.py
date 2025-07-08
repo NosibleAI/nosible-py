@@ -1,9 +1,11 @@
 from collections.abc import Iterator
+from dataclasses import dataclass, field
 
 from nosible.classes.search import Search
 from nosible.utils.json_tools import json_dumps, json_loads
 
 
+@dataclass()
 class SearchSet(Iterator[Search]):
     """
     Manages an iterable collection of Search objects.
@@ -32,9 +34,10 @@ class SearchSet(Iterator[Search]):
     What is AI?
     """
 
-    def __init__(self, searches: list[Search] = None) -> None:
-        self.searches = searches or []
-        self._index = 0
+    searches: list[Search] = field(default_factory=list)
+    """ A list of Search objects in the collection."""
+    _index: int = field(default=0, init=False, repr=False, compare=False)
+    """ Internal index for iteration over searches."""
 
     def __iter__(self) -> "SearchSet":
         """
@@ -199,7 +202,7 @@ class SearchSet(Iterator[Search]):
         """
         del self.searches[index]
 
-    def to_list(self) -> list[dict]:
+    def to_dicts(self) -> list[dict]:
         """
         Convert all Search objects in the collection to a list of dictionaries.
 
@@ -219,7 +222,7 @@ class SearchSet(Iterator[Search]):
         >>> s1 = Search(question="What is Python?", n_results=3)
         >>> s2 = Search(question="What is PEP8?", n_results=2)
         >>> searches = SearchSet([s1, s2])
-        >>> searches.to_list()[1]["question"]
+        >>> searches.to_dicts()[1]["question"]
         'What is PEP8?'
         """
         return [s.to_dict() for s in self.searches]

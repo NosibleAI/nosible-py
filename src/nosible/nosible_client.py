@@ -25,6 +25,7 @@ from tenacity import (
 from nosible.classes.result_set import ResultSet
 from nosible.classes.search import Search
 from nosible.classes.search_set import SearchSet
+from nosible.classes.snippet_set import SnippetSet
 from nosible.classes.web_page import WebPageData
 from nosible.utils.json_tools import json_loads
 from nosible.utils.rate_limiter import PLAN_RATE_LIMITS, RateLimiter, _rate_limited
@@ -1021,7 +1022,7 @@ class Nosible:
             metadata=response_data.get("metadata"),
             page=response_data.get("page"),
             request=response_data.get("request"),
-            snippets=response_data.get("snippets"),
+            snippets=SnippetSet.from_dict(response_data.get("snippets", {})),
             statistics=response_data.get("statistics"),
             structured=response_data.get("structured"),
             url_tree=response_data.get("url_tree"),

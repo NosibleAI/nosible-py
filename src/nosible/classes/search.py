@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING
 
 from nosible.utils.json_tools import json_dumps, json_loads
@@ -8,6 +9,7 @@ if TYPE_CHECKING:
     from nosible.classes.search_set import SearchSet
 
 
+@dataclass(init=True, repr=True, eq=True)
 class Search:
     """
     Represents the parameters for a search operation.

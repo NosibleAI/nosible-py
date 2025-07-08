@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from dataclasses import dataclass, field
 
 import duckdb
 import pandas as pd
@@ -11,6 +12,7 @@ from nosible.classes.result import Result
 from nosible.utils.json_tools import json_dumps, json_loads
 
 
+@dataclass(frozen=True)
 class ResultSet(Iterator[Result]):
     """
     Container class for managing and processing a sequence of Result objects.
@@ -57,33 +59,10 @@ class ResultSet(Iterator[Result]):
         "url_hash",
     ]
 
-    def __init__(self, results: list[Result] | None = None) -> None:
-        self.results: list[Result] = results or []
-        self._index: int = 0
-
-    def _as_dicts(self):
-        """
-        Convert the ResultSet to a list of dictionaries.
-
-        Returns
-        -------
-        list of dict
-            List of dictionaries representing each Result.
-
-        """
-        # dataclass.asdict handles nested structures too
-        return [r.to_dict() for r in self.results]
-
-    def _as_columns(self):
-        """
-        Convert the ResultSet to a dictionary of lists, suitable for DataFrame creation.
-
-        Returns
-        -------
-        dict
-            Dictionary where keys are field names and values are lists of field values.
-        """
-        return {f: [getattr(r, f) for r in self.results] for f in self._FIELDS}
+    results: list[Result] = field(default_factory=list)
+    """ List of Result objects contained in this ResultSet."""
+    _index: int = field(default=0, init=False, repr=False, compare=False)
+    """ Internal index for iteration over results."""
 
     def __len__(self) -> int:
         """
@@ -141,17 +120,6 @@ class ResultSet(Iterator[Result]):
         # Join all lines into a single string
         return "\n".join(lines)
 
-    def __repr__(self) -> str:
-        """
-        Returns a string representation of the object for interactive sessions.
-
-        Returns
-        -------
-        str
-            The string representation of the object, as returned by `__str__()`.
-        """
-        return self.__str__()
-
     def __iter__(self) -> ResultSet:
         """
         Reset iteration and return self.
@@ -161,7 +129,7 @@ class ResultSet(Iterator[Result]):
         ResultSet
             Iterator over the ResultSet instance.
         """
-        self._index = 0
+        object.__setattr__(self, "_index", 0)
         return self
 
     def __next__(self) -> Result:
@@ -179,7 +147,7 @@ class ResultSet(Iterator[Result]):
         """
         if self._index < len(self.results):
             item = self.results[self._index]
-            self._index += 1
+            object.__setattr__(self, "_index", self._index + 1)
             return item
         raise StopIteration
 
@@ -217,27 +185,7 @@ class ResultSet(Iterator[Result]):
         if 0 <= key < len(self.results):
             return self.results[key]
         raise IndexError(f"Index {key} out of range for ResultSet with length {len(self.results)}.")
-
-    def __setitem__(self, key: int, value: Result) -> None:
-        """
-        Set a Result at a specific index.
-
-        Parameters
-        ----------
-        key : int
-            Index to set the result at.
-        value : Result
-            Result to set at the specified index.
-
-        Raises
-        ------
-        IndexError
-            If index is out of range.
-        """
-        if 0 <= key < len(self.results):
-            self.results[key] = value
-        else:
-            raise IndexError(f"Index {key} out of range for ResultSet with length {len(self.results)}.")
+        raise IndexError(f"Index {key} out of range for ResultSet with length {len(self.results)}.")
 
     def __add__(self, other: ResultSet) -> ResultSet:
         """
@@ -450,7 +398,7 @@ class ResultSet(Iterator[Result]):
 
         # -- numeric stats (similarity) ------------------------------------------
         >>> stats = results.analyze(by="similarity")
-        >>> set(stats) == {"count","null_count","mean","std","min","25%","50%","75%","max"}
+        >>> set(stats) == {"count", "null_count", "mean", "std", "min", "25%", "50%", "75%", "max"}
         True
         >>> round(stats["mean"], 2)
         0.5
@@ -601,7 +549,7 @@ class ResultSet(Iterator[Result]):
         >>> "url" in df.columns
         True
         """
-        return pl.DataFrame(self._as_columns())
+        return pl.DataFrame(self.to_dicts())
 
     def to_pandas(self) -> pd.DataFrame:
         """
@@ -637,7 +585,7 @@ class ResultSet(Iterator[Result]):
         except Exception as e:
             raise RuntimeError(f"Failed to convert search results to Pandas DataFrame: {e}") from e
 
-    def to_json(self, file_path: str | None = None) -> str:
+    def to_json(self, file_path: str | None = None) -> str | bytes:
         """
         Serialize the search results to a JSON string and optionally write to disk.
 
@@ -672,7 +620,7 @@ class ResultSet(Iterator[Result]):
         True
         """
         try:
-            json_bytes = json_dumps(self._as_dicts())
+            json_bytes = json_dumps(self.to_dicts())
             if file_path:
                 try:
                     with open(file_path, "w") as f:
@@ -719,9 +667,9 @@ class ResultSet(Iterator[Result]):
         True
         """
         try:
-            return self._as_dicts()
+            return [result.to_dict() for result in self.results]
         except Exception as e:
-            raise RuntimeError(f"Failed to convert results to list of dicts: {e}") from e
+            raise RuntimeError(f"Failed to convert results to list of dictionaries: {e}") from e
 
     def to_dict(self) -> dict:
         """
@@ -800,18 +748,22 @@ class ResultSet(Iterator[Result]):
         >>> path.endswith(".ndjson")
         True
         """
-        try:
-            lines = "\n".join(json_dumps(d) for d in self._as_dicts())
-            if file_path:
-                try:
-                    with open(file_path, "w") as f:
-                        f.write(lines)
-                    return file_path
-                except Exception as e:
-                    raise RuntimeError(f"Failed to write NDJSON to '{file_path}': {e}") from e
-            return lines
-        except Exception as e:
-            raise RuntimeError(f"Failed to serialize results to NDJSON: {e}") from e
+
+        ndjson_lines = []
+        for result in self.results:
+            try:
+                ndjson_lines.append(json_dumps(result.to_dict()))
+            except Exception as e:
+                raise RuntimeError(f"Failed to serialize Result to NDJSON: {e}") from e
+
+        if file_path:
+            try:
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write("\n".join(ndjson_lines) + "\n")
+                return file_path
+            except Exception as e:
+                raise RuntimeError(f"Failed to write NDJSON to '{file_path}': {e}") from e
+        return "\n".join(ndjson_lines) + "\n"
 
     def to_parquet(self, file_path: str | None = None) -> str:
         """
@@ -1126,20 +1078,23 @@ class ResultSet(Iterator[Result]):
 
     @classmethod
     def from_pandas(cls, df: pd.DataFrame) -> ResultSet:
-        """Create a ResultSet instance from a pandas DataFrame.
+        """
+        Create a ResultSet instance from a pandas DataFrame.
         This class method converts a given pandas DataFrame to a Polars DataFrame
         and then constructs a ResultSet object from it. This is useful for
         integrating with workflows that use pandas for data manipulation.
+
         Parameters
         ----------
         df : pandas.DataFrame
-            DataFrame containing the search result fields. Each row should represent
-            a single search result, with columns corresponding to the expected fields
-            of ResultSet.
+            DataFrame containing the search result fields. Each row should represent a single search result, with
+            columns corresponding to the expected fields of ResultSet.
+
         Returns
         -------
         ResultSet
             An instance of ResultSet containing the data from the input DataFrame.
+
         Examples
         --------
         >>> data = [{"url": "https://example.com", "title": "Example"}]
