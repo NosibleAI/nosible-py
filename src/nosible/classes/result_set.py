@@ -95,8 +95,8 @@ class ResultSet(Iterator[Result]):
         >>> print(search_results)  # doctest: +NORMALIZE_WHITESPACE
         Idx | Similarity | Title
         ------------------------
-          0 |   0.95 | Example Domain
-          1 |   0.99 | OpenAI
+          0 |   0.95     | Example Domain
+          1 |   0.99     | OpenAI
 
         >>> empty = ResultSet([])
         >>> print(empty)
@@ -108,12 +108,12 @@ class ResultSet(Iterator[Result]):
         # Create a formatted string for each result
         lines = []
         for idx, result in enumerate(self.results):
-            similarity = f"{result.similarity:.2f}" if result.similarity is not None else "N/A"
+            similarity = f"{result.similarity:.2f}" if result.similarity is not None else "  N/A"
             title = result.title or "No Title"
-            lines.append(f"{idx:>3} | {similarity:>6} | {title}")
+            lines.append(f"{idx:>3} | {similarity:>10} | {title}")
 
-        # Add a header
-        header = "Idx | Similarity | Title"
+        # Add a header with matching column widths
+        header = f"{'Idx':>3} | {'Similarity':>10} | Title"
         separator = "-" * len(header)
         lines.insert(0, header)
         lines.insert(1, separator)
