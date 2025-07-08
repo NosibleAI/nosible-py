@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING
 
-from nosible.utils.json_tools import json_dumps, json_loads
+from nosible.utils.json_tools import json_dumps, json_loads, print_dict
 
 if TYPE_CHECKING:
     from nosible.classes.search_set import SearchSet
@@ -148,15 +148,13 @@ class Search:
         """
         Return a readable string representation of the search parameters.
         Only non-None fields are shown, each on its own line for clarity.
+
+        Returns
+        -------
+        str
+            A string representation of the Search instance, showing only the
         """
-        attrs = []
-        for attr in self._FIELDS:
-            value = getattr(self, attr)
-            if value is not None:
-                attrs.append(f"    {attr} = {value!r}")
-        if not attrs:
-            return "Search()"
-        return "Search(\n" + ",\n".join(attrs) + "\n)"
+        return print_dict(self.to_dict())
 
     def __add__(self, other: Search) -> SearchSet:
         """

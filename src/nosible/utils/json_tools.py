@@ -145,3 +145,28 @@ def json_loads(s: Union[bytes, str]) -> dict:
     except Exception as e:
         # Optionally, you can log the error here
         raise RuntimeError(f"Failed to deserialize JSON: {e}") from e
+
+
+def print_dict(dict: dict) -> str:
+    """
+    Print a dictionary in a readable format.
+
+    Parameters
+    ----------
+    d : dict
+        The dictionary to print.
+
+    Returns
+    -------
+    None
+        This function does not return anything; it prints the dictionary to stdout.
+
+    Examples
+    --------
+    >>> print_dict({"a": 1, "b": 2})
+    a: 1
+    b: 2
+    """
+    if _use_orjson:
+        return orjson.dumps(dict, option=orjson.OPT_INDENT_2).decode("utf-8")
+    return json.dumps(dict, indent=2)
