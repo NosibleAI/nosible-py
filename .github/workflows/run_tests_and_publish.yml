@@ -9,14 +9,13 @@ jobs:
     name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.9", "3.12"]
     env:
       NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY }}
       LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-      UV_SYSTEM_PYTHON: 1
     steps:
       - uses: actions/checkout@v3
       - name: Install uv and set the python version
