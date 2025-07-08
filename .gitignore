@@ -17,7 +17,6 @@ build/
 # Sphinx docs build
 docs/_build/
 docs/_autosummary/
-docs/api
 
 # Egg metadata
 *.egg-info/
