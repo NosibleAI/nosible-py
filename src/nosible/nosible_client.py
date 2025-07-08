@@ -1086,10 +1086,6 @@ class Nosible:
 
         Raises
         ------
-        ValueError
-            If the API returns an unexpected message.
-        requests.HTTPError
-            If the HTTP request fails.
 
         Examples
         --------
@@ -1241,10 +1237,6 @@ class Nosible:
         """
         Close the Nosible client, shutting down the HTTP session
         and thread pool to release network and threading resources.
-
-        Returns
-        -------
-        None
 
         Examples
         --------
