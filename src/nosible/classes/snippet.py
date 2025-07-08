@@ -74,7 +74,7 @@ class Snippet:
         str
             A string representation of the Snippet.
         """
-        return f"Snippet: {self.content}"
+        return print_dict(self.to_dict())
 
     def __getitem__(self, key: str):
         """
