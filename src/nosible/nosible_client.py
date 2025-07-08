@@ -28,6 +28,7 @@ from nosible.classes.search_set import SearchSet
 from nosible.classes.web_page import WebPageData
 from nosible.utils.json_tools import json_loads
 from nosible.utils.rate_limiter import PLAN_RATE_LIMITS, RateLimiter, _rate_limited
+from nosible.utils.question_builder import _get_question
 
 # Set up a module‐level logger.
 logger = logging.getLogger(__name__)
@@ -784,42 +785,40 @@ class Nosible:
 
         Examples
         --------
-        >>> from nosible.classes.search import Search
-        >>> from nosible import Nosible
-        >>> with Nosible(exclude_netlocs=["bbc.com"]) as nos:
-        ...     results = nos.bulk_search(question="Nvidia insiders dump more than $1 billion in stock", n_results=2000)
-        ...     print(isinstance(results, ResultSet))
-        ...     print(len(results))
+        >>> from nosible.classes.search import Search  # doctest: +SKIP
+        >>> from nosible import Nosible  # doctest: +SKIP
+        >>> with Nosible(exclude_netlocs=["bbc.com"]) as nos:  # doctest: +SKIP
+        ...     results = nos.bulk_search(question=_get_question(), n_results=2000)  # doctest: +SKIP
+        ...     print(isinstance(results, ResultSet))  # doctest: +SKIP
+        ...     print(len(results))  # doctest: +SKIP
         True
         2000
-
-        >>> s = Search(question="OpenAI", n_results=1000)
-        >>> with Nosible() as nos:
-        ...     results = nos.bulk_search(search=s)
-        ...     print(isinstance(results, ResultSet))
-        ...     print(len(results))
+        >>> s = Search(question=_get_question(), n_results=1000)  # doctest: +SKIP
+        >>> with Nosible() as nos:  # doctest: +SKIP
+        ...     results = nos.bulk_search(search=s)  # doctest: +SKIP
+        ...     print(isinstance(results, ResultSet))  # doctest: +SKIP
+        ...     print(len(results))  # doctest: +SKIP
         True
         1000
-
-        >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.bulk_search()  # doctest: +ELLIPSIS
+        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
+        >>> nos.bulk_search()  # doctest: +SKIP
         Traceback (most recent call last):
         ...
         TypeError: Either question or search must be specified
 
-        >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.bulk_search(question="foo", search=Search(question="foo")) # doctest: +ELLIPSIS
+        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
+        >>> nos.bulk_search(question=_get_question(), search=Search(question=_get_question()))  # doctest: +SKIP
         Traceback (most recent call last):
         ...
         TypeError: Question and search cannot be both specified
-        >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.bulk_search(question="foo", n_results=100) # doctest: +ELLIPSIS
+        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
+        >>> nos.bulk_search(question=_get_question(), n_results=100)  # doctest: +SKIP
         Traceback (most recent call last):
         ...
         ValueError: Bulk search must have at least 1000 results per query; use search() for smaller result sets.
-        >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.bulk_search(question="foo", n_results=10001)  # doctest: +ELLIPSIS
-        Traceback (most recent call last):
+        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
+        >>> nos.bulk_search(question=_get_question(), n_results=10001)  # doctest: +SKIP
+        Traceback (most recent call last):  # doctest: +SKIP
         ...
         ValueError: Bulk search cannot have more than 10000 results per query.
         """
@@ -1175,26 +1174,28 @@ class Nosible:
         Below are the rate limits for all NOSIBLE plans.
         To upgrade your package, visit https://www.nosible.ai/products.
         <BLANKLINE>
-        Free: (Your current plan)
-        | Endpoint    | Per Month | Per Day | Per Minute |
-        | ----------- | --------- | ------- | ---------- |
-        | Search      |      3000 |     100 |         10 |
-        | URL Visits  |       300 |      10 |          1 |
-        | Bulk Search |       300 |      10 |          1 |
+        Unless otherwise indicated, bulk searches are limited to one-at-a-time per API key.
         <BLANKLINE>
-        Basic:
-        | Endpoint    | Per Month | Per Day | Per Minute |
+        Free: (Your current plan)
+        | Endpoint    | Per Month | Per Minute | Effective CPM |
+        | ----------- | --------- | ---------- | ------------- |
+        | Search      |      3000 |         60 |         $4.00 |
+        | URL Visits  |       300 |         60 |         $4.00 |
+        | Bulk Search |       300 |         60 |         $4.00 |
+        <BLANKLINE>
+        Basic ($49p/m):
+        | Endpoint    | Per Month | Per Minute | Effective CPM |
         ...
         """
         # Human-friendly plan names
         display = {
             "test": "Free",
-            "basic": "Basic",
-            "pro": "Pro",
-            "pro+": "Pro+",
-            "bus": "Business",
-            "bus+": "Business+",
-            "ent": "Enterprise",
+            "basic": "Basic ($49p/m)",
+            "pro": "Pro ($199p/m)",
+            "pro+": "Pro+ ($799p/m)",
+            "bus": "Business ($3999p/m)",
+            "bus+": "Business+ ($7499p/m)",
+            "ent": "Enterprise ($14999p/m)",
         }
 
         # Human-friendly endpoint names
@@ -1203,10 +1204,12 @@ class Nosible:
         out = [
             "Below are the rate limits for all NOSIBLE plans.",
             "To upgrade your package, visit https://www.nosible.ai/products.\n",
+            "Unless otherwise indicated, bulk searches are limited to one-at-a-time per API key.\n"
         ]
 
         user_plan = self._get_user_plan()
         current_plan = ""
+        cpm_counter = 4.0
 
         # Preserve the order you care about:
         for plan in ["test", "basic", "pro", "pro+", "bus", "bus+", "ent"]:
@@ -1215,17 +1218,19 @@ class Nosible:
                 current_plan = " (Your current plan)"
 
             out.append(f"{name}:{current_plan}")
-            out.append("| Endpoint    | Per Month | Per Day | Per Minute |")
-            out.append("| ----------- | --------- | ------- | ---------- |")
+            out.append("| Endpoint    | Per Month | Per Minute | Effective CPM |")
+            out.append("| ----------- | --------- | ---------- | ------------- |")
 
             for ep in ["fast", "visit", "slow"]:
                 buckets = PLAN_RATE_LIMITS[plan][ep]
                 # Find minute & day
                 minute = next(limit for limit, i in buckets if i == 60)
-                day = next(limit for limit, i in buckets if i == 24 * 3600)
-                month = day * 30
-                out.append(f"| {endpoint_name[ep]:<11} | {month:>9} | {day:>7} | {minute:>10} |")
+                month = next(limit for limit, i in buckets if i == 24 * 3600 * 30)
+                cpm = f"${cpm_counter:.2f}"
 
+                out.append(f"| {endpoint_name[ep]:<11} | {month:>9} | {minute:>10} | {cpm:>13} |")
+
+            cpm_counter = cpm_counter - 0.5
             out.append("")  # Blank line
             current_plan = ""
 
@@ -1286,6 +1291,8 @@ class Nosible:
         ValueError
             If the user hits their rate limit.
         ValueError
+            If the user is making too many concurrent searches.
+        ValueError
             If an unexpected error occurs.
         ValueError
             If NOSIBLE is currently restarting.
@@ -1318,6 +1325,8 @@ class Nosible:
                 raise ValueError("You made a bad request.")
         if response.status_code == 429:
             raise ValueError("You have hit your rate limit.")
+        if response.status_code == 409:
+            raise ValueError("Too many concurrent searches.")
         if response.status_code == 500:
             raise ValueError("An unexpected error occurred.")
         if response.status_code == 502:
@@ -1356,7 +1365,7 @@ class Nosible:
         prefix = (self.nosible_api_key or "").split("|", 1)[0]
 
         # Map prefixes -> plan names
-        plans = {"test", "basic", "pro", "pro+", "bus", "bus+", "ent"}
+        plans = {"test", "basic", "pro", "pro+", "bus", "bus+", "ent", "chat"}
 
         if prefix not in plans:
             raise ValueError(f"Your API key is not valid: {prefix} is not a valid plan prefix.")

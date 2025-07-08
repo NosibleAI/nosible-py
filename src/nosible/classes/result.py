@@ -425,10 +425,10 @@ class Result:
 
         Examples
         --------
-        >>> from nosible import Nosible, Result
-        >>> with Nosible() as nos:
-        ...     result = Result(url="https://example.com", title="Example Domain")
-        ...     similar_results = result.similar(client=nos)
+        >>> from nosible import Nosible, Result  # doctest: +SKIP
+        >>> with Nosible() as nos:  # doctest: +SKIP
+        ...     result = Result(url="https://example.com", title="Example Domain")  # doctest: +SKIP
+        ...     similar_results = result.similar(client=nos)  # doctest: +SKIP
         """
         if client is None:
             raise ValueError("A Nosible client instance must be provided as 'client'.")

@@ -254,33 +254,8 @@ Inspect your current limits at runtime:
 ```python
 client.get_ratelimits()
 ```
-Default limits by plan:
 
-| Plan           | Period     | Fast Searches | URL Visits | Slow Searches | Cost     | CPM  |
-|----------------|------------|---------------|------------|---------------|----------|------|
-| **Free**       | Monthly    | 3,000         | 300        | 300           | \$0      | $0   |
-|                | Daily      | 100           | 10         | 10            |          |      |
-|                | Per-Minute | 10            | 1          | 1             |          |      |
-| **Basic**      | Monthly    | 30,000        | 3,000      | 3,000         | \$120    | $4   |
-|                | Daily      | 1,000         | 100        | 100           |          |      |
-|                | Per-Minute | 10            | 1          | 1             |          |      |
-| **Pro**        | Monthly    | 150,000       | 7,500      | 7,500         | \$450    | $3   |
-|                | Daily      | 5,000         | 250        | 250           |          |      |
-|                | Per-Minute | 10            | 1          | 1             |          |      |
-| **Pro+**       | Monthly    | 300,000       | 15,000     | 15,000        | \$750    | $2.5 |
-|                | Daily      | 10,000        | 500        | 500           |          |      |
-|                | Per-Minute | 10            | 2          | 1             |          |      |
-| **Business**   | Monthly    | 1,500,000     | 30,000     | 30,000        | \$3,000  | $2   |
-|                | Daily      | 50,000        | 1,000      | 1,000         |          |      |
-|                | Per-Minute | 35            | 2          | 2             |          |      |
-| **Business+**  | Monthly    | 3,000,000     | 60,000     | 60,000        | \$4,500  | $1.5 |
-|                | Daily      | 100,000       | 2,000      | 2,000         |          |      |
-|                | Per-Minute | 100           | 3          | 3             |          |      |
-| **Enterprise** | Monthly    | 15,000,000    | 150,000    | 150,000       | \$15,000 | $1   |
-|                | Daily      | 500,000       | 5,000      | 5,000         |          |      |
-|                | Per-Minute | 400           | 5          | 5             |          |      |
-
-*All endpoints are automatically throttled
+Or you can view them on the [docs](https://nosible-py.readthedocs.io/en/latest/rate_limits.html).
 
 ---
 
