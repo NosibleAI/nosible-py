@@ -13,10 +13,11 @@
    .. autosummary::
    
       ~SearchSet.add
-      ~SearchSet.from_json
       ~SearchSet.remove
+      ~SearchSet.from_json
       ~SearchSet.to_json
       ~SearchSet.to_list
+      ~SearchSet.to_dicts
    
    
 
