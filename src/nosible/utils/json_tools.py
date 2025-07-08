@@ -14,7 +14,7 @@ except ImportError:
 # --------------------------------------------------------------------------------------------------------------
 
 
-def json_dumps(obj: object) -> Union[bytes, str]:
+def json_dumps(obj: object) -> str:
     """
     Returns a JSON byte-string if using orjson, else a unicode str.
 
