@@ -1,22 +1,21 @@
 name: CI & Publish
 
 on:
-  push:  # Tests will trigger when and branch is pushed to
+  push: # Tests will trigger when and branch is pushed to
   pull_request:
 
 jobs:
   test:
     name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
-    needs: []
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.9', '3.12']
+        python-version: ["3.9", "3.12"]
     env:
       NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY }}
-      LLM_API_KEY:     ${{ secrets.LLM_API_KEY }}
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
     steps:
       - uses: actions/checkout@v3
       - name: Install uv and set the python version
@@ -24,18 +23,22 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install project and dependencies
-        run: uv sync --dev
+        run: uv sync
+      - name: Install pytest and pytest-doctestplus
+        run: uv add pytest pytest-doctestplus --dev
       - name: Run tests
         run: uv run pytest --maxfail=1 --disable-warnings -q
 
   build:
     name: Build distribution
-    needs: test
     runs-on: ubuntu-latest
+    needs: test
+    if: ${{ needs.test.result == 'success' }}
 
     steps:
-      - uses: actions/checkout@v3
-
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
