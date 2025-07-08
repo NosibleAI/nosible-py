@@ -160,12 +160,6 @@ def print_dict(dict: dict) -> str:
     -------
     None
         This function does not return anything; it prints the dictionary to stdout.
-
-    Examples
-    --------
-    >>> print_dict({"a": 1, "b": 2})
-    a: 1
-    b: 2
     """
     if _use_orjson:
         return orjson.dumps(dict, option=orjson.OPT_INDENT_2).decode("utf-8")
