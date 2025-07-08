@@ -14,6 +14,7 @@
    
       ~SnippetSet.to_dict
       ~SnippetSet.to_json
+      ~SnippetSet.from_dict
    
    
 

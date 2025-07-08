@@ -20,13 +20,14 @@ autodoc_default_options = {
     "special-members": False,
     "inherited-members": False,
     "show-inheritance": False,
-    "exclude-members": "__init__,__enter__,Nosible.__exit__()",
+    # "excluded-members": "__init__",
 }
 autodoc_member_order = "bysource"
 autodoc_typehints = "description"
 autodoc_preserve_defaults = True
 
-autosummary_generate = True
+autosummary_generate = False
+autoclass_content = "class"
 napoleon_numpy_docstring = True
 napoleon_google_docstring = False
 
@@ -73,11 +74,12 @@ html_context = {
 
 pygments_style = "monokai"
 
-def skip_all_dunders(app, what, name, obj, skip, options):
-    """Tell autodoc & autosummary to ignore __dunder__ members."""
-    if name.startswith("__") and name.endswith("__"):
-        return name
+def skip_dunder_and_attrs(app, what, name, obj, skip, options):
+    # 1) still skip __init__ (if you care), and
+    # 2) skip every attribute
+    if name == "__init__" or what == "attribute":
+        return True
     return None
 
 def setup(app):
-    app.connect("autodoc-skip-member", skip_all_dunders)
+    app.connect("autodoc-skip-member", skip_dunder_and_attrs)
