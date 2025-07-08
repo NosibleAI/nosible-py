@@ -1715,10 +1715,6 @@ class Nosible:
             Exception instance if raised.
         tb : traceback or None
             Traceback if exception was raised.
-
-        Returns
-        -------
-        None
         """
         self.close()
 
@@ -1726,9 +1722,6 @@ class Nosible:
         """
         Destructor to ensure resources are cleaned up if not explicitly closed.
 
-        Returns
-        -------
-        None
         """
         # Ensure it's called
         self.close()
