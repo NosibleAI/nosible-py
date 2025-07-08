@@ -28,6 +28,7 @@ from nosible.classes.search_set import SearchSet
 from nosible.classes.web_page import WebPageData
 from nosible.utils.json_tools import json_loads
 from nosible.utils.rate_limiter import PLAN_RATE_LIMITS, RateLimiter, _rate_limited
+from nosible.utils.question_builder import _get_question
 
 # Set up a module‐level logger.
 logger = logging.getLogger(__name__)
@@ -786,27 +787,14 @@ class Nosible:
         --------
         >>> from nosible.classes.search import Search
         >>> from nosible import Nosible
-        >>> import random
-        >>> questions = [
-        ...     "Why are Nvidia insiders selling over $1 billion in stock?",
-        ...     "What prompted Nvidia executives to dump more than $1B in shares?",
-        ...     "Why did Nvidia insiders divest over $1 billion worth of stock?",
-        ...     "What’s behind Nvidia insiders offloading $1B+ in company shares?",
-        ...     "How did Nvidia execs end up selling more than $1 billion in Nvidia stock?",
-        ...     "What caused Nvidia insiders to unload upwards of $1B in shares?",
-        ...     "Why are Nvidia executives dumping over $1,000,000,000 in stock?",
-        ...     "What’s the story behind Nvidia insiders selling $1B worth of shares?",
-        ...     "What reasons did Nvidia insiders give for selling over $1 billion in stock?",
-        ...     "How did Nvidia insiders manage to sell more than $1B in company stock?"
-        ...     ]
         >>> with Nosible(exclude_netlocs=["bbc.com"]) as nos:
-        ...     results = nos.bulk_search(question=random.choice(questions), n_results=2000)
+        ...     results = nos.bulk_search(question=_get_question(), n_results=2000)
         ...     print(isinstance(results, ResultSet))
         ...     print(len(results))
         True
         2000
 
-        >>> s = Search(question=random.choice(questions), n_results=1000)
+        >>> s = Search(question=_get_question(), n_results=1000)
         >>> with Nosible() as nos:
         ...     results = nos.bulk_search(search=s)
         ...     print(isinstance(results, ResultSet))
@@ -821,17 +809,17 @@ class Nosible:
         TypeError: Either question or search must be specified
 
         >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.bulk_search(question=random.choice(questions), search=Search(question="foo")) # doctest: +ELLIPSIS
+        >>> nos.bulk_search(question=_get_question(), search=Search(question=_get_question())) # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         TypeError: Question and search cannot be both specified
         >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.bulk_search(question=random.choice(questions), n_results=100) # doctest: +ELLIPSIS
+        >>> nos.bulk_search(question=_get_question(), n_results=100) # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         ValueError: Bulk search must have at least 1000 results per query; use search() for smaller result sets.
         >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.bulk_search(question=random.choice(questions), n_results=10001)  # doctest: +ELLIPSIS
+        >>> nos.bulk_search(question=_get_question(), n_results=10001)  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         ValueError: Bulk search cannot have more than 10000 results per query.
