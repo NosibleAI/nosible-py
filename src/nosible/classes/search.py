@@ -254,10 +254,6 @@ class Search:
 
         Raises
         ------
-        IOError
-            If the file cannot be written.
-        TypeError
-            If serialization of the search parameters fails.
 
         Examples
         --------
@@ -291,10 +287,6 @@ class Search:
 
         Raises
         ------
-        IOError
-            If the file cannot be read.
-        json.JSONDecodeError
-            If the file content is not valid JSON.
 
         Examples
         --------
