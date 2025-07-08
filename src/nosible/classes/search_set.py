@@ -254,14 +254,22 @@ class SearchSet(Iterator[Search]):
         >>> json_str = searches.to_json()
         >>> isinstance(json_str, str)
         True
-        >>> searches.to_json("searches.json")  # The file 'searches.json' will contain both search queries in JSON format.
+        >>> searches.to_json(
+        ...     "searches.json"
+        ... )  # The file 'searches.json' will contain both search queries in JSON format.
         """
-        data = json_dumps(self.to_list())
-        if path:
-            with open(path, "w") as f:
-                f.write(data)
-            return None
-        return data
+        try:
+            json_bytes = json_dumps(self.to_dicts())
+            if path:
+                try:
+                    with open(path, "w") as f:
+                        f.write(json_bytes)
+                    return None
+                except Exception as e:
+                    raise RuntimeError(f"Failed to write JSON to '{path}': {e}") from e
+            return json_bytes
+        except Exception as e:
+            raise RuntimeError(f"Failed to serialize results to JSON: {e}") from e
 
     @classmethod
     def from_json(cls, path: str) -> "SearchSet":
