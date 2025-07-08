@@ -1,6 +1,9 @@
-from nosible.utils.json_tools import json_dumps
+from dataclasses import asdict, dataclass, field
+
+from nosible.utils.json_tools import json_dumps, print_dict
 
 
+@dataclass(init=True, repr=True, eq=True, frozen=True)
 class Snippet:
     """
     A class representing a snippet of text, typically extracted from a web page.
@@ -34,67 +37,28 @@ class Snippet:
 
     """
 
-    def __init__(
-        self,
-        *,
-        companies: list = None,
-        content: str = None,
-        images: list = None,
-        language: str = None,
-        next_snippet_hash: str = None,
-        prev_snippet_hash: str = None,
-        snippet_hash: str = None,
-        statistics: dict = None,
-        url_hash: str = None,
-        words: str = None,
-    ):
-        """
-        Initialize a Snippet instance.
-
-        Parameters
-        ----------
-        companies : list, optional
-            A list of companies mentioned in the snippet, if applicable. (GKIDS)
-        content : str
-            The text content of the snippet.
-        images : list, optional
-            List of image URLs associated with the snippet.
-        language : str, optional
-            The language of the snippet.
-        snippet_hash : str, optional
-            A unique hash for the snippet.
-        statistics : dict, optional
-            Statistical information about the snippet (e.g., word count).
-        words : str, optional
-            The words in the snippet.
-
-        Examples
-        --------
-        >>> snippet = Snippet(content="Example snippet", language="en")
-        >>> print(snippet.content)
-        Example snippet
-        """
-        self.companies = companies or []
-        self.content = content
-        self.images = images
-        self.language = language
-        self.snippet_hash = snippet_hash
-        self.statistics = statistics
-        self.words = words
-        self.url_hash = url_hash
-        self.next_snippet_hash = next_snippet_hash
-        self.prev_snippet_hash = prev_snippet_hash
-
-    def __repr__(self):
-        """
-        Returns a string representation of the Snippet object.
-
-        Returns
-        -------
-        str
-            A string representation of the Snippet.
-        """
-        return f"Snippet(content={self.content[:30]}, language={self.language}, snippet_hash={self.snippet_hash})"
+    content: str = field(default=None, repr=True, compare=True)
+    """The text content of the snippet."""
+    images: list = field(default=None, repr=True, compare=False)
+    """List of image URLs associated with the snippet."""
+    language: str = field(default=None, repr=True, compare=False)
+    """The language of the snippet."""
+    next_snippet_hash: str = field(default=None, repr=True, compare=False)
+    """Hash of the next snippet in sequence."""
+    prev_snippet_hash: str = field(default=None, repr=True, compare=False)
+    """Hash of the previous snippet in sequence."""
+    snippet_hash: str = field(default=None, repr=True, compare=True)
+    """A unique hash for the snippet."""
+    statistics: dict = field(default=None, repr=False, compare=False)
+    """Statistical information about the snippet."""
+    url_hash: str = field(default=None, repr=True, compare=False)
+    """Hash of the URL from which the snippet was extracted."""
+    words: str = field(default=None, repr=False, compare=False)
+    """The words in the snippet."""
+    links: list = field(default=None, repr=False, compare=False)
+    """List of links associated with the snippet."""
+    companies: list = field(default=None, repr=False, compare=False)
+    """List of companies mentioned in the snippet."""
 
     def __str__(self):
         """
@@ -146,17 +110,31 @@ class Snippet:
         >>> isinstance(snippet_dict, dict)
         True
         """
-        return {
-            "content": self.content,
-            "images": self.images,
-            "language": self.language,
-            "snippet_hash": self.snippet_hash,
-            "statistics": self.statistics,
-            "words": self.words,
-            "url_hash": self.url_hash,
-            "next_snippet_hash": self.next_snippet_hash,
-            "prev_snippet_hash": self.prev_snippet_hash,
-        }
+        return asdict(self, dict_factory=dict)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Snippet":
+        """
+        Create a Snippet instance from a dictionary.
+
+        Parameters
+        ----------
+        data : dict
+            Dictionary containing snippet data.
+
+        Returns
+        -------
+        Snippet
+            An instance of Snippet populated with the provided data.
+
+        Examples
+        --------
+        >>> snippet_data = {"content": "Example snippet", "snippet_hash": "hash1"}
+        >>> snippet = Snippet.from_dict(snippet_data)
+        >>> isinstance(snippet, Snippet)
+        True
+        """
+        return cls(**data)
 
     def to_json(self) -> str:
         """

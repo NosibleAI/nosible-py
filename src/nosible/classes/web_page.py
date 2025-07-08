@@ -1,7 +1,10 @@
+from dataclasses import dataclass
+
 from nosible.classes.snippet_set import SnippetSet
 from nosible.utils.json_tools import json_dumps, json_loads
 
 
+@dataclass(init=True, repr=True, eq=True, frozen=True)
 class WebPageData:
     """
     A data container for all extracted and processed information about a web page.
@@ -36,64 +39,26 @@ class WebPageData:
     {'description': 'Example'}
     """
 
-    def __init__(
-        self,
-        *,
-        companies: list = None,
-        full_text: str = None,
-        languages: dict = None,
-        metadata: dict = None,
-        page: dict = None,
-        request: dict = None,
-        snippets: dict = None,
-        statistics: dict = None,
-        structured: list = None,
-        url_tree: dict = None,
-    ):
-        """
-        Initialize a WebPageData instance.
-
-        Parameters
-        ----------
-        companies : list, optional
-            A list of companies mentioned in the webpage, if applicable. (GKIDS)
-        full_text : str, optional
-            The full text content of the webpage.
-        languages : dict, optional
-            Detected languages and their probabilities or counts.
-        metadata : dict, optional
-            Metadata extracted from the webpage (e.g., description, keywords).
-        page : dict, optional
-            Page-specific details such as title, canonical URL, etc.
-        request : dict, optional
-            Information about the HTTP request/response.
-        snippets : list, optional
-            Extracted text snippets or highlights from the page.
-        statistics : dict, optional
-            Statistical information about the page (e.g., word count).
-        structured : list, optional
-            Structured data (e.g., schema.org, OpenGraph).
-        url_tree : dict, optional
-            Hierarchical representation of the URL structure.
-
-        Examples
-        --------
-        >>> data = WebPageData(full_text="Example Domain", languages={"en": 1})
-        >>> data.languages
-        {'en': 1}
-        """
-        self.companies = companies or []
-        if snippets is None:
-            snippets = {}
-        self.full_text = full_text
-        self.languages = languages or {}
-        self.metadata = metadata or {}
-        self.page = page or {}
-        self.request = request or {}
-        self.snippets = SnippetSet(snippets)
-        self.statistics = statistics or {}
-        self.structured = structured or []
-        self.url_tree = url_tree or {}
+    companies: list = None
+    """A list of companies mentioned in the webpage, if applicable. (GKIDS)"""
+    full_text: str = None
+    """The full text content of the webpage."""
+    languages: dict = None
+    """Detected languages and their probabilities or counts."""
+    metadata: dict = None
+    """Metadata extracted from the webpage (e.g., description, keywords)."""
+    page: dict = None
+    """Page-specific details such as title, canonical URL, etc."""
+    request: dict = None
+    """Information about the HTTP request/response."""
+    snippets: SnippetSet = None
+    """Extracted text snippets or highlights from the page."""
+    statistics: dict = None
+    """Statistical information about the page (e.g., word count)."""
+    structured: list = None
+    """Structured data (e.g., schema.org, OpenGraph)."""
+    url_tree: dict = None
+    """Hierarchical representation of the URL structure."""
 
     def __str__(self):
         """Return a string representation of the WebPageData.
@@ -108,24 +73,6 @@ class WebPageData:
             f"page={self.page}, request={self.request}, snippets={self.snippets}, "
             f"statistics={self.statistics}, structured={self.structured}, url_tree={self.url_tree})"
         )
-
-    def __repr__(self):
-        """
-        Return a JSON-formatted string representation of the WebPageData instance.
-
-        Returns
-        -------
-        str
-            JSON string representing the WebPageData for easy readability and debugging.
-
-        Examples
-        --------
-        >>> data = WebPageData(languages={"en": 1}, metadata={"description": "Example"})
-        >>> repr_str = repr(data)
-        >>> isinstance(repr_str, str)
-        True
-        """
-        return json_dumps(self.to_dict())
 
     def to_dict(self) -> dict:
         """
@@ -152,7 +99,7 @@ class WebPageData:
             "metadata": self.metadata,
             "page": self.page,
             "request": self.request,
-            "snippets": self.snippets.to_dict(),
+            "snippets": self.snippets,
             "statistics": self.statistics,
             "structured": self.structured,
             "url_tree": self.url_tree,
