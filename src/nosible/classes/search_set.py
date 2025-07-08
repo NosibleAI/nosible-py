@@ -245,6 +245,10 @@ class SearchSet(Iterator[Search]):
         str
             A JSON string representation of the SearchSet collection if no path is provided.
 
+        Raises
+        -------
+        RuntimeError
+            If there is an error during serialization or file writing.
 
         Examples
         --------
