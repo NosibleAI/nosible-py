@@ -28,6 +28,11 @@ class Snippet:
         Hash of the URL from which the snippet was extracted.
     words : str or None
         The words in the snippet.
+    links : list or None
+        List of links associated with the snippet.
+    companies : list or None
+        List of companies mentioned in the snippet.
+
 
     Examples
     --------
