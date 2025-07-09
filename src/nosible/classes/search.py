@@ -35,6 +35,8 @@ class Search:
         Search algorithm to use.
     min_similarity : float
         Results must have at least this similarity score.
+    must_include: list of str
+        Only results mentioning these strings will be included.
     must_exclude : list of str
         Any result mentioning these strings will be excluded.
     autogenerate_expansions : bool, default=False
@@ -98,6 +100,8 @@ class Search:
     """Search algorithm to use."""
     min_similarity: float | None = None
     """Results must have at least this similarity score."""
+    must_include: list[str] | None = None
+    """Only results mentioning these strings will be included."""
     must_exclude: list[str] | None = None
     """Any result mentioning these strings will be excluded."""
     autogenerate_expansions: bool = False
@@ -138,6 +142,7 @@ class Search:
         "n_contextify",
         "algorithm",
         "min_similarity",
+        "must_include",
         "must_exclude",
         "autogenerate_expansions",
         "publish_start",

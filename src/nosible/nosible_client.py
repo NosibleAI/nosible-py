@@ -208,6 +208,7 @@ class Nosible:
         n_contextify: int = 128,
         algorithm: str = "hybrid-2",
         min_similarity: float = None,
+        must_include: list[str] = None,
         must_exclude: list[str] = None,
         autogenerate_expansions: bool = False,
         publish_start: str = None,
@@ -250,6 +251,8 @@ class Nosible:
             Search algorithm type.
         min_similarity : float
             Results must have at least this similarity score.
+        must_include : list of str
+            Only results mentioning these strings will be included.
         must_exclude : list of str
             Any result mentioning these strings will be excluded.
         autogenerate_expansions : bool
@@ -342,6 +345,7 @@ class Nosible:
             n_contextify=n_contextify,
             algorithm=algorithm,
             min_similarity=min_similarity,
+            must_include=must_include,
             must_exclude=must_exclude,
             autogenerate_expansions=autogenerate_expansions,
             publish_start=publish_start,
@@ -381,6 +385,7 @@ class Nosible:
         n_contextify: int = 128,
         algorithm: str = "hybrid-2",
         min_similarity: float = None,
+        must_include: list[str] = None,
         must_exclude: list[str] = None,
         autogenerate_expansions: bool = False,
         publish_start: str = None,
@@ -420,6 +425,8 @@ class Nosible:
             Search algorithm to use.
         min_similarity : float
             Results must have at least this similarity score.
+        must_include : list of str
+            Only results mentioning these strings will be included.
         must_exclude : list of str
             Any result mentioning these strings will be excluded.
         autogenerate_expansions : bool
@@ -524,6 +531,7 @@ class Nosible:
                 n_contextify=n_contextify,
                 algorithm=algorithm,
                 min_similarity=min_similarity,
+                must_include=must_include,
                 must_exclude=must_exclude,
                 autogenerate_expansions=autogenerate_expansions,
                 publish_start=publish_start,
@@ -594,6 +602,7 @@ class Nosible:
         n_contextify = search_obj.n_contextify if search_obj.n_contextify is not None else 128
         algorithm = search_obj.algorithm if search_obj.algorithm is not None else "hybrid-2"
         min_similarity = search_obj.min_similarity if search_obj.min_similarity is not None else 0
+        must_include = search_obj.must_include if search_obj.must_include is not None else []
         must_exclude = search_obj.must_exclude if search_obj.must_exclude is not None else []
         autogenerate_expansions = (
             search_obj.autogenerate_expansions if search_obj.autogenerate_expansions is not None else False
@@ -655,6 +664,7 @@ class Nosible:
             "n_contextify": n_contextify,
             "algorithm": algorithm,
             "min_similarity": min_similarity,
+            "must_include": must_include,
             "must_exclude": must_exclude,
         }
 
@@ -717,6 +727,7 @@ class Nosible:
         n_contextify: int = 128,
         algorithm: str = "hybrid-2",
         min_similarity: float = None,
+        must_include: list[str] = None,
         must_exclude: list[str] = None,
         autogenerate_expansions: bool = False,
         publish_start: str = None,
@@ -757,6 +768,8 @@ class Nosible:
             Search algorithm identifier.
         min_similarity : float
             Results must have at least this similarity score.
+        must_include : list of str
+            Only results mentioning these strings will be included.
         must_exclude : list of str
             Any result mentioning these strings will be excluded.
         autogenerate_expansions : bool
@@ -871,6 +884,8 @@ class Nosible:
             algorithm = search.algorithm if search.algorithm is not None else algorithm
             min_similarity = search.min_similarity if search.min_similarity is not None else min_similarity
             min_similarity = min_similarity if min_similarity is not None else 0
+            must_include = search.must_include if search.must_include is not None else must_include
+            must_include = must_include if must_include is not None else []
             must_exclude = search.must_exclude if search.must_exclude is not None else must_exclude
             must_exclude = must_exclude if must_exclude is not None else []
             autogenerate_expansions = (
@@ -898,6 +913,7 @@ class Nosible:
         if autogenerate_expansions is True:
             expansions = self._generate_expansions(question=question)
 
+        must_include = must_include if must_include is not None else []
         must_exclude = must_exclude if must_exclude is not None else []
         min_similarity = min_similarity if min_similarity is not None else 0
 
@@ -936,8 +952,6 @@ class Nosible:
 
         self.logger.info(f"Performing bulk search for {question!r}...")
 
-        print("min_similarity", min_similarity)
-        print("must_exclude", must_exclude)
         try:
             payload = {
                 "question": question,
@@ -948,6 +962,7 @@ class Nosible:
                 "n_contextify": n_contextify,
                 "algorithm": algorithm,
                 "min_similarity": min_similarity,
+                "must_include": must_include,
                 "must_exclude": must_exclude,
             }
             resp = self._post(url="https://www.nosible.ai/search/v1/slow-search", payload=payload)
