@@ -151,6 +151,25 @@ class ResultSet(Iterator[Result]):
             return item
         raise StopIteration
 
+    def __eq__(self, value):
+        """
+        Comapre set of url_hashes to determine equality.
+        Two ResultSet instances are considered equal if they contain the same set of url_hashes.
+
+        Parameters
+        ----------
+        value : ResultSet
+            The ResultSet instance to compare against.
+        Returns
+        -------
+        bool
+            True if both ResultSet instances contain the same set of url_hashes, False otherwise.
+        """
+        if not isinstance(value, ResultSet):
+            return False
+        # Compare the sets of url_hashes
+        return {r.url_hash for r in self.results} == {r.url_hash for r in value.results}
+
     def __enter__(self) -> ResultSet:
         """
         Enters the runtime context related to this object.
