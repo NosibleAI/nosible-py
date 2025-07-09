@@ -33,6 +33,10 @@ class Search:
         Number of context documents to retrieve.
     algorithm : str, optional
         Search algorithm to use.
+    min_similarity : float
+        Results must have at least this similarity score.
+    must_exclude : list of str
+        Any result mentioning these strings will be excluded.
     autogenerate_expansions : bool, default=False
         Do you want to generate expansions automatically using a LLM?
     publish_start : str, optional
@@ -91,6 +95,10 @@ class Search:
     """Number of context documents to retrieve."""
     algorithm: str | None = None
     """Search algorithm to use."""
+    min_similarity: float | None = None
+    """Results must have at least this similarity score."""
+    must_exclude: list[str] | None = None
+    """Any result mentioning these strings will be excluded."""
     autogenerate_expansions: bool = False
     """Do you want to generate expansions automatically using a LLM?"""
     publish_start: str | None = None
@@ -128,6 +136,8 @@ class Search:
         "n_probes",
         "n_contextify",
         "algorithm",
+        "min_similarity",
+        "must_exclude",
         "autogenerate_expansions",
         "publish_start",
         "publish_end",
