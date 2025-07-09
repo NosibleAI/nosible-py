@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, field
 
 from nosible.classes.snippet_set import SnippetSet
 from nosible.utils.json_tools import json_dumps, json_loads
@@ -51,7 +51,7 @@ class WebPageData:
     """Page-specific details such as title, canonical URL, etc."""
     request: dict = None
     """Information about the HTTP request/response."""
-    snippets: SnippetSet = None
+    snippets: SnippetSet = field(init=True, default_factory=SnippetSet)
     """Extracted text snippets or highlights from the page."""
     statistics: dict = None
     """Statistical information about the page (e.g., word count)."""
