@@ -4,6 +4,7 @@ import logging
 import os
 import time
 import types
+import typing
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from typing import Union
@@ -1704,24 +1705,27 @@ class Nosible:
         return self
 
     def __exit__(
-        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: types.TracebackType | None
-    ) -> bool | None:
+        self,
+        _exc_type: typing.Optional[type[BaseException]],
+        _exc_val: typing.Optional[BaseException],
+        _exc_tb: typing.Optional[types.TracebackType],
+    ) -> typing.Optional[bool]:
         """
         Always clean up (self.close()), but let exceptions propagate.
         Return True only if you really want to suppress an exception.
 
         Parameters
         ----------
-        exc_type : type[BaseException] | None
+        exc_type : Optional[type[BaseException]]
             The type of the exception raised, if any.
-        exc_val : BaseException | None
+        exc_val : Optional[BaseException]
             The exception instance, if any.
-        exc_tb : types.TracebackType | None
+        exc_tb : Optional[types.TracebackType]
             The traceback object, if any.
 
         Returns
         -------
-        bool | None
+        Optional[bool]
             False to propagate exceptions, True to suppress them.
         """
         try:
