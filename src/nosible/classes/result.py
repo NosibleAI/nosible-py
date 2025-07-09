@@ -146,6 +146,36 @@ class Result:
         except AttributeError as err:
             raise KeyError(f"Key '{key}' not found in Result") from err
 
+    def __add__(self, other: Result) -> ResultSet:
+        """
+        Combine two Result instances into a ResultSet.
+
+        This method allows you to add two Result objects together, returning a ResultSet
+        containing both results.
+
+        Parameters
+        ----------
+        other : Result
+            Another Result instance to combine with this one.
+
+        Returns
+        -------
+        ResultSet
+            A ResultSet containing both this and the other Result.
+
+        Examples
+        --------
+        >>> from nosible import Result, ResultSet
+        >>> r1 = Result(title="First Result", similarity=0.9)
+        >>> r2 = Result(title="Second Result", similarity=0.8)
+        >>> combined = r1 + r2
+        >>> isinstance(combined, ResultSet)
+        True
+        """
+        from nosible.classes.result_set import ResultSet
+
+        return ResultSet([self, other])
+
     def visit(self, client) -> WebPageData:
         """
         Visit the URL associated with this Result and retrieve its content.
