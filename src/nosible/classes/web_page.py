@@ -92,18 +92,10 @@ class WebPageData:
         >>> d["languages"] == {"en": 1}
         True
         """
-        return {
-            "companies": self.companies,
-            "full_text": self.full_text,
-            "languages": self.languages,
-            "metadata": self.metadata,
-            "page": self.page,
-            "request": self.request,
-            "snippets": self.snippets,
-            "statistics": self.statistics,
-            "structured": self.structured,
-            "url_tree": self.url_tree,
-        }
+        data = asdict(self)
+        # snippets is still a SnippetSet instance, so convert it:
+        data["snippets"] = self.snippets.to_dict()
+        return data
 
     def to_json(self) -> str:
         """
@@ -172,19 +164,12 @@ class WebPageData:
         >>> webpage_data.languages
         {'en': 1}
         """
-        parsed_data = json_loads(data)
-        return cls(
-            companies=parsed_data.get("companies", []),
-            full_text=parsed_data.get("full_text"),
-            languages=parsed_data.get("languages"),
-            metadata=parsed_data.get("metadata"),
-            page=parsed_data.get("page"),
-            request=parsed_data.get("request"),
-            snippets=parsed_data.get("snippets", {}),
-            statistics=parsed_data.get("statistics"),
-            structured=parsed_data.get("structured"),
-            url_tree=parsed_data.get("url_tree"),
-        )
+        data_dict = json_loads(data)
+        # Handle snippets separately to avoid passing it twice
+        snippets_data = data_dict.pop("snippets", None)
+        if snippets_data is not None:
+            data_dict["snippets"] = SnippetSet.from_dict(snippets_data)
+        return cls(**data_dict)
 
     @classmethod
     def load(cls, path: str) -> "WebPageData":
@@ -212,5 +197,9 @@ class WebPageData:
         {'en': 1}
         """
         with open(path, encoding="utf-8") as f:
-            data = f.read()
-        return cls.from_json(data)
+            data = json_loads(f.read())
+        # Handle snippets separately to avoid passing it twice
+        snippets_data = data.pop("snippets", None)
+        if snippets_data is not None:
+            data["snippets"] = SnippetSet.from_dict(snippets_data)
+        return cls(**data)
