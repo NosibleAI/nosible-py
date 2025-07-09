@@ -206,7 +206,7 @@ class ResultSet(Iterator[Result]):
         raise IndexError(f"Index {key} out of range for ResultSet with length {len(self.results)}.")
         raise IndexError(f"Index {key} out of range for ResultSet with length {len(self.results)}.")
 
-    def __add__(self, other: ResultSet) -> ResultSet:
+    def __add__(self, other: ResultSet | Result) -> ResultSet:
         """
         Concatenate two ResultSet instances.
 
@@ -232,9 +232,12 @@ class ResultSet(Iterator[Result]):
         >>> len(combined)
         2
         """
-        if not isinstance(other, ResultSet):
-            raise TypeError("Can only concatenate ResultSet with another ResultSet.")
-        return ResultSet(self.results + other.results)
+        if isinstance(other, ResultSet):
+            return ResultSet(self.results + other.results)
+        if isinstance(other, Result):
+            # If other is a single Result, create a new ResultSet with it
+            return ResultSet(self.results.append(other))
+        raise TypeError("Can only concatenate ResultSet with another ResultSet.")
 
     def __sub__(self, other: ResultSet) -> ResultSet:
         """
