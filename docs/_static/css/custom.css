@@ -144,6 +144,20 @@ thead {
     outline: none !important;
 }
 
+/* make all docutils tables fixed-width, full-width */
+table.docutils {
+  table-layout: fixed;
+  width: 100%;
+}
+
+/* allow cells to wrap */
+table.docutils th,
+table.docutils td {
+  white-space: normal;
+  word-break: normal;
+  vertical-align: top;
+}
+
 td {
     padding: 10px 15px;
     border-bottom: 1px solid #3A3A3A;
