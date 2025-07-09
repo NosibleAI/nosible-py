@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING
 
 from openai import OpenAI
@@ -12,6 +13,7 @@ else:
     ResultSet = None
 
 
+@dataclass(init=True, repr=True, eq=True, frozen=False)
 class Result:
     """
     Represents a single search result, including metadata and content.
@@ -61,31 +63,28 @@ class Result:
     ['author', 'content', 'description', 'language', 'netloc', 'published', ... 'visited']
     """
 
-    def __init__(
-        self,
-        url=None,
-        title=None,
-        description=None,
-        netloc=None,
-        published=None,
-        visited=None,
-        author=None,
-        content=None,
-        language=None,
-        similarity=None,
-        url_hash=None,
-    ):
-        self.url = url
-        self.title = title
-        self.description = description
-        self.netloc = netloc
-        self.published = published
-        self.visited = visited
-        self.author = author
-        self.content = content
-        self.language = language
-        self.similarity = similarity
-        self.url_hash = url_hash
+    url: str | None = None
+    """The URL of the search result."""
+    title: str | None = None
+    """The title of the search result."""
+    description: str | None = None
+    """A brief description or summary of the search result."""
+    netloc: str | None = None
+    """The network location (domain) of the URL."""
+    published: str | None = None
+    """The publication date of the search result."""
+    visited: str | None = None
+    """The date and time when the result was visited."""
+    author: str | None = None
+    """The author of the content."""
+    content: str | None = None
+    """The main content or body of the search result."""
+    language: str | None = None
+    """The language code of the content (e.g., 'en' for English)."""
+    similarity: float | None = None
+    """Similarity score with respect to a query or reference."""
+    url_hash: str | None = None
+    """A hash of the URL for quick comparisons."""
 
     def __str__(self) -> str:
         """
@@ -108,25 +107,6 @@ class Result:
         similarity = f"{self.similarity:.2f}" if self.similarity is not None else "N/A"
         title = self.title or "No Title"
         return f"{similarity:>6} | {title}"
-
-    def __repr__(self):
-        """
-        Return a detailed string representation for debugging.
-
-        Returns
-        -------
-        str
-            A string mimicking dataclass auto-generated repr, listing all fields and their values.
-
-        Examples
-        --------
-        >>> result = Result(url="https://example.com", title="Example Domain")
-        >>> print(repr(result))  # doctest: +ELLIPSIS
-        Result(url='https://example.com', title='Example Domain', ... url_hash=None)
-        """
-        # like dataclass’s auto-generated repr
-        fields = ", ".join(f"{k}={v!r}" for k, v in self.to_dict().items())
-        return f"{self.__class__.__name__}({fields})"
 
     def __getitem__(self, key: str) -> str | float | bool | None:
         """
@@ -166,43 +146,35 @@ class Result:
         except AttributeError as err:
             raise KeyError(f"Key '{key}' not found in Result") from err
 
-    def __getattr__(self, item: str) -> str | float | bool | None:
+    def __add__(self, other: Result) -> ResultSet:
         """
-        Retrieve the value of an attribute by its name using __getitem__.
+        Combine two Result instances into a ResultSet.
+
+        This method allows you to add two Result objects together, returning a ResultSet
+        containing both results.
 
         Parameters
         ----------
-        item : str
-            The name of the attribute to retrieve.
+        other : Result
+            Another Result instance to combine with this one.
 
         Returns
         -------
-        str or float or bool or None
-            The value of the requested attribute.
-
-        Raises
-        ------
-        AttributeError
-            If the attribute does not exist in the object.
+        ResultSet
+            A ResultSet containing both this and the other Result.
 
         Examples
         --------
-        >>> result = Result(title="Example Domain", similarity=0.98)
-        >>> result.__getattr__("title")
-        'Example Domain'
-        >>> result.__getattr__("similarity")
-        0.98
-        >>> result.__getattr__("url") is None
+        >>> from nosible import Result, ResultSet
+        >>> r1 = Result(title="First Result", similarity=0.9)
+        >>> r2 = Result(title="Second Result", similarity=0.8)
+        >>> combined = r1 + r2
+        >>> isinstance(combined, ResultSet)
         True
-        >>> result.__getattr__("nonexistent")
-        Traceback (most recent call last):
-            ...
-        AttributeError: Attribute 'nonexistent' not found in Result
         """
-        try:
-            return self.__getitem__(item)
-        except KeyError as err:
-            raise AttributeError(f"Attribute '{item}' not found in Result") from err
+        from nosible.classes.result_set import ResultSet
+
+        return ResultSet([self, other])
 
     def visit(self, client) -> WebPageData:
         """
@@ -347,7 +319,7 @@ class Result:
     def similar(
         self,
         client,
-        sql_filter: list[str] = None,
+        sql_filter: str = None,
         n_results: int = 100,
         n_probes: int = 30,
         n_contextify: int = 128,
@@ -376,40 +348,40 @@ class Result:
             An instance of the Nosible client to use for finding similar results.
         sql_filter : list of str, optional
             SQL‐style filter clauses.
-        n_results : int, default=100
+        n_results : int
             Max number of results (max 100).
-        n_probes : int, default=30
+        n_probes : int
             Number of index shards to probe.
-        n_contextify : int, default=128
+        n_contextify : int
             Context window size per result.
-        algorithm : str, default="hybrid-2"
+        algorithm : str
             Search algorithm type.
         publish_start : str, optional
-            Earliest publish date filter (ISO formatted date).
+            Start date for when the document was published (ISO format).
         publish_end : str, optional
-            Latest publish date filter (ISO formatted date).
-        include_netlocs : list of str, optional
-            Domains to include.
-        exclude_netlocs : list of str, optional
-            Domains to exclude.
+            End date for when the document was published (ISO format).
         visited_start : str, optional
-            Earliest visit date filter (ISO formatted date).
+            Start date for when the document was visited by NOSIBLE (ISO format).
         visited_end : str, optional
-            Latest visit date filter (ISO formatted date).
+            End date for when the document was visited by NOSIBLE (ISO format).
         certain : bool, optional
-            True if we are 100% sure of the date.
+            Only include documents where we are 100% sure of the date.
+        include_netlocs : list of str, optional
+            List of netlocs (domains) to include in the search. (Max: 50)
+        exclude_netlocs : list of str, optional
+            List of netlocs (domains) to exclude in the search. (Max: 50)
         include_languages : list of str, optional
-            Language codes to include.
+            Languages to include in the search. (Max: 50, ISO 639-1 language codes).
         exclude_languages : list of str, optional
-            Language codes to exclude.
+            Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
         include_companies : list of str, optional
-            Google KG IDs of public companies to require.
+            Google KG IDs of public companies to require (Max: 50).
         exclude_companies : list of str, optional
-            Google KG IDs of public companies to forbid.
+            Google KG IDs of public companies to forbid (Max: 50).
         include_docs : list of str, optional
-            URL hashes of docs to include.
+            URL hashes of docs to include (Max: 50).
         exclude_docs : list of str, optional
-            URL hashes of docs to exclude.
+            URL hashes of docs to exclude (Max: 50).
 
         Returns
         -------
@@ -425,9 +397,9 @@ class Result:
 
         Examples
         --------
-        >>> from nosible import Nosible, Result
-        >>> with Nosible() as nos:
-        ...     result = Result(url="https://example.com", title="Example Domain")
+        >>> from nosible import Nosible, Result  # doctest: +SKIP
+        >>> with Nosible() as nos:  # doctest: +SKIP
+        ...     result = Result(url="https://example.com", title="Example Domain")  # doctest: +SKIP
         ...     similar_results = result.similar(client=nos)  # doctest: +SKIP
         """
         if client is None:
@@ -492,20 +464,7 @@ class Result:
         >>> d["visited"]
         '2024-01-01'
         """
-        # manual replacement for asdict()
-        return {
-            "url": self.url,
-            "title": self.title,
-            "description": self.description,
-            "netloc": self.netloc,
-            "published": self.published,
-            "visited": self.visited,
-            "author": self.author,
-            "content": self.content,
-            "language": self.language,
-            "similarity": self.similarity,
-            "url_hash": self.url_hash,
-        }
+        return asdict(self, dict_factory=dict)
 
     @classmethod
     def from_dict(cls, data: dict) -> Result:

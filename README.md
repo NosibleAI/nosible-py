@@ -33,25 +33,10 @@ pip install nosible
 * tantivy
 * openai
 
-### ⚙️ Configuration
-
-You can specify a custom base URL for all endpoints (e.g., OpenRouter, Google, or your own proxy):
-
-```python
-from nosible import Nosible
-
-client = Nosible(
-    nosible_api_key="basic|abcd1234...",
-    llm_api_key="sk-...",
-    base_url="https://api.openrouter.ai/v1"
-)
-```
-
 ### 🔑 Authentication
 
-1. Sign in to nosible.ai and grab your free API key.
+1. Sign in to [NOSIBLE.AI](https://www.nosible.ai/) and grab your free API key.
 2. Set it as an environment variable or pass directly:
-
 
 On Windows
 
@@ -206,7 +191,7 @@ with Nosible(nosible_api_key="basic|abcd1234...") as client:
 
 #### Sentiment Analysis
 
-Compute sentiment for a single result (Uses GPT-4o; requires LLM API key):
+Compute sentiment for a single result (uses GPT-4o; requires an LLM API key):
 
 ```python
 from nosible import Nosible
@@ -253,6 +238,10 @@ with Nosible(nosible_api_key="basic|abcd1234...") as client:
     rs_ndjson = ResultSet.from_ndjson("all_news.ndjson")
 ```
 
+#### More Examples
+
+For more examples, checkout `/examples` for in-depth usage of the NOSIBLE Client Package
+
 ### 📡 Swagger Docs
 
 You can find online endpoints to the NOSIBLE Search API Swagger Docs
@@ -265,33 +254,8 @@ Inspect your current limits at runtime:
 ```python
 client.get_ratelimits()
 ```
-Default limits by plan:
 
-| Plan           | Period     | Fast Searches | URL Visits | Slow Searches | Cost     | CPM  |
-|----------------|------------|---------------|------------|---------------|----------|------|
-| **Free**       | Monthly    | 3,000         | 300        | 300           | \$0      | $0   |
-|                | Daily      | 100           | 10         | 10            |          |      |
-|                | Per-Minute | 10            | 1          | 1             |          |      |
-| **Basic**      | Monthly    | 30,000        | 3,000      | 3,000         | \$120    | $4   |
-|                | Daily      | 1,000         | 100        | 100           |          |      |
-|                | Per-Minute | 10            | 1          | 1             |          |      |
-| **Pro**        | Monthly    | 150,000       | 7,500      | 7,500         | \$450    | $3   |
-|                | Daily      | 5,000         | 250        | 250           |          |      |
-|                | Per-Minute | 10            | 1          | 1             |          |      |
-| **Pro+**       | Monthly    | 300,000       | 15,000     | 15,000        | \$750    | $2.5 |
-|                | Daily      | 10,000        | 500        | 500           |          |      |
-|                | Per-Minute | 10            | 2          | 1             |          |      |
-| **Business**   | Monthly    | 1,500,000     | 30,000     | 30,000        | \$3,000  | $2   |
-|                | Daily      | 50,000        | 1,000      | 1,000         |          |      |
-|                | Per-Minute | 35            | 2          | 2             |          |      |
-| **Business+**  | Monthly    | 3,000,000     | 60,000     | 60,000        | \$4,500  | $1.5 |
-|                | Daily      | 100,000       | 2,000      | 2,000         |          |      |
-|                | Per-Minute | 100           | 3          | 3             |          |      |
-| **Enterprise** | Monthly    | 15,000,000    | 150,000    | 150,000       | \$15,000 | $1   |
-|                | Daily      | 500,000       | 5,000      | 5,000         |          |      |
-|                | Per-Minute | 400           | 5          | 5             |          |      |
-
-*All endpoints are automatically throttled
+Or you can view them on the [docs](https://nosible-py.readthedocs.io/en/latest/rate_limits.html).
 
 ---
 

@@ -3,9 +3,10 @@ import json
 import logging
 import os
 import time
-import traceback
+import types
+import typing
 from collections.abc import Iterator
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from typing import Union
 
 import polars as pl
@@ -25,8 +26,10 @@ from tenacity import (
 from nosible.classes.result_set import ResultSet
 from nosible.classes.search import Search
 from nosible.classes.search_set import SearchSet
+from nosible.classes.snippet_set import SnippetSet
 from nosible.classes.web_page import WebPageData
 from nosible.utils.json_tools import json_loads
+from nosible.utils.question_builder import _get_question
 from nosible.utils.rate_limiter import PLAN_RATE_LIMITS, RateLimiter, _rate_limited
 
 # Set up a module‐level logger.
@@ -47,37 +50,33 @@ class Nosible:
     llm_api_key : str, optional
         API key for LLM-based query expansions.
     openai_base_url : str
-        Base URL for the OpenAI-compatible LLM API.
-    sentiment_model : str
-        Model to use for sentiment analysis and expansions.
+        Base URL for the OpenAI-compatible LLM API. (default is OpenRouter's API endpoint)
+    sentiment_model : str, optional
+        Model to use for sentiment analysis (default is "openai/gpt-4o").
     timeout : int
         Request timeout for HTTP calls.
-    retries : int, default=5
+    retries : int,
         Number of retry attempts for transient HTTP errors.
-    concurrency : int, default=10
+    concurrency : int,
         Maximum concurrent search requests.
     publish_start : str, optional
-        Earliest publish date filter (ISO formatted date).
+        Start date for when the document was published (ISO format).
     publish_end : str, optional
-        Latest publish date filter (ISO formatted date).
-    include_netlocs : list of str, optional
-        Domains to include.
-    exclude_netlocs : list of str, optional
-        Domains to exclude.
+        End date for when the document was published (ISO format).
     visited_start : str, optional
-        Earliest visit date filter (ISO formatted date).
+        Start date for when the document was visited by NOSIBLE (ISO format).
     visited_end : str, optional
-        Latest visit date filter (ISO formatted date).
+        End date for when the document was visited by NOSIBLE (ISO format).
     certain : bool, optional
-        True if we are 100% sure of the date.
-    include_languages : list of str, optional
-        Language codes to include (Max: 50).
-    exclude_languages : list of str, optional
-        Language codes to exclude (Max: 50).
+        Only include documents where we are 100% sure of the date.
     include_netlocs : list of str, optional
-        Only include results from these domains (Max: 50).
+        List of netlocs (domains) to include in the search. (Max: 50)
     exclude_netlocs : list of str, optional
-        Exclude results from these domains (Max: 50).
+        List of netlocs (domains) to exclude in the search. (Max: 50)
+    include_languages : list of str, optional
+        Languages to include in the search. (Max: 50, ISO 639-1 language codes).
+    exclude_languages : list of str, optional
+        Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
     include_companies : list of str, optional
         Google KG IDs of public companies to require (Max: 50).
     exclude_companies : list of str, optional
@@ -86,10 +85,6 @@ class Nosible:
         URL hashes of docs to include (Max: 50).
     exclude_docs : list of str, optional
         URL hashes of docs to exclude (Max: 50).
-    openai_base_url : str, optional
-        Base URL for the OpenAI API (default is OpenRouter).
-    sentiment_model : str, optional
-        Model to use for sentiment analysis (default is "openai/gpt-4o").
 
     Notes
     -----
@@ -243,38 +238,34 @@ class Nosible:
             List of LLM‐generated expansions.
         sql_filter : list of str, optional
             SQL‐style filter clauses.
-        n_results : int, default=100
+        n_results : int
             Max number of results (max 100).
-        n_probes : int, default=30
+        n_probes : int
             Number of index shards to probe.
-        n_contextify : int, default=128
+        n_contextify : int
             Context window size per result.
-        algorithm : str, default="hybrid-2"
+        algorithm : str
             Search algorithm type.
-        autogenerate_expansions : bool, default=False
+        autogenerate_expansions : bool
             Do you want to generate expansions automatically using a LLM?
         publish_start : str, optional
-            Earliest publish date filter (ISO formatted date).
+            Start date for when the document was published (ISO format).
         publish_end : str, optional
-            Latest publish date filter (ISO formatted date).
-        include_netlocs : list of str, optional
-            Domains to include.
-        exclude_netlocs : list of str, optional
-            Domains to exclude.
+            End date for when the document was published (ISO format).
         visited_start : str, optional
-            Earliest visit date filter (ISO formatted date).
+            Start date for when the document was visited by NOSIBLE (ISO format).
         visited_end : str, optional
-            Latest visit date filter (ISO formatted date).
+            End date for when the document was visited by NOSIBLE (ISO format).
         certain : bool, optional
-            True if we are 100% sure of the date.
-        include_languages : list of str, optional
-            Language codes to include (Max: 50).
-        exclude_languages : list of str, optional
-            Language codes to exclude (Max: 50).
+            Only include documents where we are 100% sure of the date.
         include_netlocs : list of str, optional
-            Only include results from these domains (Max: 50).
+            List of netlocs (domains) to include in the search. (Max: 50)
         exclude_netlocs : list of str, optional
-            Exclude results from these domains (Max: 50).
+            List of netlocs (domains) to exclude in the search. (Max: 50)
+        include_languages : list of str, optional
+            Languages to include in the search. (Max: 50, ISO 639-1 language codes).
+        exclude_languages : list of str, optional
+            Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
         include_companies : list of str, optional
             Google KG IDs of public companies to require (Max: 50).
         exclude_companies : list of str, optional
@@ -297,6 +288,8 @@ class Nosible:
             If neither question nor search are specified
         RuntimeError
             If the response fails in any way.
+        ValueError
+            If `n_results` is greater than 100.
 
         Notes
         -----
@@ -407,48 +400,44 @@ class Nosible:
             List of expansion terms to use for each search.
         sql_filter : list of str, optional
             SQL-like filters to apply to the search.
-        n_results : int, default=100
+        n_results : int
             Number of results to return per search.
-        n_probes : int, default=30
+        n_probes : int
             Number of probes to use for the search algorithm.
-        n_contextify : int, default=128
+        n_contextify : int
             Context window size for the search.
-        algorithm : str, default="hybrid-2"
+        algorithm : str
             Search algorithm to use.
-        autogenerate_expansions : bool, default=False
+        autogenerate_expansions : bool
             Do you want to generate expansions automatically using a LLM?
         publish_start : str, optional
-            Filter results published after this date (ISO formatted date).
+            Start date for when the document was published (ISO format).
         publish_end : str, optional
-            Filter results published before this date (ISO formatted date).
-        include_netlocs : list of str, optional
-            Only include results from these domains.
-        exclude_netlocs : list of str, optional
-            Exclude results from these domains.
+            End date for when the document was published (ISO format).
         visited_start : str, optional
-            Only include results visited after this date (ISO formatted date).
+            Start date for when the document was visited by NOSIBLE (ISO format).
         visited_end : str, optional
-            Only include results visited before this date (ISO formatted date).
+            End date for when the document was visited by NOSIBLE (ISO format).
         certain : bool, optional
-            Only include results with high certainty.
-        include_languages : list of str, optional
-            Only include results in these languages (Max: 50).
-        exclude_languages : list of str, optional
-            Exclude results in these languages (Max: 50).
-        include_companies : list of str, optional
-            Only include results from these companies (Max: 50).
-        exclude_companies : list of str, optional
-            Exclude results from these companies (Max: 50).
+            Only include documents where we are 100% sure of the date.
         include_netlocs : list of str, optional
-            Only include results from these domains (Max: 50).
+            List of netlocs (domains) to include in the search. (Max: 50)
         exclude_netlocs : list of str, optional
-            Exclude results from these domains (Max: 50).
+            List of netlocs (domains) to exclude in the search. (Max: 50)
+        include_languages : list of str, optional
+            Languages to include in the search. (Max: 50, ISO 639-1 language codes).
+        exclude_languages : list of str, optional
+            Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
+        include_companies : list of str, optional
+            Google KG IDs of public companies to require (Max: 50).
+        exclude_companies : list of str, optional
+            Google KG IDs of public companies to forbid (Max: 50).
         include_docs : list of str, optional
-            URL hashes of documents to include (Max: 50).
+            URL hashes of docs to include (Max: 50).
         exclude_docs : list of str, optional
-            URL hashes of documents to exclude (Max: 50).
+            URL hashes of docs to exclude (Max: 50).
 
-        Yields
+        Returns
         ------
         ResultSet or None
             Each completed search’s results, or None on failure.
@@ -461,8 +450,6 @@ class Nosible:
             If both queries and searches are specified.
         TypeError
             If neither queries nor searches are specified.
-        RuntimeError
-            If the response fails in any way.
 
         Notes
         -----
@@ -473,7 +460,10 @@ class Nosible:
         --------
         >>> from nosible import Nosible
         >>> queries = SearchSet(
-        ...     [Search(question="Hedge funds seek to expand into private credit", n_results=5), Search(question="How have the Trump tariffs impacted the US economy?", n_results=5)]
+        ...     [
+        ...         Search(question="Hedge funds seek to expand into private credit", n_results=5),
+        ...         Search(question="How have the Trump tariffs impacted the US economy?", n_results=5),
+        ...     ]
         ... )
         >>> with Nosible() as nos:
         ...     results_list = list(nos.searches(searches=queries))
@@ -484,10 +474,14 @@ class Nosible:
         True True
         True True
         >>> with Nosible() as nos:
-        ...     results_list_str = list(nos.searches(questions=[
-        ...     "What are the terms of the partnership between Microsoft and OpenAI?",
-        ...     "What are the terms of the partnership between Volkswagen and Uber?"
-        ...     ]))
+        ...     results_list_str = list(
+        ...         nos.searches(
+        ...             questions=[
+        ...                 "What are the terms of the partnership between Microsoft and OpenAI?",
+        ...                 "What are the terms of the partnership between Volkswagen and Uber?",
+        ...             ]
+        ...         )
+        ...     )
         >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +ELLIPSIS
         >>> nos.searches()  # doctest: +ELLIPSIS
         Traceback (most recent call last):
@@ -539,6 +533,7 @@ class Nosible:
                 except Exception as e:
                     self.logger.warning(f"Search failed: {e!r}")
                     yield None
+
         return _run_generator()
 
     @_rate_limited("fast")
@@ -573,7 +568,7 @@ class Nosible:
         ValueError: Search can not have more than 100 results - Use bulk search instead.
         """
         # --------------------------------------------------------------------------------------------------------------
-        # Setting search params. Individual search will overide Nosible defaults.
+        # Setting search params. Individual search will override Nosible defaults.
         # --------------------------------------------------------------------------------------------------------------
         question = search_obj.question  # No default
         expansions = search_obj.expansions if search_obj.expansions is not None else []  # Default to empty list
@@ -582,7 +577,9 @@ class Nosible:
         n_probes = search_obj.n_probes if search_obj.n_probes is not None else 30
         n_contextify = search_obj.n_contextify if search_obj.n_contextify is not None else 128
         algorithm = search_obj.algorithm if search_obj.algorithm is not None else "hybrid-2"
-        autogenerate_expansions = search_obj.autogenerate_expansions if search_obj.autogenerate_expansions is not None else False
+        autogenerate_expansions = (
+            search_obj.autogenerate_expansions if search_obj.autogenerate_expansions is not None else False
+        )
         publish_start = search_obj.publish_start if search_obj.publish_start is not None else self.publish_start
         publish_end = search_obj.publish_end if search_obj.publish_end is not None else self.publish_end
         include_netlocs = search_obj.include_netlocs if search_obj.include_netlocs is not None else self.include_netlocs
@@ -728,46 +725,42 @@ class Nosible:
             Optional list of expanded query strings.
         sql_filter : list of str, optional
             Optional SQL WHERE clause filters.
-        n_results : int, default=100
+        n_results : int
             Number of results per query (1,000–10,000).
-        n_probes : int, default=30
+        n_probes : int
             Number of shards to probe.
-        n_contextify : int, default=128
+        n_contextify : int
             Context window size per result.
-        algorithm : str, default="hybrid-2"
+        algorithm : str
             Search algorithm identifier.
-        autogenerate_expansions : bool, default=False
+        autogenerate_expansions : bool
             Do you want to generate expansions automatically using a LLM?
         publish_start : str, optional
-            Filter for earliest publish date.
+            Start date for when the document was published (ISO format).
         publish_end : str, optional
-            Filter for latest publish date.
-        include_netlocs : list of str, optional
-            Domains to include.
-        exclude_netlocs : list of str, optional
-            Domains to exclude.
+            End date for when the document was published (ISO format).
         visited_start : str, optional
-            Filter for earliest visit date.
+            Start date for when the document was visited by NOSIBLE (ISO format).
         visited_end : str, optional
-            Filter for latest visit date.
+            End date for when the document was visited by NOSIBLE (ISO format).
         certain : bool, optional
-            True if we are 100% sure of the date.
-        include_languages : list of str, optional
-            Languages to include (Max: 50).
-        exclude_languages : list of str, optional
-            Languages to exclude (Max: 50).
+            Only include documents where we are 100% sure of the date.
         include_netlocs : list of str, optional
-            Only include results from these domains (Max: 50).
+            List of netlocs (domains) to include in the search. (Max: 50)
         exclude_netlocs : list of str, optional
-            Exclude results from these domains (Max: 50).
+            List of netlocs (domains) to exclude in the search. (Max: 50)
+        include_languages : list of str, optional
+            Languages to include in the search. (Max: 50, ISO 639-1 language codes).
+        exclude_languages : list of str, optional
+            Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
         include_companies : list of str, optional
-            Company IDs to require (Max: 50).
+            Google KG IDs of public companies to require (Max: 50).
         exclude_companies : list of str, optional
-            Company IDs to forbid (Max: 50).
+            Google KG IDs of public companies to forbid (Max: 50).
         include_docs : list of str, optional
-            URL hashes of documents to include (Max: 50).
+            URL hashes of docs to include (Max: 50).
         exclude_docs : list of str, optional
-            URL hashes of documents to exclude (Max: 50).
+            URL hashes of docs to exclude (Max: 50).
         verbose : bool, optional
             Show verbose output, Bulk search will print more information.
 
@@ -794,23 +787,21 @@ class Nosible:
 
         Examples
         --------
-        >>> from nosible.classes.search import Search
-        >>> from nosible import Nosible
-        >>> with Nosible(include_netlocs=["bbc.com"]) as nos:  # doctest: +SKIP
-        ...     results = nos.bulk_search(question="Nvidia insiders dump more than $1 billion in stock", n_results=2000)  # doctest: +SKIP
+        >>> from nosible.classes.search import Search  # doctest: +SKIP
+        >>> from nosible import Nosible  # doctest: +SKIP
+        >>> with Nosible(exclude_netlocs=["bbc.com"]) as nos:  # doctest: +SKIP
+        ...     results = nos.bulk_search(question=_get_question(), n_results=2000)  # doctest: +SKIP
         ...     print(isinstance(results, ResultSet))  # doctest: +SKIP
         ...     print(len(results))  # doctest: +SKIP
         True
         2000
-
-        >>> s = Search(question="OpenAI", n_results=1000)  # doctest: +SKIP
+        >>> s = Search(question=_get_question(), n_results=1000)  # doctest: +SKIP
         >>> with Nosible() as nos:  # doctest: +SKIP
         ...     results = nos.bulk_search(search=s)  # doctest: +SKIP
         ...     print(isinstance(results, ResultSet))  # doctest: +SKIP
         ...     print(len(results))  # doctest: +SKIP
         True
         1000
-
         >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
         >>> nos.bulk_search()  # doctest: +SKIP
         Traceback (most recent call last):
@@ -818,20 +809,18 @@ class Nosible:
         TypeError: Either question or search must be specified
 
         >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> nos.bulk_search(question="foo", search=Search(question="foo"))  # doctest: +SKIP
+        >>> nos.bulk_search(question=_get_question(), search=Search(question=_get_question()))  # doctest: +SKIP
         Traceback (most recent call last):
         ...
         TypeError: Question and search cannot be both specified
-
         >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> nos.bulk_search(question="foo", n_results=100)  # doctest: +SKIP
+        >>> nos.bulk_search(question=_get_question(), n_results=100)  # doctest: +SKIP
         Traceback (most recent call last):
         ...
-        ValueError: Bulk search must have at least 100 results per query; use search() for smaller result sets.
-
+        ValueError: Bulk search must have at least 1000 results per query; use search() for smaller result sets.
         >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> nos.bulk_search(question="foo", n_results=10001)  # doctest: +SKIP
-        Traceback (most recent call last):
+        >>> nos.bulk_search(question=_get_question(), n_results=10001)  # doctest: +SKIP
+        Traceback (most recent call last):  # doctest: +SKIP
         ...
         ValueError: Bulk search cannot have more than 10000 results per query.
         """
@@ -854,8 +843,11 @@ class Nosible:
             n_probes = search.n_probes if search.n_probes is not None else n_probes
             n_contextify = search.n_contextify if search.n_contextify is not None else n_contextify
             algorithm = search.algorithm if search.algorithm is not None else algorithm
-            autogenerate_expansions = search.autogenerate_expansions if search.autogenerate_expansions is not None \
+            autogenerate_expansions = (
+                search.autogenerate_expansions
+                if search.autogenerate_expansions is not None
                 else autogenerate_expansions
+            )
             publish_start = search.publish_start if search.publish_start is not None else publish_start
             publish_end = search.publish_end if search.publish_end is not None else publish_end
             include_netlocs = search.include_netlocs if search.include_netlocs is not None else include_netlocs
@@ -959,13 +951,13 @@ class Nosible:
 
         Parameters
         ----------
-        html : str, default=""
+        html : str
             Raw HTML to process instead of fetching.
-        recrawl : bool, default=False
+        recrawl : bool
             If True, force a fresh crawl.
-        render : bool, default=False
+        render : bool
             If True, allow JavaScript rendering before extraction.
-        url : str, default=None
+        url : str
             The URL to fetch and parse.
 
         Returns
@@ -986,26 +978,24 @@ class Nosible:
 
         Examples
         --------
-        >>> from nosible import Nosible  # doctest: +SKIP
-        >>> with Nosible() as nos:  # doctest: +SKIP
-        ...     out = nos.visit(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")  # doctest: +SKIP
-        ...     print(isinstance(out, type(WebPageData)))  # doctest: +SKIP
-        ...     print(hasattr(out, "languages"))  # doctest: +SKIP
-        ...     print(hasattr(out, "page"))  # doctest: +SKIP
+        >>> from nosible import Nosible
+        >>> with Nosible() as nos:
+        ...     out = nos.visit(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")
+        ...     print(isinstance(out, WebPageData))
+        ...     print(hasattr(out, "languages"))
+        ...     print(hasattr(out, "page"))
         True
         True
         True
-        >>> with Nosible() as nos:  # doctest: +SKIP
-        ...     out = nos.visit()  # doctest: +SKIP
-        ...     print(isinstance(out, type(WebPageData)))  # doctest: +SKIP
-        ...     print(hasattr(out, "languages"))  # doctest: +SKIP
-        ...     print(hasattr(out, "page"))  # doctest: +SKIP
+        >>> with Nosible() as nos:
+        ...     out = nos.visit()
+        ...     print(isinstance(out, type(WebPageData)))
+        ...     print(hasattr(out, "languages"))
+        ...     print(hasattr(out, "page"))  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         TypeError: URL must be provided
         """
-
-        # self._enforce("visit")
         if url is None:
             raise TypeError("URL must be provided")
         response = self._post(
@@ -1018,7 +1008,7 @@ class Nosible:
             self.logger.error(f"Failed to parse JSON from response: {e}")
             raise ValueError("Invalid JSON response from server") from e
 
-        if data == {'message': 'Sorry, the URL could not be fetched.'}:
+        if data == {"message": "Sorry, the URL could not be fetched."}:
             raise ValueError("The URL could not be found.")
 
         if "response" not in data:
@@ -1033,7 +1023,7 @@ class Nosible:
             metadata=response_data.get("metadata"),
             page=response_data.get("page"),
             request=response_data.get("request"),
-            snippets=response_data.get("snippets"),
+            snippets=SnippetSet.from_dict(response_data.get("snippets", {})),
             statistics=response_data.get("statistics"),
             structured=response_data.get("structured"),
             url_tree=response_data.get("url_tree"),
@@ -1097,10 +1087,6 @@ class Nosible:
 
         Raises
         ------
-        ValueError
-            If the API returns an unexpected message.
-        requests.HTTPError
-            If the HTTP request fails.
 
         Examples
         --------
@@ -1125,6 +1111,7 @@ class Nosible:
             return False
         except:
             return False
+
     def preflight(self, url: str = None) -> str:
         """
         Run a preflight check for crawling/preprocessing on a URL.
@@ -1180,40 +1167,47 @@ class Nosible:
 
         Examples
         --------
-        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> print(nos.get_rate_limits())  # doctest: +SKIP
-        Free (Your current plan)
-        | Endpoint    | Per Month | Per Day | Per Minute |
-        | ----------- | --------- | ------- | ---------- |
-        | Fast Search |     3 000 |     100 |         10 |
-        | URL Visits  |       300 |      10 |          1 |
-        | Slow Search |       300 |      10 |          1 |
-
-        Basic
-        | Endpoint    | Per Month | Per Day | Per Minute |
+        >>> nos = Nosible(nosible_api_key="test|xyz")
+        >>> print(nos.get_rate_limits())  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+        Below are the rate limits for all NOSIBLE plans.
+        To upgrade your package, visit https://www.nosible.ai/products.
+        <BLANKLINE>
+        Unless otherwise indicated, bulk searches are limited to one-at-a-time per API key.
+        <BLANKLINE>
+        Free: (Your current plan)
+        | Endpoint    | Per Month | Per Minute | Effective CPM |
+        | ----------- | --------- | ---------- | ------------- |
+        | Search      |      3000 |         60 |         $4.00 |
+        | URL Visits  |       300 |         60 |         $4.00 |
+        | Bulk Search |       300 |         60 |         $4.00 |
+        <BLANKLINE>
+        Basic ($49p/m):
+        | Endpoint    | Per Month | Per Minute | Effective CPM |
         ...
         """
         # Human-friendly plan names
         display = {
             "test": "Free",
-            "basic": "Basic",
-            "pro": "Pro",
-            "pro+": "Pro+",
-            "bus": "Business",
-            "bus+": "Business+",
-            "ent": "Enterprise",
+            "basic": "Basic ($49p/m)",
+            "pro": "Pro ($199p/m)",
+            "pro+": "Pro+ ($799p/m)",
+            "bus": "Business ($3999p/m)",
+            "bus+": "Business+ ($7499p/m)",
+            "ent": "Enterprise ($14999p/m)",
         }
 
         # Human-friendly endpoint names
-        endpoint_name = {"fast": "Fast Search", "visit": "URL Visits", "slow": "Bulk Search"}
+        endpoint_name = {"fast": "Search", "visit": "URL Visits", "slow": "Bulk Search"}
 
         out = [
             "Below are the rate limits for all NOSIBLE plans.",
             "To upgrade your package, visit https://www.nosible.ai/products.\n",
+            "Unless otherwise indicated, bulk searches are limited to one-at-a-time per API key.\n"
         ]
 
         user_plan = self._get_user_plan()
         current_plan = ""
+        cpm_counter = 4.0
 
         # Preserve the order you care about:
         for plan in ["test", "basic", "pro", "pro+", "bus", "bus+", "ent"]:
@@ -1222,17 +1216,19 @@ class Nosible:
                 current_plan = " (Your current plan)"
 
             out.append(f"{name}:{current_plan}")
-            out.append("| Endpoint    | Per Month | Per Day | Per Minute |")
-            out.append("| ----------- | --------- | ------- | ---------- |")
+            out.append("| Endpoint    | Per Month | Per Minute | Effective CPM |")
+            out.append("| ----------- | --------- | ---------- | ------------- |")
 
             for ep in ["fast", "visit", "slow"]:
                 buckets = PLAN_RATE_LIMITS[plan][ep]
                 # Find minute & day
                 minute = next(limit for limit, i in buckets if i == 60)
-                day = next(limit for limit, i in buckets if i == 24 * 3600)
-                month = day * 30
-                out.append(f"| {endpoint_name[ep]:<11} | {month:>9} | {day:>7} | {minute:>10} |")
+                month = next(limit for limit, i in buckets if i == 24 * 3600 * 30)
+                cpm = f"${cpm_counter:.2f}"
 
+                out.append(f"| {endpoint_name[ep]:<11} | {month:>9} | {minute:>10} | {cpm:>13} |")
+
+            cpm_counter = cpm_counter - 0.5
             out.append("")  # Blank line
             current_plan = ""
 
@@ -1242,10 +1238,6 @@ class Nosible:
         """
         Close the Nosible client, shutting down the HTTP session
         and thread pool to release network and threading resources.
-
-        Returns
-        -------
-        None
 
         Examples
         --------
@@ -1293,6 +1285,8 @@ class Nosible:
         ValueError
             If the user hits their rate limit.
         ValueError
+            If the user is making too many concurrent searches.
+        ValueError
             If an unexpected error occurs.
         ValueError
             If NOSIBLE is currently restarting.
@@ -1325,6 +1319,8 @@ class Nosible:
                 raise ValueError("You made a bad request.")
         if response.status_code == 429:
             raise ValueError("You have hit your rate limit.")
+        if response.status_code == 409:
+            raise ValueError("Too many concurrent searches.")
         if response.status_code == 500:
             raise ValueError("An unexpected error occurred.")
         if response.status_code == 502:
@@ -1354,16 +1350,16 @@ class Nosible:
 
         Examples
         --------
-        >>> nos = Nosible(nosible_api_key="test+|xyz")  # doctest: +SKIP
+        >>> nos = Nosible(nosible_api_key="test+|xyz")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
         Traceback (most recent call last):
         ...
-        ValueError: test+ is not a valid plan prefix, your API key is invalid.
+        ValueError: Your API key is not valid: test+ is not a valid plan prefix.
         """
         # Split off anything after the first '|'
         prefix = (self.nosible_api_key or "").split("|", 1)[0]
 
-        # Map prefixes -> human-friendly plan names
-        plans = {"test", "basic", "pro", "pro+", "bus", "bus+", "ent"}
+        # Map prefixes -> plan names
+        plans = {"test", "basic", "pro", "pro+", "bus", "bus+", "ent", "chat"}
 
         if prefix not in plans:
             raise ValueError(f"Your API key is not valid: {prefix} is not a valid plan prefix.")
@@ -1393,11 +1389,10 @@ class Nosible:
 
         Examples
         --------
-
-        >>> from nosible import Nosible  # doctest: +SKIP
-        >>> nos = Nosible(llm_api_key=None)  # doctest: +SKIP
-        >>> nos.llm_api_key = None  # doctest: +SKIP
-        >>> nos._generate_expansions("anything")  # doctest: +SKIP
+        >>> from nosible import Nosible
+        >>> nos = Nosible(llm_api_key=None)
+        >>> nos.llm_api_key = None
+        >>> nos._generate_expansions("anything")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
         Traceback (most recent call last):
         ...
         ValueError: LLM API key is required for generating expansions.
@@ -1508,35 +1503,31 @@ class Nosible:
         Parameters
         ----------
         publish_start : str, optional
-            Earliest published date filter.
+            Start date for when the document was published (ISO format).
         publish_end : str, optional
-            Latest published date filter.
-        include_netlocs : list of str, optional
-            Domains to whitelist.
-        exclude_netlocs : list of str, optional
-            Domains to blacklist.
+            End date for when the document was published (ISO format).
         visited_start : str, optional
-            Earliest visit date filter.
+            Start date for when the document was visited by NOSIBLE (ISO format).
         visited_end : str, optional
-            Latest visit date filter.
+            End date for when the document was visited by NOSIBLE (ISO format).
         certain : bool, optional
-            True if we are 100% sure of the date.
-        include_languages : list of str, optional
-            Languages to include (Max: 50).
-        exclude_languages : list of str, optional
-            Languages to exclude (Max: 50).
+            Only include documents where we are 100% sure of the date.
         include_netlocs : list of str, optional
-            Only include results from these domains (Max: 50).
+            List of netlocs (domains) to include in the search. (Max: 50)
         exclude_netlocs : list of str, optional
-            Exclude results from these domains (Max: 50).
+            List of netlocs (domains) to exclude in the search. (Max: 50)
+        include_languages : list of str, optional
+            Languages to include in the search. (Max: 50, ISO 639-1 language codes).
+        exclude_languages : list of str, optional
+            Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
         include_companies : list of str, optional
-            Public Company Google KG IDs to require (Max: 50).
+            Google KG IDs of public companies to require (Max: 50).
         exclude_companies : list of str, optional
-            Public Company Google KG IDs to forbid (Max: 50).
+            Google KG IDs of public companies to forbid (Max: 50).
         include_docs : list of str, optional
-            URL hashes of documents to include (Max: 50).
+            URL hashes of docs to include (Max: 50).
         exclude_docs : list of str, optional
-            URL hashes of documents to exclude (Max: 50).
+            URL hashes of docs to exclude (Max: 50).
 
         Returns
         -------
@@ -1545,20 +1536,19 @@ class Nosible:
 
         Raises
         ------
-
         ValueError
             If more than 50 items in a filter are given.
         """
         # Validate list lengths
         for name, lst in [
-            ('include_netlocs', include_netlocs),
-            ('exclude_netlocs', exclude_netlocs),
-            ('include_languages', include_languages),
-            ('exclude_languages', exclude_languages),
-            ('include_companies', include_companies),
-            ('exclude_companies', exclude_companies),
-            ('include_docs', include_docs),
-            ('exclude_docs', exclude_docs),
+            ("include_netlocs", include_netlocs),
+            ("exclude_netlocs", exclude_netlocs),
+            ("include_languages", include_languages),
+            ("exclude_languages", exclude_languages),
+            ("include_companies", include_companies),
+            ("exclude_companies", exclude_companies),
+            ("include_docs", include_docs),
+            ("exclude_docs", exclude_docs),
         ]:
             if lst is not None and len(lst) > 50:
                 raise ValueError(f"Too many items for '{name}' filter ({len(lst)}); maximum allowed is 50.")
@@ -1595,10 +1585,10 @@ class Nosible:
             variants = set()
             for n in include_netlocs:
                 variants.add(n)
-                if n.startswith('www.'):
+                if n.startswith("www."):
                     variants.add(n[4:])
                 else:
-                    variants.add('www.' + n)
+                    variants.add("www." + n)
             in_list = ", ".join(f"'{v}'" for v in sorted(variants))
             clauses.append(f"netloc IN ({in_list})")
 
@@ -1607,10 +1597,10 @@ class Nosible:
             variants = set()
             for n in exclude_netlocs:
                 variants.add(n)
-                if n.startswith('www.'):
+                if n.startswith("www."):
                     variants.add(n[4:])
                 else:
-                    variants.add('www.' + n)
+                    variants.add("www." + n)
             ex_list = ", ".join(f"'{v}'" for v in sorted(variants))
             clauses.append(f"netloc NOT IN ({ex_list})")
 
@@ -1703,7 +1693,7 @@ class Nosible:
         except Exception:
             return False
 
-    def __enter__(self):
+    def __enter__(self) -> "Nosible":
         """
         Enter the context manager, returning this client instance.
 
@@ -1714,32 +1704,42 @@ class Nosible:
         """
         return self
 
-    def __exit__(self, exc_type: type, exc: Exception, tb: traceback):
+    def __exit__(
+        self,
+        _exc_type: typing.Optional[type[BaseException]],
+        _exc_val: typing.Optional[BaseException],
+        _exc_tb: typing.Optional[types.TracebackType],
+    ) -> typing.Optional[bool]:
         """
-        Exit the context manager, ensuring cleanup of resources.
+        Always clean up (self.close()), but let exceptions propagate.
+        Return True only if you really want to suppress an exception.
 
         Parameters
         ----------
-        exc_type : type or None
-            Exception type if raised.
-        exc : Exception or None
-            Exception instance if raised.
-        tb : traceback or None
-            Traceback if exception was raised.
+        exc_type : Optional[type[BaseException]]
+            The type of the exception raised, if any.
+        exc_val : Optional[BaseException]
+            The exception instance, if any.
+        exc_tb : Optional[types.TracebackType]
+            The traceback object, if any.
 
         Returns
         -------
-        None
+        Optional[bool]
+            False to propagate exceptions, True to suppress them.
         """
-        self.close()
+        try:
+            self.close()
+        except Exception as cleanup_err:
+            # optional: log or re-raise, but don’t hide the original exc
+            print(f"Cleanup failed: {cleanup_err!r}")
+        # Return False (or None) => exceptions inside the with‐block are re-raised.
+        return False
 
     def __del__(self):
         """
         Destructor to ensure resources are cleaned up if not explicitly closed.
 
-        Returns
-        -------
-        None
         """
         # Ensure it's called
         self.close()

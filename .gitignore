@@ -17,7 +17,6 @@ build/
 # Sphinx docs build
 docs/_build/
 docs/_autosummary/
-docs/api
 
 # Egg metadata
 *.egg-info/
@@ -239,3 +238,20 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Output Files ignored
+src/nosible/classes/data.csv
+src/nosible/classes/data.json
+src/nosible/classes/data.ndjson
+src/nosible/classes/my_results.arrow
+src/nosible/classes/my_results.duckdb
+src/nosible/classes/my_results.parquet
+src/nosible/classes/out.csv
+src/nosible/classes/results.duckdb
+src/nosible/classes/results.json
+src/nosible/classes/results.ndjson
+src/nosible/classes/sample.arrow
+src/nosible/classes/sample.parquet
+src/nosible/classes/search.json
+src/nosible/classes/searches.json
+src/nosible/classes/test_webpage.json
