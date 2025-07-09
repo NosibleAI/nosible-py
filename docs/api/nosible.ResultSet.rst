@@ -4,8 +4,14 @@
 .. currentmodule:: nosible
 
 .. autoclass:: ResultSet
+   :exclude-members: results
 
    
+   .. rubric:: Attributes
+
+   .. autosummary::
+
+      ~ResultSet.results
 
    
    .. rubric:: Methods
