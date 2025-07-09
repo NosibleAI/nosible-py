@@ -69,6 +69,7 @@ class Search:
     Examples
     --------
     Create a search with specific parameters:
+
     >>> search = Search(
     ...     question="What is Python?",
     ...     n_results=5,
