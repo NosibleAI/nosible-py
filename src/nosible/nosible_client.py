@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import time
-import traceback
+import types
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from typing import Union
@@ -28,8 +28,8 @@ from nosible.classes.search_set import SearchSet
 from nosible.classes.snippet_set import SnippetSet
 from nosible.classes.web_page import WebPageData
 from nosible.utils.json_tools import json_loads
-from nosible.utils.rate_limiter import PLAN_RATE_LIMITS, RateLimiter, _rate_limited
 from nosible.utils.question_builder import _get_question
+from nosible.utils.rate_limiter import PLAN_RATE_LIMITS, RateLimiter, _rate_limited
 
 # Set up a module‐level logger.
 logger = logging.getLogger(__name__)
