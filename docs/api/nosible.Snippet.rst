@@ -9,13 +9,6 @@
    
 
    
-   .. rubric:: Methods
-
-   .. autosummary::
-   
-      ~Snippet.to_dict
-      ~Snippet.from_dict
-      ~Snippet.to_json
    
    .. rubric:: Attributes
 
@@ -33,6 +26,13 @@
       ~Snippet.links
       ~Snippet.companies
    
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Snippet.to_dict
+      ~Snippet.from_dict
+      ~Snippet.to_json
    
 
    

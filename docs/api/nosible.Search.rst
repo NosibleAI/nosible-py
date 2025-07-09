@@ -7,14 +7,6 @@
    :exclude-members: question, expansions, sql_filter, n_results, n_probes, n_contextify, algorithm, autogenerate_expansions, publish_start, publish_end, visited_start, visited_end, certain, include_netlocs, exclude_netlocs, include_languages, exclude_languages, include_companies, exclude_companies, include_docs, exclude_docs
    
    
-   .. rubric:: Methods
-
-   .. autosummary::
-   
-      ~Search.from_dict
-      ~Search.load
-      ~Search.save
-      ~Search.to_dict
    
 
    .. rubric:: Attributes
@@ -43,6 +35,14 @@
       ~Search.include_docs
       ~Search.exclude_docs
    
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Search.from_dict
+      ~Search.load
+      ~Search.save
+      ~Search.to_dict
 
    
    
