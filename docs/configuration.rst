@@ -216,14 +216,6 @@ hybrid-2
 
 - First use lexical search to narrow results, then refines the results with a semantic search.
 
-company
-~~~~~~~
-
-- Search optimized for retrieving information about a company. We support all companies in Wikidata.
-  Use the `search entities <https://www.nosible.ai/search/v1/docs/
-  swagger#/Miscellaneous/search_entities_search_v1-search_entities_post>`_
-  endpoint to see what companies are supported.
-
 🌐 Change LLM Base URL
 ----------------------
 
