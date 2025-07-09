@@ -467,7 +467,7 @@ class ResultSet(Iterator[Result]):
             # Extract year-month
             df = df.with_columns(pl.col(by).dt.strftime("%Y-%m").alias("year_month"))
             # Count per month
-            vc = df.group_by("year_month").agg(pl.count().alias("count")).sort("year_month")
+            vc = df.group_by("year_month").agg(pl.len().alias("count")).sort("year_month")
             rows = vc.rows()
             if not rows:
                 return {}
