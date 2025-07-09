@@ -8,8 +8,7 @@ from nosible import Nosible, Result, ResultSet, Search, Snippet, SnippetSet
 from nosible.classes.search_set import SearchSet
 from nosible.classes.web_page import WebPageData
 
-os.environ["NOSIBLE_API_KEY"] = "REDACTED"
-os.environ["LLM_API_KEY"] = ""
+
 
 
 @pytest.fixture(scope="session")
