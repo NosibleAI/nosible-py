@@ -1692,7 +1692,7 @@ class Nosible:
         except Exception:
             return False
 
-    def __enter__(self):
+    def __enter__(self) -> "Nosible":
         """
         Enter the context manager, returning this client instance.
 
@@ -1703,20 +1703,34 @@ class Nosible:
         """
         return self
 
-    def __exit__(self, exc_type: type, exc: Exception, tb: traceback):
+    def __exit__(
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: types.TracebackType | None
+    ) -> bool | None:
         """
-        Exit the context manager, ensuring cleanup of resources.
+        Always clean up (self.close()), but let exceptions propagate.
+        Return True only if you really want to suppress an exception.
 
         Parameters
         ----------
-        exc_type : type or None
-            Exception type if raised.
-        exc : Exception or None
-            Exception instance if raised.
-        tb : traceback or None
-            Traceback if exception was raised.
+        exc_type : type[BaseException] | None
+            The type of the exception raised, if any.
+        exc_val : BaseException | None
+            The exception instance, if any.
+        exc_tb : types.TracebackType | None
+            The traceback object, if any.
+
+        Returns
+        -------
+        bool | None
+            False to propagate exceptions, True to suppress them.
         """
-        self.close()
+        try:
+            self.close()
+        except Exception as cleanup_err:
+            # optional: log or re-raise, but don’t hide the original exc
+            print(f"Cleanup failed: {cleanup_err!r}")
+        # Return False (or None) => exceptions inside the with‐block are re-raised.
+        return False
 
     def __del__(self):
         """
