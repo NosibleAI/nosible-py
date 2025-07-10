@@ -1,15 +1,12 @@
 import logging
-import os
-import time
+from datetime import timedelta
 
-import polars as pl
 import pytest
 import requests
 import requests_cache
 
-from nosible import Nosible, Result, ResultSet, Search, Snippet, SnippetSet
+from nosible import Nosible, Search
 from nosible.classes.search_set import SearchSet
-from nosible.classes.web_page import WebPageData
 
 logging.getLogger("requests_cache").setLevel(logging.DEBUG)
 
@@ -51,6 +48,7 @@ def install_requests_cache(request):
         backend="sqlite",
         expire_after=60 * 20,
         allowable_methods=["GET", "POST"],
+        stale_if_error=timedelta(minutes=20)
     )
     logging.getLogger("requests_cache").setLevel(logging.DEBUG)
 
