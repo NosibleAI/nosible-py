@@ -29,7 +29,7 @@ def install_requests_cache():
         backend="sqlite",
         expire_after=60 * 20,
         allowable_methods=["GET", "POST"],
-        allowable_codes=[200, 401, 422, 429, 409, 500, 502, 504],
+        # allowable_codes=[200, 401, 422, 429, 409, 500, 502, 504],
         # stale_if_error=True,
     )
     yield
