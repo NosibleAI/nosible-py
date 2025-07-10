@@ -2,6 +2,8 @@ import gzip
 import json
 import logging
 import os
+import sys
+import textwrap
 import time
 import types
 import typing
@@ -9,7 +11,6 @@ from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Union, Optional
-import textwrap
 
 import polars as pl
 import requests
@@ -2022,5 +2023,9 @@ class Nosible:
         Destructor to ensure resources are cleaned up if not explicitly closed.
 
         """
-        # Ensure it's called
-        self.close()
+        # Only close if interpreter is fully alive
+        if not getattr(sys, "is_finalizing", lambda: False)():
+            try:
+                self.close()
+            except Exception:
+                pass
