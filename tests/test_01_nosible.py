@@ -181,18 +181,17 @@ def test_trend_date_window(trend_data):
     dates = sorted(trend_data.keys())
     start, end = dates[0], dates[-1]
 
-    nos = Nosible()
-    windowed = nos.trend(query="any query", start_date=start, end_date=end)
-
-    # Compare only the dates (keys), not the counts
-    assert set(windowed.keys()) == set(trend_data.keys())
-    # And in the same order if you care about ordering
-    assert sorted(windowed.keys()) == dates
+    with Nosible() as nos:
+        windowed = nos.trend(query="any query", start_date=start, end_date=end)
+        # Compare only the dates (keys), not the counts
+        assert set(windowed.keys()) == set(trend_data.keys())
+        # And in the same order if you care about ordering
+        assert sorted(windowed.keys()) == dates
 
 
 def test_trend_invalid_date_format():
-    nos = Nosible()
-    with pytest.raises(ValueError):
-        nos.trend(query="q", start_date="20210101")    # missing hyphens
-    with pytest.raises(ValueError):
-        nos.trend(query="q", end_date="2021/01/01")    # wrong separator
+    with Nosible() as nos:
+        with pytest.raises(ValueError):
+            nos.trend(query="q", start_date="20210101")    # Missing hyphens
+        with pytest.raises(ValueError):
+            nos.trend(query="q", end_date="2021/01/01")    # Wrong separator
