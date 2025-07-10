@@ -168,7 +168,7 @@ class Nosible:
             reraise=True,
             stop=stop_after_attempt(self.retries) | stop_after_delay(self.timeout),
             wait=wait_exponential(multiplier=1, min=1, max=10),
-            retry=retry_if_exception_type(Exception),
+            retry=retry_if_exception_type(requests.exceptions.RequestException),
             before_sleep=before_sleep_log(self.logger, logging.WARNING),
         )(self._generate_expansions)
 
