@@ -1539,6 +1539,8 @@ class Nosible:
             content_type = response.headers.get("Content-Type", "")
             if content_type.startswith("application/json"):
                 body = response.json()
+                if isinstance(body, list):
+                    body = body[0]  # NOSIBLE returns a list of errors
                 print(body)
                 if body.get("type") == "string_too_short":
                     raise ValueError("Your API key is not valid: Too Short.")
