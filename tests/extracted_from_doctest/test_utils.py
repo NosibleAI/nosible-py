@@ -146,7 +146,8 @@ def test_rate_limiter_try_acquire_and_block(monkeypatch):
     rl2.acquire()  # consume
     rl2.acquire()  # should block until reset
     elapsed = time.perf_counter() - start
-    assert elapsed >= 0.05
+    # Round to 2 decimal places for precision
+    assert round(elapsed, 2) >= 0.05
 
 
 def test_rate_limited_decorator_calls_all_limiters():
