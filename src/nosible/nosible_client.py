@@ -300,6 +300,8 @@ class Nosible:
             If the response fails in any way.
         ValueError
             If `n_results` is greater than 100.
+        ValueError
+            If min_similarity is not [0,1].
 
         Notes
         -----
@@ -336,6 +338,9 @@ class Nosible:
         """
         if (question is None and search is None) or (question is not None and search is not None):
             raise TypeError("Specify exactly one of 'question' or 'search'.")
+
+        if not (0.0 <= min_similarity <= 1.0):
+            raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
 
         search_obj = self._construct_search(
             question=search if search is not None else question,
@@ -472,6 +477,8 @@ class Nosible:
             If both queries and searches are specified.
         TypeError
             If neither queries nor searches are specified.
+        ValueError
+            If min_similarity is not [0,1].
 
         Notes
         -----
@@ -518,6 +525,9 @@ class Nosible:
         """
         if (questions is None and searches is None) or (questions is not None and searches is not None):
             raise TypeError("Specify exactly one of 'questions' or 'searches'.")
+
+        if not (0.0 <= min_similarity <= 1.0):
+            raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
 
         # Function to ensure correct errors are raised.
         def _run_generator():
@@ -819,6 +829,8 @@ class Nosible:
             If neither question nor search are specified.
         RuntimeError
             If the response fails in any way.
+        ValueError
+            If min_similarity is not [0,1].
 
         Notes
         -----
@@ -873,6 +885,9 @@ class Nosible:
 
         if question is None and search is None:
             raise TypeError("Either question or search must be specified")
+
+        if not (0.0 <= min_similarity <= 1.0):
+            raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
 
         # If a Search object is provided, extract its fields
         if search is not None:
