@@ -43,7 +43,7 @@ jobs:
       - name: Debug ls
         run: |
           pwd
-          ls -la
+          ls
 
       - name: Run tests in record mode
         run: |
@@ -105,7 +105,7 @@ jobs:
       - name: Debug ls
         run: |
           pwd
-          ls -la
+          ls
 
       - name: Run tests
         run: uv run pytest --maxfail=1 --cache-only # Enforcing cache only here
