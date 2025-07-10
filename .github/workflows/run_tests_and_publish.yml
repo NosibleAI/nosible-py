@@ -38,7 +38,7 @@ jobs:
         run: uv pip install -e .
 
       - name: Install test dependencies
-        run: uv pip install pytest pytest-doctestplus
+        run: uv pip install pytest pytest-doctestplus requests-cache
 
       - name: Debug ls
         run: |
