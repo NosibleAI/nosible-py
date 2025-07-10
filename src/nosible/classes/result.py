@@ -335,6 +335,8 @@ class Result:
         exclude_languages: list = None,
         include_companies: list = None,
         exclude_companies: list = None,
+        include_docs: list = None,
+        exclude_docs: list = None,
     ) -> ResultSet:
         """
         Find similar search results based on the content or metadata of this Result.
@@ -429,6 +431,8 @@ class Result:
                 exclude_languages=exclude_languages,
                 include_companies=include_companies,
                 exclude_companies=exclude_companies,
+                include_docs=include_docs,
+                exclude_docs=exclude_docs,
             )
             return client.search(search=s)
         except Exception as e:
