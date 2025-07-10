@@ -42,7 +42,6 @@ jobs:
 
       - name: Run tests in record mode
         run: |
-          cd $GITHUB_WORKSPACE 
           uv run pytest --maxfail=1 
 
       - name: Save HTTP cache
@@ -96,7 +95,6 @@ jobs:
 
       - name: Install test dependencies
         run: |
-          cd $GITHUB_WORKSPACE
           uv pip install pytest pytest-doctestplus requests-cache
 
       - name: Run tests
