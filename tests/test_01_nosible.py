@@ -113,7 +113,7 @@ def test_invalid_api_key():
 def test_llm_key_required_for_expansions():
     nos = Nosible(llm_api_key=None)
     nos.llm_api_key = None
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="LLM API key is required"):
         nos._generate_expansions("anything")
 
 

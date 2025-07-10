@@ -9,6 +9,13 @@ from nosible import Nosible, Result, ResultSet, Search, Snippet, SnippetSet
 from nosible.classes.search_set import SearchSet
 from nosible.classes.web_page import WebPageData
 
+import logging
+
+logging.getLogger("requests_cache").setLevel(logging.DEBUG)
+
+
+os.environ["NOSIBLE_API_KEY"] = "REDACTED"
+
 
 @pytest.fixture(autouse=True, scope="session")
 def install_requests_cache():
@@ -23,7 +30,7 @@ def install_requests_cache():
         expire_after=60 * 20,
         allowable_methods=["GET", "POST"],
         allowable_codes=[200, 401, 422, 429, 409, 500, 502, 504],
-        stale_if_error=True,
+        # stale_if_error=True,
     )
     yield
 
