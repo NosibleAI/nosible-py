@@ -35,10 +35,15 @@ jobs:
         run: uv venv
 
       - name: Install project dependencies
-        run: uv pip install -r docs/requirements.txt
+        run: uv pip install -e .
 
       - name: Install test dependencies
-        run: uv pip install pytest pytest-doctestplus requests-cache
+        run: uv pip install pytest pytest-doctestplus
+
+      - name: Debug ls
+        run: |
+          pwd
+          ls -la
 
       - name: Run tests in record mode
         run: |
@@ -96,6 +101,11 @@ jobs:
       - name: Install test dependencies
         run: |
           uv pip install pytest pytest-doctestplus requests-cache
+
+      - name: Debug ls
+        run: |
+          pwd
+          ls -la
 
       - name: Run tests
         run: uv run pytest --maxfail=1 --cache-only # Enforcing cache only here
