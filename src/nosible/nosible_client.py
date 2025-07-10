@@ -339,9 +339,6 @@ class Nosible:
         if (question is None and search is None) or (question is not None and search is not None):
             raise TypeError("Specify exactly one of 'question' or 'search'.")
 
-        if not (0.0 <= min_similarity <= 1.0):
-            raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
-
         search_obj = self._construct_search(
             question=search if search is not None else question,
             expansions=expansions,
@@ -526,9 +523,6 @@ class Nosible:
         if (questions is None and searches is None) or (questions is not None and searches is not None):
             raise TypeError("Specify exactly one of 'questions' or 'searches'.")
 
-        if not (0.0 <= min_similarity <= 1.0):
-            raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
-
         # Function to ensure correct errors are raised.
         def _run_generator():
             search_queries = questions if questions is not None else searches
@@ -637,6 +631,9 @@ class Nosible:
         exclude_companies = (
             search_obj.exclude_companies if search_obj.exclude_companies is not None else self.exclude_companies
         )
+
+        if not (0.0 <= min_similarity <= 1.0):
+            raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
 
         # Generate expansions if not provided
         if expansions is None:
@@ -886,9 +883,6 @@ class Nosible:
         if question is None and search is None:
             raise TypeError("Either question or search must be specified")
 
-        if not (0.0 <= min_similarity <= 1.0):
-            raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
-
         # If a Search object is provided, extract its fields
         if search is not None:
             question = search.question
@@ -928,6 +922,9 @@ class Nosible:
             expansions = []
         if autogenerate_expansions is True:
             expansions = self._generate_expansions(question=question)
+
+        if not (0.0 <= min_similarity <= 1.0):
+            raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
 
         must_include = must_include if must_include is not None else []
         must_exclude = must_exclude if must_exclude is not None else []
