@@ -7,6 +7,7 @@ import types
 import typing
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from typing import Union
 
 import polars as pl
@@ -997,7 +998,13 @@ class Nosible:
                 self.logger.setLevel(previous_level)
 
     @_rate_limited("visit")
-    def visit(self, html: str = "", recrawl: bool = False, render: bool = False, url: str = None) -> WebPageData:
+    def visit(
+        self,
+        html: str = "",
+        recrawl: bool = False,
+        render: bool = False,
+        url: str = None
+    ) -> WebPageData:
         """
         Visit a given URL and return a structured WebPageData object for the page.
 
@@ -1080,6 +1087,82 @@ class Nosible:
             structured=response_data.get("structured"),
             url_tree=response_data.get("url_tree"),
         )
+
+    @_rate_limited("fast")
+    def trend(
+        self,
+        query: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        sql_filter: str | None = None,
+    ) -> dict:
+        """
+        Extract a trend showing the volume of news surrounding your query.
+
+        Parameters
+        ----------
+        query : str
+            The search term we would like to see a trend for.
+        start_date : str, optional
+            ISO‐format start date (YYYY-MM-DD) of the trend window.
+        end_date : str, optional
+            ISO‐format end date (YYYY-MM-DD) of the trend window.
+        sql_filter : str, optional
+            An optional SQL filter to narrow down the trend query
+
+        Returns
+        -------
+        dict
+            The JSON-decoded trend data returned by the server.
+
+        Examples
+        --------
+        >>> from nosible import Nosible
+        >>> with Nosible() as nos:
+        ...     trends_data = nos.trend("Christmas Shopping", start_date="2005-01-01", end_date="2020-12-31")
+        ...     print(trends_data)  # doctest: +ELLIPSIS
+        {'2005-01-31': ...'2020-12-31': ...}
+        """
+        # Validate dates
+        if start_date is not None:
+            self._validate_date_format(start_date, "start_date")
+        if end_date is not None:
+            self._validate_date_format(end_date, "end_date")
+
+        payload: dict[str, str] = {"query": query}
+
+        if sql_filter is not None:
+            payload["sql_filter"] = sql_filter
+        else:
+            payload["sql_filter"] = "SELECT loc, published FROM engine"
+
+        # Send the POST to the /trend endpoint
+        response = self._post(
+            url="https://www.nosible.ai/search/v1/trend",
+            payload=payload,
+        )
+        # Will raise ValueError on rate-limit or auth errors
+        response.raise_for_status()
+        payload = response.json().get("response", {})
+
+        # if no window requested, return everything
+        if start_date is None and end_date is None:
+            return payload
+
+        sd = datetime.fromisoformat(start_date) if start_date else None
+        ed = datetime.fromisoformat(end_date) if end_date else None
+
+        # filter by ISO‐date keys
+        filtered: dict[str, float] = {}
+        for date_str, value in payload.items():
+            dt = datetime.fromisoformat(date_str)
+            if sd and dt < sd:
+                continue
+            if ed and dt > ed:
+                continue
+            filtered[date_str] = value
+
+        return filtered
 
     def version(self) -> str:
         """
@@ -1534,6 +1617,49 @@ class Nosible:
         self.logger.debug(f"Successful expansions: {expansions}")
         return expansions
 
+    @staticmethod
+    def _validate_date_format(string: str, name: str):
+        """
+        Check that a date string is valid ISO format (YYYY-MM-DD or full ISO timestamp).
+
+        Parameters
+        ----------
+        string : str
+            The date string to validate.
+        name : str
+            The name of the parameter being validated, used in the error message.
+
+        Raises
+        ------
+        ValueError
+            If `string` is not a valid ISO 8601 date. Error message will include
+            the `name` and the offending string.
+                Examples
+        --------
+        >>> # valid date-only format
+        >>> Nosible._validate_date_format("2023-12-31", "publish_start")
+        >>> # valid full timestamp
+        >>> Nosible._validate_date_format("2023-12-31T15:30:00", "visited_end")
+        >>> # invalid month
+        >>> Nosible._validate_date_format("2023-13-01", "publish_end")
+        Traceback (most recent call last):
+            ...
+        ValueError: Invalid date for 'publish_end': '2023-13-01'.  Expected ISO format 'YYYY-MM-DD'.
+        >>> # wrong separator
+        >>> Nosible._validate_date_format("2023/12/31", "visited_start")
+        Traceback (most recent call last):
+            ...
+        ValueError: Invalid date for 'visited_start': '2023/12/31'.  Expected ISO format 'YYYY-MM-DD'.
+        """
+        try:
+            # datetime.fromisoformat accepts both YYYY-MM-DD and full timestamps
+            parsed = datetime.fromisoformat(string)
+        except Exception:
+            raise ValueError(
+                f"Invalid date for '{name}': {string!r}.  "
+                "Expected ISO format 'YYYY-MM-DD'."
+            )
+
     def _format_sql(
         self,
         publish_start: str = None,
@@ -1592,8 +1718,17 @@ class Nosible:
         ValueError
             If more than 50 items in a filter are given.
         """
+        for name, value in [
+            ("publish_start", publish_start),
+            ("publish_end", publish_end),
+            ("visited_start", visited_start),
+            ("visited_end", visited_end),
+        ]:
+            if value is not None:
+                self._validate_date_format(string=value, name=name)
+
         # Validate list lengths
-        for name, lst in [
+        for name, value in [
             ("include_netlocs", include_netlocs),
             ("exclude_netlocs", exclude_netlocs),
             ("include_languages", include_languages),
@@ -1603,8 +1738,8 @@ class Nosible:
             ("include_docs", include_docs),
             ("exclude_docs", exclude_docs),
         ]:
-            if lst is not None and len(lst) > 50:
-                raise ValueError(f"Too many items for '{name}' filter ({len(lst)}); maximum allowed is 50.")
+            if value is not None and len(value) > 50:
+                raise ValueError(f"Too many items for '{name}' filter ({len(value)}); maximum allowed is 50.")
 
         sql = ["SELECT loc FROM engine"]
         clauses: list[str] = []
