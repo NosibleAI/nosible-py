@@ -1,39 +1,74 @@
+import logging
 import os
 import time
 
 import polars as pl
 import pytest
+import requests
 import requests_cache
 
 from nosible import Nosible, Result, ResultSet, Search, Snippet, SnippetSet
 from nosible.classes.search_set import SearchSet
 from nosible.classes.web_page import WebPageData
 
-import logging
-
 logging.getLogger("requests_cache").setLevel(logging.DEBUG)
 
 
-os.environ["NOSIBLE_API_KEY"] = "bus+|PtjFBc2ofG1khWsUYkXQlEdGt3J8qoYP_MheFck-"
 
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--no-cache",
+        action="store_true",
+        default=False,
+        help="Disable requests_cache entirely"
+    )
+    parser.addoption(
+        "--cache-only",
+        action="store_true",
+        default=False,
+        help="Use only cached responses; don’t hit the network"
+    )
 
 @pytest.fixture(autouse=True, scope="session")
-def install_requests_cache():
+def install_requests_cache(request):
     """
-    Globally cache all HTTP requests during this test session
-    to http_tests_cache.sqlite in the repo root.
+    - default (no flags): install cache and update it on misses
+    - --no-cache: do nothing (no caching)
+    - --cache-only: install cache but only serve cached entries (raise if missing)
     """
-    # create the cache (never expires)
+    no_cache    = request.config.getoption("no_cache")
+    cache_only  = request.config.getoption("cache_only")
+
+    if no_cache:
+        # skip caching completely
+        yield
+        return
+
+    # install the cache (shared session backend)
     requests_cache.install_cache(
         cache_name="http_tests_cache",
         backend="sqlite",
         expire_after=60 * 20,
         allowable_methods=["GET", "POST"],
-        # allowable_codes=[200, 401, 422, 429, 409, 500, 502, 504],
-        # stale_if_error=True,
     )
-    yield
+    logging.getLogger("requests_cache").setLevel(logging.DEBUG)
 
+    if cache_only:
+        # monkey-patch Session.request to only_if_cached=True
+        orig_request = requests.Session.request
+
+        def only_cached(self, method, url, *args, **kwargs):
+            # force only_if_cached; raise if not in cache
+            kwargs.setdefault("only_if_cached", True)
+            resp = orig_request(self, method, url, *args, **kwargs)
+            if getattr(resp, "from_cache", False) is False:
+                raise RuntimeError(f"No cached response for {method} {url}")
+            return resp
+
+        requests.Session.request = only_cached
+
+    yield
 
 @pytest.fixture(scope="session")
 def search_data():
