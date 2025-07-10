@@ -17,7 +17,7 @@ def install_requests_cache():
     to http_tests_cache.sqlite in the repo root.
     """
     # create the cache (never expires)
-    requests_cache.install_cache(cache_name="http_tests_cache", backend="sqlite", expire_after=600)
+    requests_cache.install_cache(cache_name="http_tests_cache", backend="sqlite", expire_after=1200)
     yield
 
 
