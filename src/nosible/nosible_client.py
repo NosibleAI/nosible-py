@@ -300,8 +300,6 @@ class Nosible:
             If the response fails in any way.
         ValueError
             If `n_results` is greater than 100.
-        ValueError
-            If min_similarity is not [0,1].
 
         Notes
         -----
@@ -474,8 +472,6 @@ class Nosible:
             If both queries and searches are specified.
         TypeError
             If neither queries nor searches are specified.
-        ValueError
-            If min_similarity is not [0,1].
 
         Notes
         -----
@@ -584,6 +580,8 @@ class Nosible:
         ------
         ValueError
             If `n_results` > 100.
+        ValueError
+            If min_similarity is not [0,1].
 
         Examples
         --------
@@ -923,12 +921,12 @@ class Nosible:
         if autogenerate_expansions is True:
             expansions = self._generate_expansions(question=question)
 
-        if not (0.0 <= min_similarity <= 1.0):
-            raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
-
         must_include = must_include if must_include is not None else []
         must_exclude = must_exclude if must_exclude is not None else []
         min_similarity = min_similarity if min_similarity is not None else 0
+
+        if not (0.0 <= min_similarity <= 1.0):
+            raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
 
         # Generate sql_filter if unset
         if sql_filter is None:
