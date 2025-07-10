@@ -22,6 +22,7 @@ jobs:
         with:
           path: http_tests_cache.sqlite
           key: nosible-http-cache
+          enableCrossOsArchive: true
           restore-keys: |
             nosible-http-cache-
 
@@ -46,6 +47,7 @@ jobs:
         with:
           path: http_tests_cache.sqlite
           key: nosible-http-cache
+          enableCrossOsArchive: true
 
   test:
     name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
@@ -69,6 +71,7 @@ jobs:
         with:
           path: http_tests_cache.sqlite
           key: nosible-http-cache
+          enableCrossOsArchive: true
           restore-keys: |
             nosible-http-cache-
 
