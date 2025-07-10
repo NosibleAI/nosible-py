@@ -6,27 +6,45 @@ on:
 
 jobs:
   record:
-    name: Record HTTP Interaction
+    name: Record HTTP interactions
     runs-on: ubuntu-latest
     env:
       NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY }}
-      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      LLM_API_KEY:     ${{ secrets.LLM_API_KEY }}
     steps:
-      - uses: actions/checkout@v3
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # Restore any existing cache so we don’t start from empty on every push
+      - name: Restore HTTP cache
+        uses: actions/cache@v4
+        with:
+          path: http_tests_cache.sqlite
+          key:   nosible-http-cache
+
       - name: Install uv & Python 3.12
-        uses: astral-sh/setup-uv@v5
-        with: 
+        uses: astral-sh/setup-uv@v6
+        with:
           python-version: 3.12
-      - run: uv venv
-      - run: |
+          enable-cache: true
+
+      - name: Create virtualenv
+        run: uv venv
+
+      - name: Install project & test deps
+        run: |
           uv pip install -r docs/requirements.txt
           uv pip install pytest pytest-doctestplus requests-cache
-      - run: uv run pytest --maxfail=1 --disable-warnings -q
-      - name: Upload HTTP cache
-        uses: actions/upload-artifact@v4
+
+      - name: Run tests (record mode)
+        run: uv run pytest --maxfail=1 --disable-warnings -q
+
+      # Save back the updated cache for future workflow runs
+      - name: Save HTTP cache
+        uses: actions/cache@v4
         with:
-          name: http-cache
           path: http_tests_cache.sqlite
+          key:   nosible-http-cache
 
 
   test:
@@ -42,18 +60,20 @@ jobs:
       NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY }}
       LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Download HTTP Cache
-        uses: actions/download-artifact@v4
+      - name: Restore HTTP cache
+        uses: actions/cache@v4
         with:
-          name: http-cache
-          path: .
+          path: http_tests_cache.sqlite
+          key: nosible-http-cache
 
       - name: Install uv and set the python version
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          
       - name: Create venv
         run: uv venv
 
@@ -77,7 +97,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
+        with: 
+          enable-cache: true
 
       - name: Build packages
         run: uv build
