@@ -3,12 +3,36 @@ import time
 
 import polars as pl
 import pytest
+import requests_cache
 
 from nosible import Nosible, Result, ResultSet, Search, Snippet, SnippetSet
 from nosible.classes.search_set import SearchSet
 from nosible.classes.web_page import WebPageData
 
+import logging
 
+logging.getLogger("requests_cache").setLevel(logging.DEBUG)
+
+
+os.environ["NOSIBLE_API_KEY"] = "REMOVED_KEY"
+
+
+@pytest.fixture(autouse=True, scope="session")
+def install_requests_cache():
+    """
+    Globally cache all HTTP requests during this test session
+    to http_tests_cache.sqlite in the repo root.
+    """
+    # create the cache (never expires)
+    requests_cache.install_cache(
+        cache_name="http_tests_cache",
+        backend="sqlite",
+        expire_after=60 * 20,
+        allowable_methods=["GET", "POST"],
+        allowable_codes=[200, 401, 422, 429, 409, 500, 502, 504],
+        # stale_if_error=True,
+    )
+    yield
 
 
 @pytest.fixture(scope="session")
