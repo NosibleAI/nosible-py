@@ -117,3 +117,11 @@ def bulk_search_data():
     with Nosible() as nos:
         # Use n_results=1000 to satisfy the >=1000 requirement
         return nos.bulk_search(question="Hedge funds seek to expand into private credit", n_results=1000)
+
+
+@pytest.fixture(scope="session")
+def trend_data():
+    """Cache a single trend() invocation."""
+    with Nosible() as nos:
+        return nos.trend(query="Christmas shopping")
+
