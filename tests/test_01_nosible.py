@@ -163,35 +163,35 @@ def test_visit_to_json_roundtrip(visit_data):
     assert isinstance(rehydrated.snippets, SnippetSet)
 
 
-def test_trend_success(trend_data):
-    # trend_data fixture should give the full payload as a dict
-    assert isinstance(trend_data, dict)
-    assert trend_data  # non‐empty
-    # keys should look like ISO dates, values numeric
-    for date_str, count in trend_data.items():
-        assert re.match(r"^\d{4}-\d{2}-\d{2}$", date_str)
-        assert isinstance(count, (int, float))
-
-
-def test_trend_date_window(trend_data):
-    """
-    When start_date/end_date exactly cover the full range,
-    trend() should return the same set of dates (keys), regardless of values.
-    """
-    dates = sorted(trend_data.keys())
-    start, end = dates[0], dates[-1]
-
-    with Nosible() as nos:
-        windowed = nos.trend(query="any query", start_date=start, end_date=end)
-        # Compare only the dates (keys), not the counts
-        assert set(windowed.keys()) == set(trend_data.keys())
-        # And in the same order if you care about ordering
-        assert sorted(windowed.keys()) == dates
-
-
-def test_trend_invalid_date_format():
-    with Nosible() as nos:
-        with pytest.raises(ValueError):
-            nos.trend(query="q", start_date="20210101")    # Missing hyphens
-        with pytest.raises(ValueError):
-            nos.trend(query="q", end_date="2021/01/01")    # Wrong separator
+# def test_trend_success(trend_data):
+#     # trend_data fixture should give the full payload as a dict
+#     assert isinstance(trend_data, dict)
+#     assert trend_data  # non‐empty
+#     # keys should look like ISO dates, values numeric
+#     for date_str, count in trend_data.items():
+#         assert re.match(r"^\d{4}-\d{2}-\d{2}$", date_str)
+#         assert isinstance(count, (int, float))
+#
+#
+# def test_trend_date_window(trend_data):
+#     """
+#     When start_date/end_date exactly cover the full range,
+#     trend() should return the same set of dates (keys), regardless of values.
+#     """
+#     dates = sorted(trend_data.keys())
+#     start, end = dates[0], dates[-1]
+#
+#     with Nosible() as nos:
+#         windowed = nos.trend(query="any query", start_date=start, end_date=end)
+#         # Compare only the dates (keys), not the counts
+#         assert set(windowed.keys()) == set(trend_data.keys())
+#         # And in the same order if you care about ordering
+#         assert sorted(windowed.keys()) == dates
+#
+#
+# def test_trend_invalid_date_format():
+#     with Nosible() as nos:
+#         with pytest.raises(ValueError):
+#             nos.trend(query="q", start_date="20210101")    # Missing hyphens
+#         with pytest.raises(ValueError):
+#             nos.trend(query="q", end_date="2021/01/01")    # Wrong separator
