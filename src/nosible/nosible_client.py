@@ -8,7 +8,7 @@ import typing
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Union
+from typing import Union, Optional
 
 import polars as pl
 import requests
@@ -1092,9 +1092,9 @@ class Nosible:
     def trend(
         self,
         query: str,
-        start_date: str | None = None,
-        end_date: str | None = None,
-        sql_filter: str | None = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        sql_filter: Optional[str] = None,
     ) -> dict:
         """
         Extract a trend showing the volume of news surrounding your query.
@@ -1242,6 +1242,8 @@ class Nosible:
                 return False
             if msg == "The URL could not be retrieved.":
                 return False
+            # If we reach here, the response is unexpected
+            return False
         except requests.HTTPError:
             return False
         except:
@@ -1904,11 +1906,11 @@ class Nosible:
 
         Parameters
         ----------
-        exc_type : Optional[type[BaseException]]
+        _exc_type : Optional[type[BaseException]]
             The type of the exception raised, if any.
-        exc_val : Optional[BaseException]
+        _exc_val : Optional[BaseException]
             The exception instance, if any.
-        exc_tb : Optional[types.TracebackType]
+        _exc_tb : Optional[types.TracebackType]
             The traceback object, if any.
 
         Returns
