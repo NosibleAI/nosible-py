@@ -1239,16 +1239,12 @@ class Nosible:
         if start_date is None and end_date is None:
             return payload
 
-        sd = datetime.fromisoformat(start_date) if start_date else None
-        ed = datetime.fromisoformat(end_date) if end_date else None
-
-        # filter by ISO‐date keys
+        # Filter by ISO‐date keys
         filtered: dict[str, float] = {}
         for date_str, value in payload.items():
-            dt = datetime.fromisoformat(date_str)
-            if sd and dt < sd:
+            if start_date and date_str < start_date:
                 continue
-            if ed and dt > ed:
+            if end_date and date_str > end_date:
                 continue
             filtered[date_str] = value
 
