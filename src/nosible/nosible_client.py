@@ -1012,7 +1012,7 @@ class Nosible:
         self,
         query: str,
         n_results: int = 100,
-        model: str | None = "google/gemini-2.0-flash-001",
+        model: Union[str, None] = "google/gemini-2.0-flash-001",
         show_context: bool = False,
     ) -> str:
         """
