@@ -204,7 +204,6 @@ class ResultSet(Iterator[Result]):
         if 0 <= key < len(self.results):
             return self.results[key]
         raise IndexError(f"Index {key} out of range for ResultSet with length {len(self.results)}.")
-        raise IndexError(f"Index {key} out of range for ResultSet with length {len(self.results)}.")
 
     def __add__(self, other: ResultSet | Result) -> ResultSet:
         """
