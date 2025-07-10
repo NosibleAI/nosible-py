@@ -51,7 +51,7 @@ def test_searchset_to_dicts():
 
 
 # to_json
-def test_searchset_to_json():
+def test_searchset_to_json(tmp_path):
     search_set = SearchSet([s1, s2])
 
     json_str = search_set.to_json()
@@ -59,8 +59,8 @@ def test_searchset_to_json():
     assert len(json_str) > 0  # Ensure that the JSON string is not empty
 
     # save to file and read back
-    search_set.to_json("search_set.json")
-    search_set_copy = SearchSet.from_json("search_set.json")
+    search_set.to_json(tmp_path / "search_set.json")
+    search_set_copy = SearchSet.from_json(tmp_path / "search_set.json")
     assert search_set == search_set_copy
 
 
