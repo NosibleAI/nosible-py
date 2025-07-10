@@ -181,7 +181,7 @@ def test_trend_date_window(trend_data):
     dates = sorted(trend_data.keys())
     start, end = dates[0], dates[-1]
 
-    nos = Nosible(nosible_api_key="test|xyz")
+    nos = Nosible()
     windowed = nos.trend(query="any query", start_date=start, end_date=end)
 
     # Compare only the dates (keys), not the counts
