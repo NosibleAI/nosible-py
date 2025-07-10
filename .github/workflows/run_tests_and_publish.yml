@@ -98,7 +98,7 @@ jobs:
           uv pip install pytest pytest-doctestplus requests-cache
 
       - name: Run tests
-        run: uv run pytest --maxfail=1
+        run: uv run pytest --maxfail=1 --cache-only # Enforcing cache only here
 
   build:
     name: Build package distribution
