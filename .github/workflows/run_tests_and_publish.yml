@@ -1,12 +1,58 @@
 name: CI & Publish
 
 on:
-  push: # Tests will trigger when and branch is pushed to
+  push:
   pull_request:
 
 jobs:
+  record:
+    name: Record HTTP interactions
+    runs-on: ubuntu-latest
+    env:
+      NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY }}
+      LLM_API_KEY:     ${{ secrets.LLM_API_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Restore HTTP cache
+        uses: actions/cache@v4
+        id: cache
+        with:
+          path: http_tests_cache.sqlite
+          key: nosible-http-cache
+          restore-keys: |
+            nosible-http-cache-
+          enableCrossOsArchive: true
+
+      - name: Setup Python & UV tool
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: 3.12
+          enable-cache: true
+
+      - name: Create virtual environment
+        run: uv venv
+
+      - name: Install project dependencies
+        run: uv pip install -r docs/requirements.txt
+
+      - name: Install test dependencies
+        run: uv pip install pytest pytest-doctestplus requests-cache
+
+      - name: Run tests in record mode
+        run: uv run pytest --maxfail=1 --disable-warnings -q
+
+      - name: Save HTTP cache
+        uses: actions/cache@v4
+        with:
+          path: http_tests_cache.sqlite
+          key: nosible-http-cache
+          enableCrossOsArchive: true
+
   test:
-    name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    name: Run cross-platform tests
+    needs: record
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -15,49 +61,72 @@ jobs:
         python-version: ["3.9", "3.12"]
     env:
       NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY }}
-      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      LLM_API_KEY:     ${{ secrets.LLM_API_KEY }}
     steps:
-      - uses: actions/checkout@v3
-      - name: Install uv and set the python version
-        uses: astral-sh/setup-uv@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Restore HTTP cache
+        uses: actions/cache@v4
+        id: cache
+        with:
+          path: http_tests_cache.sqlite
+          key: nosible-http-cache
+          restore-keys: |
+            nosible-http-cache-
+          enableCrossOsArchive: true
+
+      - name: Fail on cache miss
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: exit 1
+
+      - name: Setup Python & UV tool
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Create venv
+          enable-cache: true
+
+      - name: Create virtual environment
         run: uv venv
-      - name: Install project and dependencies
+
+      - name: Install project dependencies
         run: uv pip install -r docs/requirements.txt
-      - name: Install pytest and pytest-doctestplus
-        run: uv pip install pytest pytest-doctestplus
+
+      - name: Install test dependencies
+        run: uv pip install pytest pytest-doctestplus requests-cache
+
       - name: Run tests
         run: uv run pytest --maxfail=1 --disable-warnings -q
 
   build:
-    name: Build distribution
-    runs-on: ubuntu-latest
+    name: Build package distribution
     needs: test
+    runs-on: ubuntu-latest
     if: ${{ needs.test.result == 'success' }}
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
 
-      - name: Build packages
+      - name: Setup UV tool
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Build distributions
         run: uv build
 
-      - name: Upload artifacts
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: python-package-distributions
           path: dist/
 
   publish:
-    name: Publish to PyPI
-    runs-on: ubuntu-latest
+    name: Publish package to PyPI
     needs: build
-    # Only publish to PyPi on the 'main' branch
+    runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/main' && needs.build.result == 'success' }}
     environment:
       name: pypi
@@ -65,12 +134,13 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - name: Download distributions
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: python-package-distributions
           path: dist/
+
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          pypi_token: ${{ secrets.PYPI_API_TOKEN }}
+          pypi_token: ${{ secrets.PYPI_API_TOKEN }}}
