@@ -8,9 +8,8 @@ import requests_cache
 from nosible import Nosible, Search
 from nosible.classes.search_set import SearchSet
 
+# Turn on debug logging for cache operations
 logging.getLogger("requests_cache").setLevel(logging.DEBUG)
-
-
 
 
 def pytest_addoption(parser):
@@ -26,6 +25,13 @@ def pytest_addoption(parser):
         default=False,
         help="Use only cached responses; don’t hit the network"
     )
+    parser.addoption(
+        "--regen-cache",
+        action="store_true",
+        default=False,
+        help="Clear the existing cache before running tests"
+    )
+
 
 @pytest.fixture(autouse=True, scope="session")
 def install_requests_cache(request):
@@ -33,14 +39,25 @@ def install_requests_cache(request):
     - default (no flags): install cache and update it on misses
     - --no-cache: do nothing (no caching)
     - --cache-only: install cache but only serve cached entries (raise if missing)
+    - --regen-cache: clear any existing cache file before installing
     """
     no_cache    = request.config.getoption("no_cache")
     cache_only  = request.config.getoption("cache_only")
+    regen_cache = request.config.getoption("regen_cache")
 
     if no_cache:
         # skip caching completely
         yield
         return
+
+    if regen_cache:
+        # clear the sqlite cache if it exists
+        try:
+            requests_cache.clear()
+            logging.getLogger("requests_cache").debug("Cache cleared (--regen-cache)")
+        except Exception:
+            # no cache to clear yet
+            pass
 
     # install the cache (shared session backend)
     requests_cache.install_cache(
@@ -57,7 +74,6 @@ def install_requests_cache(request):
         orig_request = requests.Session.request
 
         def only_cached(self, method, url, *args, **kwargs):
-            # force only_if_cached; raise if not in cache
             kwargs.setdefault("only_if_cached", True)
             resp = orig_request(self, method, url, *args, **kwargs)
             if getattr(resp, "from_cache", False) is False:
@@ -67,6 +83,7 @@ def install_requests_cache(request):
         requests.Session.request = only_cached
 
     yield
+
 
 @pytest.fixture(scope="session")
 def search_data():
