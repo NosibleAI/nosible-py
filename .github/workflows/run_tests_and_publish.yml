@@ -1,12 +1,12 @@
 name: CI & Publish
 
 on:
-  push: # Tests will trigger when and branch is pushed to
+  push:
   pull_request:
 
 jobs:
   record:
-    name: Record HTTP interactions
+    name: Record HTTP interactions (and save cache)
     runs-on: ubuntu-latest
     env:
       NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY }}
@@ -15,12 +15,15 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
-      # Restore any existing cache so we don’t start from empty on every push
+      # 1) Restore any existing cache for THIS OS
       - name: Restore HTTP cache
         uses: actions/cache@v4
+        id: cache
         with:
           path: http_tests_cache.sqlite
-          key:   nosible-http-cache
+          key: nosible-http-cache
+          restore-keys: |
+            nosible-http-cache-
 
       - name: Install uv & Python 3.12
         uses: astral-sh/setup-uv@v6
@@ -31,21 +34,18 @@ jobs:
       - name: Create virtualenv
         run: uv venv
 
-      - name: Install project & test deps
+      - name: Install deps & run in record mode
         run: |
           uv pip install -r docs/requirements.txt
           uv pip install pytest pytest-doctestplus requests-cache
+          uv run pytest --maxfail=1 --disable-warnings -q
 
-      - name: Run tests (record mode)
-        run: uv run pytest --maxfail=1 --disable-warnings -q
-
-      # Save back the updated cache for future workflow runs
+      # 2) Save (or update) the cache under the same key
       - name: Save HTTP cache
         uses: actions/cache@v4
         with:
           path: http_tests_cache.sqlite
-          key:   nosible-http-cache
-
+          key: nosible-http-cache
 
   test:
     name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
@@ -58,29 +58,38 @@ jobs:
         python-version: ["3.9", "3.12"]
     env:
       NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY }}
-      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      LLM_API_KEY:     ${{ secrets.LLM_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
+      # restore the cache that record just saved (scoped by OS)
       - name: Restore HTTP cache
         uses: actions/cache@v4
+        id: cache
         with:
           path: http_tests_cache.sqlite
           key: nosible-http-cache
+          restore-keys: |
+            nosible-http-cache-
 
-      - name: Install uv and set the python version
+      # fail fast if no exact cache hit
+      - name: Fail on cache miss
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: exit 1
+
+      - name: Install uv & set Python
         uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
-          
+
       - name: Create venv
         run: uv venv
 
-      - name: Install project and dependencies
+      - name: Install project deps
         run: uv pip install -r docs/requirements.txt
 
-      - name: Install pytest and pytest-doctestplus
+      - name: Install test deps
         run: uv pip install pytest pytest-doctestplus requests-cache
 
       - name: Run tests
@@ -88,22 +97,19 @@ jobs:
 
   build:
     name: Build distribution
-    runs-on: ubuntu-latest
     needs: test
+    runs-on: ubuntu-latest
     if: ${{ needs.test.result == 'success' }}
-
     steps:
       - uses: actions/checkout@v4
-        with:
+        with: 
           persist-credentials: false
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with: 
           enable-cache: true
-
       - name: Build packages
         run: uv build
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -112,9 +118,8 @@ jobs:
 
   publish:
     name: Publish to PyPI
-    runs-on: ubuntu-latest
     needs: build
-    # Only publish to PyPi on the 'main' branch
+    runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/main' && needs.build.result == 'success' }}
     environment:
       name: pypi
