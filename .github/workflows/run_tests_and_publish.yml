@@ -47,7 +47,7 @@ jobs:
 
       - name: Run tests in record mode
         run: |
-          uv run pytest --maxfail=1 --regen-cache
+          uv run pytest --maxfail=1
 
       - name: Save HTTP cache
         uses: actions/cache@v4
