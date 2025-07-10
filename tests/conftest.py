@@ -3,12 +3,22 @@ import time
 
 import polars as pl
 import pytest
+import requests_cache
 
 from nosible import Nosible, Result, ResultSet, Search, Snippet, SnippetSet
 from nosible.classes.search_set import SearchSet
 from nosible.classes.web_page import WebPageData
 
 
+@pytest.fixture(autouse=True, scope="session")
+def install_requests_cache():
+    """
+    Globally cache all HTTP requests during this test session
+    to http_tests_cache.sqlite in the repo root.
+    """
+    # create the cache (never expires)
+    requests_cache.install_cache(cache_name="http_tests_cache", backend="sqlite", expire_after=600)
+    yield
 
 
 @pytest.fixture(scope="session")
