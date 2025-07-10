@@ -9,6 +9,7 @@ from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Union, Optional
+import textwrap
 
 import polars as pl
 import requests
@@ -1006,6 +1007,79 @@ class Nosible:
             # Restore whatever logging level we had before
             if verbose:
                 self.logger.setLevel(previous_level)
+
+    def answer(
+        self,
+        query: str,
+        n_results: int = 100,
+        model: str | None = "google/gemini-2.0-flash-001",
+        show_context: bool = False,
+    ) -> str:
+        """
+        RAG-style question answering: retrieve top `n_results` via `.search()`
+        then answer `query` using those documents as context.
+
+        Parameters
+        ----------
+        query : str
+            The user’s natural-language question.
+        n_results : int
+            How many docs to fetch to build the context (default 5).
+        model : str, optional
+            Which LLM to call (defaults to `self.sentiment_model`).
+
+        Returns
+        -------
+        str
+            The LLM’s generated answer, grounded in the retrieved docs.
+        """
+
+        # Retrieve top documents
+        results = self.search(
+            question=query,
+            n_results=n_results,
+            min_similarity=0.65,
+        )
+
+        # Build RAG context
+        pieces: list[str] = []
+        for idx, result in enumerate(results):
+            pieces.append(f"""
+                Doc {idx + 1}
+                Title: {result.title}
+                Similarity Score: {result.similarity * 100:.2f}%
+                URL: {result.url}
+                Content: {result.content}
+                """)
+            context = "\n".join(pieces)
+
+        if show_context:
+            print(textwrap.dedent(context))
+
+        # Craft prompt
+        prompt = (f"""
+            # TASK DESCRIPTION
+
+            You are a helpful assistant.  Use the following context to answer the question.
+            When you use information from a chunk, cite it by referencing its label in square brackets, e.g. [doc3].
+            
+            ## Question
+            {query}
+            
+            ## Context
+            {context}
+            """
+        )
+
+        # Call LLM
+        client = OpenAI(base_url=self.openai_base_url, api_key=self.llm_api_key)
+        response = client.chat.completions.create(
+            model = model,
+            messages = [{"role": "user", "content": prompt}],
+        )
+
+        # Return the generated text
+        return response.choices[0].message.content.strip()
 
     @_rate_limited("visit")
     def visit(
