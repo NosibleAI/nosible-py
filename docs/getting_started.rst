@@ -99,7 +99,7 @@ Retrieve up to 100 results with optional filters:
    with Nosible(
        nosible_api_key="basic|abcd1234...",
        llm_api_key="sk-...",
-       base_url="https://api.openrouter.ai/v1"
+       openai_base_url="https://api.openrouter.ai/v1"
    ) as client:
        results = client.search(
            question="What are the terms of the partnership between Microsoft and OpenAI?",
