@@ -54,7 +54,7 @@ jobs:
     needs: record
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.9", "3.12"]
