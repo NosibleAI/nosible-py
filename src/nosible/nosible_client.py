@@ -1024,9 +1024,11 @@ class Nosible:
         query : str
             The user’s natural-language question.
         n_results : int
-            How many docs to fetch to build the context (default 5).
+            How many docs to fetch to build the context.
         model : str, optional
-            Which LLM to call (defaults to `self.sentiment_model`).
+            Which LLM to call to answer your question.
+        show_context : bool, optional
+            Do you want the context to be shown?
 
         Returns
         -------
@@ -1042,6 +1044,7 @@ class Nosible:
         )
 
         # Build RAG context
+        context = ""
         pieces: list[str] = []
         for idx, result in enumerate(results):
             pieces.append(f"""
@@ -1077,6 +1080,8 @@ class Nosible:
             model = model,
             messages = [{"role": "user", "content": prompt}],
         )
+
+        print("Answer:")
 
         # Return the generated text
         return response.choices[0].message.content.strip()
