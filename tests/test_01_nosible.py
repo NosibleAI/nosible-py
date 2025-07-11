@@ -273,3 +273,10 @@ def test_searches_batch_filters(searches_data):
     for base_rs, filt_rs in zip(base_batch, filtered_batch):
         assert len(filt_rs) <= len(base_rs)
         assert all(r.similarity >= threshold for r in filt_rs)
+
+
+def test_answer_raises_if_no_llm_key(search_data):
+    nos = Nosible(nosible_api_key="test|xyz", llm_api_key=None)
+    nos.llm_api_key = None
+    with pytest.raises(ValueError, match="LLM API key"):
+        nos.answer("Anything", n_results=1)
