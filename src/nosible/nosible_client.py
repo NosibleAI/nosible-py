@@ -2,12 +2,15 @@ import gzip
 import json
 import logging
 import os
+import sys
+import textwrap
 import time
 import types
 import typing
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
-from typing import Union
+from datetime import datetime
+from typing import Union, Optional
 
 import polars as pl
 import requests
@@ -168,7 +171,7 @@ class Nosible:
             reraise=True,
             stop=stop_after_attempt(self.retries) | stop_after_delay(self.timeout),
             wait=wait_exponential(multiplier=1, min=1, max=10),
-            retry=retry_if_exception_type(Exception),
+            retry=retry_if_exception_type(requests.exceptions.RequestException),
             before_sleep=before_sleep_log(self.logger, logging.WARNING),
         )(self._generate_expansions)
 
@@ -207,6 +210,9 @@ class Nosible:
         n_probes: int = 30,
         n_contextify: int = 128,
         algorithm: str = "hybrid-2",
+        min_similarity: float = None,
+        must_include: list[str] = None,
+        must_exclude: list[str] = None,
         autogenerate_expansions: bool = False,
         publish_start: str = None,
         publish_end: str = None,
@@ -246,6 +252,12 @@ class Nosible:
             Context window size per result.
         algorithm : str
             Search algorithm type.
+        min_similarity : float
+            Results must have at least this similarity score.
+        must_include : list of str
+            Only results mentioning these strings will be included.
+        must_exclude : list of str
+            Any result mentioning these strings will be excluded.
         autogenerate_expansions : bool
             Do you want to generate expansions automatically using a LLM?
         publish_start : str, optional
@@ -335,6 +347,9 @@ class Nosible:
             n_probes=n_probes,
             n_contextify=n_contextify,
             algorithm=algorithm,
+            min_similarity=min_similarity,
+            must_include=must_include,
+            must_exclude=must_exclude,
             autogenerate_expansions=autogenerate_expansions,
             publish_start=publish_start,
             publish_end=publish_end,
@@ -372,6 +387,9 @@ class Nosible:
         n_probes: int = 30,
         n_contextify: int = 128,
         algorithm: str = "hybrid-2",
+        min_similarity: float = None,
+        must_include: list[str] = None,
+        must_exclude: list[str] = None,
         autogenerate_expansions: bool = False,
         publish_start: str = None,
         publish_end: str = None,
@@ -408,8 +426,14 @@ class Nosible:
             Context window size for the search.
         algorithm : str
             Search algorithm to use.
+        min_similarity : float
+            Results must have at least this similarity score.
+        must_include : list of str
+            Only results mentioning these strings will be included.
+        must_exclude : list of str
+            Any result mentioning these strings will be excluded.
         autogenerate_expansions : bool
-            Do you want to generate expansions automatically using a LLM?
+            Do you want to generate expansions automatically using a LLM?.
         publish_start : str, optional
             Start date for when the document was published (ISO format).
         publish_end : str, optional
@@ -509,6 +533,9 @@ class Nosible:
                 n_probes=n_probes,
                 n_contextify=n_contextify,
                 algorithm=algorithm,
+                min_similarity=min_similarity,
+                must_include=must_include,
+                must_exclude=must_exclude,
                 autogenerate_expansions=autogenerate_expansions,
                 publish_start=publish_start,
                 publish_end=publish_end,
@@ -532,7 +559,7 @@ class Nosible:
                     yield future.result()
                 except Exception as e:
                     self.logger.warning(f"Search failed: {e!r}")
-                    yield None
+                    raise
 
         return _run_generator()
 
@@ -555,6 +582,8 @@ class Nosible:
         ------
         ValueError
             If `n_results` > 100.
+        ValueError
+            If min_similarity is not [0,1].
 
         Examples
         --------
@@ -577,6 +606,9 @@ class Nosible:
         n_probes = search_obj.n_probes if search_obj.n_probes is not None else 30
         n_contextify = search_obj.n_contextify if search_obj.n_contextify is not None else 128
         algorithm = search_obj.algorithm if search_obj.algorithm is not None else "hybrid-2"
+        min_similarity = search_obj.min_similarity if search_obj.min_similarity is not None else 0
+        must_include = search_obj.must_include if search_obj.must_include is not None else []
+        must_exclude = search_obj.must_exclude if search_obj.must_exclude is not None else []
         autogenerate_expansions = (
             search_obj.autogenerate_expansions if search_obj.autogenerate_expansions is not None else False
         )
@@ -599,6 +631,9 @@ class Nosible:
         exclude_companies = (
             search_obj.exclude_companies if search_obj.exclude_companies is not None else self.exclude_companies
         )
+
+        if not (0.0 <= min_similarity <= 1.0):
+            raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
 
         # Generate expansions if not provided
         if expansions is None:
@@ -636,6 +671,9 @@ class Nosible:
             "n_probes": n_probes,
             "n_contextify": n_contextify,
             "algorithm": algorithm,
+            "min_similarity": min_similarity,
+            "must_include": must_include,
+            "must_exclude": must_exclude,
         }
 
         resp = self._post(url="https://www.nosible.ai/search/v1/fast-search", payload=payload)
@@ -696,6 +734,9 @@ class Nosible:
         n_probes: int = 30,
         n_contextify: int = 128,
         algorithm: str = "hybrid-2",
+        min_similarity: float = None,
+        must_include: list[str] = None,
+        must_exclude: list[str] = None,
         autogenerate_expansions: bool = False,
         publish_start: str = None,
         publish_end: str = None,
@@ -733,6 +774,12 @@ class Nosible:
             Context window size per result.
         algorithm : str
             Search algorithm identifier.
+        min_similarity : float
+            Results must have at least this similarity score.
+        must_include : list of str
+            Only results mentioning these strings will be included.
+        must_exclude : list of str
+            Any result mentioning these strings will be excluded.
         autogenerate_expansions : bool
             Do you want to generate expansions automatically using a LLM?
         publish_start : str, optional
@@ -779,6 +826,8 @@ class Nosible:
             If neither question nor search are specified.
         RuntimeError
             If the response fails in any way.
+        ValueError
+            If min_similarity is not [0,1].
 
         Notes
         -----
@@ -843,6 +892,12 @@ class Nosible:
             n_probes = search.n_probes if search.n_probes is not None else n_probes
             n_contextify = search.n_contextify if search.n_contextify is not None else n_contextify
             algorithm = search.algorithm if search.algorithm is not None else algorithm
+            min_similarity = search.min_similarity if search.min_similarity is not None else min_similarity
+            min_similarity = min_similarity if min_similarity is not None else 0
+            must_include = search.must_include if search.must_include is not None else must_include
+            must_include = must_include if must_include is not None else []
+            must_exclude = search.must_exclude if search.must_exclude is not None else must_exclude
+            must_exclude = must_exclude if must_exclude is not None else []
             autogenerate_expansions = (
                 search.autogenerate_expansions
                 if search.autogenerate_expansions is not None
@@ -867,6 +922,13 @@ class Nosible:
             expansions = []
         if autogenerate_expansions is True:
             expansions = self._generate_expansions(question=question)
+
+        must_include = must_include if must_include is not None else []
+        must_exclude = must_exclude if must_exclude is not None else []
+        min_similarity = min_similarity if min_similarity is not None else 0
+
+        if not (0.0 <= min_similarity <= 1.0):
+            raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
 
         # Generate sql_filter if unset
         if sql_filter is None:
@@ -912,6 +974,9 @@ class Nosible:
                 "n_probes": n_probes,
                 "n_contextify": n_contextify,
                 "algorithm": algorithm,
+                "min_similarity": min_similarity,
+                "must_include": must_include,
+                "must_exclude": must_exclude,
             }
             resp = self._post(url="https://www.nosible.ai/search/v1/slow-search", payload=payload)
             try:
@@ -944,8 +1009,127 @@ class Nosible:
             if verbose:
                 self.logger.setLevel(previous_level)
 
+    def answer(
+        self,
+        query: str,
+        n_results: int = 100,
+        min_similarity: float = 0.65,
+        model: Union[str, None] = "google/gemini-2.0-flash-001",
+        show_context: bool = True,
+    ) -> str:
+        """
+        RAG-style question answering: retrieve top `n_results` via `.search()`
+        then answer `query` using those documents as context.
+
+        Parameters
+        ----------
+        query : str
+            The user’s natural-language question.
+        n_results : int
+            How many docs to fetch to build the context.
+        min_similarity : float
+            Results must have at least this similarity score.
+        model : str, optional
+            Which LLM to call to answer your question.
+        show_context : bool, optional
+            Do you want the context to be shown?
+
+        Returns
+        -------
+        str
+            The LLM’s generated answer, grounded in the retrieved docs.
+
+        Raises
+        ------
+        ValueError
+            If no API key is configured for the LLM client.
+        RuntimeError
+            If the LLM call fails or returns an invalid response.
+
+        Examples
+        --------
+        >>> from nosible import Nosible
+        >>> with Nosible() as nos:
+        ...     ans = nos.answer(
+        ...         query="How is research governance and decision-making structured between Google and DeepMind?",
+        ...         n_results=100,
+        ...         show_context=True
+        ...     )  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+        <BLANKLINE>
+        Doc 1
+        Title: ...
+        >>> print(ans)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+        Answer:
+        ...
+        """
+
+        if not self.llm_api_key:
+            raise ValueError("An LLM API key is required for answer().")
+
+        # Retrieve top documents
+        results = self.search(
+            question=query,
+            n_results=n_results,
+            min_similarity=min_similarity,
+        )
+
+        # Build RAG context
+        context = ""
+        pieces: list[str] = []
+        for idx, result in enumerate(results):
+            pieces.append(f"""
+                Doc {idx + 1}
+                Title: {result.title}
+                Similarity Score: {result.similarity * 100:.2f}%
+                URL: {result.url}
+                Content: {result.content}
+                """)
+            context = "\n".join(pieces)
+
+        if show_context:
+            print(textwrap.dedent(context))
+
+        # Craft prompt
+        prompt = (f"""
+            # TASK DESCRIPTION
+
+            You are a helpful assistant.  Use the following context to answer the question.
+            When you use information from a chunk, cite it by referencing its label in square brackets, e.g. [doc3].
+            
+            ## Question
+            {query}
+            
+            ## Context
+            {context}
+            """
+        )
+
+        # Call LLM
+        client = OpenAI(base_url=self.openai_base_url, api_key=self.llm_api_key)
+        try:
+            response = client.chat.completions.create(
+                model = model,
+                messages = [{"role": "user", "content": prompt}],
+            )
+        except Exception as e:
+            raise RuntimeError(f"LLM API error: {e}") from e
+
+        # Validate response shape
+        choices = getattr(response, "choices", None)
+        if not choices or not hasattr(choices[0], "message"):
+            raise RuntimeError(f"Invalid LLM response format: {response!r}")
+
+        # Return the generated text
+        return "Answer:\n" + response.choices[0].message.content.strip()
+
     @_rate_limited("visit")
-    def visit(self, html: str = "", recrawl: bool = False, render: bool = False, url: str = None) -> WebPageData:
+    def visit(
+        self,
+        html: str = "",
+        recrawl: bool = False,
+        render: bool = False,
+        url: str = None
+    ) -> WebPageData:
         """
         Visit a given URL and return a structured WebPageData object for the page.
 
@@ -1029,6 +1213,78 @@ class Nosible:
             url_tree=response_data.get("url_tree"),
         )
 
+    @_rate_limited("fast")
+    def trend(
+        self,
+        query: str,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        sql_filter: Optional[str] = None,
+    ) -> dict:
+        """
+        Extract a trend showing the volume of news surrounding your query.
+
+        Parameters
+        ----------
+        query : str
+            The search term we would like to see a trend for.
+        start_date : str, optional
+            ISO‐format start date (YYYY-MM-DD) of the trend window.
+        end_date : str, optional
+            ISO‐format end date (YYYY-MM-DD) of the trend window.
+        sql_filter : str, optional
+            An optional SQL filter to narrow down the trend query
+
+        Returns
+        -------
+        dict
+            The JSON-decoded trend data returned by the server.
+
+        Examples
+        --------
+        >>> from nosible import Nosible
+        >>> with Nosible() as nos:
+        ...     trends_data = nos.trend("Christmas Shopping", start_date="2005-01-01", end_date="2020-12-31")
+        ...     print(trends_data)  # doctest: +ELLIPSIS
+        {'2005-01-31': ...'2020-12-31': ...}
+        """
+        # Validate dates
+        if start_date is not None:
+            self._validate_date_format(start_date, "start_date")
+        if end_date is not None:
+            self._validate_date_format(end_date, "end_date")
+
+        payload: dict[str, str] = {"query": query}
+
+        if sql_filter is not None:
+            payload["sql_filter"] = sql_filter
+        else:
+            payload["sql_filter"] = "SELECT loc, published FROM engine"
+
+        # Send the POST to the /trend endpoint
+        response = self._post(
+            url="https://www.nosible.ai/search/v1/trend",
+            payload=payload,
+        )
+        # Will raise ValueError on rate-limit or auth errors
+        response.raise_for_status()
+        payload = response.json().get("response", {})
+
+        # if no window requested, return everything
+        if start_date is None and end_date is None:
+            return payload
+
+        # Filter by ISO‐date keys
+        filtered: dict[str, float] = {}
+        for date_str, value in payload.items():
+            if start_date and date_str < start_date:
+                continue
+            if end_date and date_str > end_date:
+                continue
+            filtered[date_str] = value
+
+        return filtered
+
     def version(self) -> str:
         """
         Retrieve the current version information for the Nosible API.
@@ -1107,6 +1363,8 @@ class Nosible:
                 return False
             if msg == "The URL could not be retrieved.":
                 return False
+            # If we reach here, the response is unexpected
+            return False
         except requests.HTTPError:
             return False
         except:
@@ -1313,6 +1571,9 @@ class Nosible:
             content_type = response.headers.get("Content-Type", "")
             if content_type.startswith("application/json"):
                 body = response.json()
+                if isinstance(body, list):
+                    body = body[0]  # NOSIBLE returns a list of errors
+                print(body)
                 if body.get("type") == "string_too_short":
                     raise ValueError("Your API key is not valid: Too Short.")
             else:
@@ -1481,6 +1742,49 @@ class Nosible:
         self.logger.debug(f"Successful expansions: {expansions}")
         return expansions
 
+    @staticmethod
+    def _validate_date_format(string: str, name: str):
+        """
+        Check that a date string is valid ISO format (YYYY-MM-DD or full ISO timestamp).
+
+        Parameters
+        ----------
+        string : str
+            The date string to validate.
+        name : str
+            The name of the parameter being validated, used in the error message.
+
+        Raises
+        ------
+        ValueError
+            If `string` is not a valid ISO 8601 date. Error message will include
+            the `name` and the offending string.
+                Examples
+        --------
+        >>> # valid date-only format
+        >>> Nosible._validate_date_format("2023-12-31", "publish_start")
+        >>> # valid full timestamp
+        >>> Nosible._validate_date_format("2023-12-31T15:30:00", "visited_end")
+        >>> # invalid month
+        >>> Nosible._validate_date_format("2023-13-01", "publish_end")
+        Traceback (most recent call last):
+            ...
+        ValueError: Invalid date for 'publish_end': '2023-13-01'.  Expected ISO format 'YYYY-MM-DD'.
+        >>> # wrong separator
+        >>> Nosible._validate_date_format("2023/12/31", "visited_start")
+        Traceback (most recent call last):
+            ...
+        ValueError: Invalid date for 'visited_start': '2023/12/31'.  Expected ISO format 'YYYY-MM-DD'.
+        """
+        try:
+            # datetime.fromisoformat accepts both YYYY-MM-DD and full timestamps
+            parsed = datetime.fromisoformat(string)
+        except Exception:
+            raise ValueError(
+                f"Invalid date for '{name}': {string!r}.  "
+                "Expected ISO format 'YYYY-MM-DD'."
+            )
+
     def _format_sql(
         self,
         publish_start: str = None,
@@ -1539,8 +1843,17 @@ class Nosible:
         ValueError
             If more than 50 items in a filter are given.
         """
+        for name, value in [
+            ("publish_start", publish_start),
+            ("publish_end", publish_end),
+            ("visited_start", visited_start),
+            ("visited_end", visited_end),
+        ]:
+            if value is not None:
+                self._validate_date_format(string=value, name=name)
+
         # Validate list lengths
-        for name, lst in [
+        for name, value in [
             ("include_netlocs", include_netlocs),
             ("exclude_netlocs", exclude_netlocs),
             ("include_languages", include_languages),
@@ -1550,8 +1863,8 @@ class Nosible:
             ("include_docs", include_docs),
             ("exclude_docs", exclude_docs),
         ]:
-            if lst is not None and len(lst) > 50:
-                raise ValueError(f"Too many items for '{name}' filter ({len(lst)}); maximum allowed is 50.")
+            if value is not None and len(value) > 50:
+                raise ValueError(f"Too many items for '{name}' filter ({len(value)}); maximum allowed is 50.")
 
         sql = ["SELECT loc FROM engine"]
         clauses: list[str] = []
@@ -1716,11 +2029,11 @@ class Nosible:
 
         Parameters
         ----------
-        exc_type : Optional[type[BaseException]]
+        _exc_type : Optional[type[BaseException]]
             The type of the exception raised, if any.
-        exc_val : Optional[BaseException]
+        _exc_val : Optional[BaseException]
             The exception instance, if any.
-        exc_tb : Optional[types.TracebackType]
+        _exc_tb : Optional[types.TracebackType]
             The traceback object, if any.
 
         Returns
@@ -1741,5 +2054,9 @@ class Nosible:
         Destructor to ensure resources are cleaned up if not explicitly closed.
 
         """
-        # Ensure it's called
-        self.close()
+        # Only close if interpreter is fully alive
+        if not getattr(sys, "is_finalizing", lambda: False)():
+            try:
+                self.close()
+            except Exception:
+                pass

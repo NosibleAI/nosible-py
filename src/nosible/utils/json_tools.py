@@ -1,3 +1,4 @@
+import json
 from typing import Union
 
 try:
@@ -5,8 +6,6 @@ try:
 
     _use_orjson = True
 except ImportError:
-    import json
-
     _use_orjson = False
 
 # --------------------------------------------------------------------------------------------------------------
@@ -61,7 +60,8 @@ def json_dumps(obj: object) -> str:
 
     # Error path: un-serializable object
     >>> _use_orjson = False
-    >>> class Bad: pass
+    >>> class Bad:
+    ...     pass
     >>> try:
     ...     json_dumps(Bad())
     ... except RuntimeError as e:
@@ -110,24 +110,25 @@ def json_loads(s: Union[bytes, str]) -> dict:
     --------
     # Standard library path (disable orjson)
     >>> _use_orjson = False
-    >>> json_dumps({'a': 1})
+    >>> json_dumps({"a": 1})
     '{"1":"one"}'
 
     # orjson path with monkey-patched dumping
     >>> _use_orjson = True
     >>> orjson.dumps = lambda o: b'{"b": 2}'
-    >>> json_dumps({'b': 2})
+    >>> json_dumps({"b": 2})
     '{"b": 2}'
 
     # Convert non-str dict keys to str when using orjson
     >>> _use_orjson = True
     >>> orjson.dumps = lambda o: b'{"1": "one"}'
-    >>> json_dumps({1: 'one'})
+    >>> json_dumps({1: "one"})
     '{"1": "one"}'
 
     # Error path: object not serializable
     >>> _use_orjson = False
-    >>> class Bad: pass
+    >>> class Bad:
+    ...     pass
     >>> try:
     ...     json_dumps(Bad())
     ... except RuntimeError as e:

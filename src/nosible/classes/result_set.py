@@ -204,7 +204,6 @@ class ResultSet(Iterator[Result]):
         if 0 <= key < len(self.results):
             return self.results[key]
         raise IndexError(f"Index {key} out of range for ResultSet with length {len(self.results)}.")
-        raise IndexError(f"Index {key} out of range for ResultSet with length {len(self.results)}.")
 
     def __add__(self, other: ResultSet | Result) -> ResultSet:
         """
@@ -285,12 +284,13 @@ class ResultSet(Iterator[Result]):
 
     def find_in_search_results(self, query: str, top_k: int = 10) -> ResultSet:
         """
-        Perform an in-memory search over a ResultSet collection using Tantivy.
+        This allows you to search within the results of a search using BM25 scoring by
+        performing an in-memory search over a ResultSet collection using Tantivy.
 
         Parameters
         ----------
         query : str
-            The search string to rank within these results.
+            The search string you want to find within these results.
         top_k : int
             Number of top results to return.
 
@@ -467,7 +467,7 @@ class ResultSet(Iterator[Result]):
             # Extract year-month
             df = df.with_columns(pl.col(by).dt.strftime("%Y-%m").alias("year_month"))
             # Count per month
-            vc = df.group_by("year_month").agg(pl.count().alias("count")).sort("year_month")
+            vc = df.group_by("year_month").agg(pl.len().alias("count")).sort("year_month")
             rows = vc.rows()
             if not rows:
                 return {}

@@ -216,20 +216,12 @@ hybrid-2
 
 - First use lexical search to narrow results, then refines the results with a semantic search.
 
-company
-~~~~~~~
-
-- Search optimized for retrieving information about a company. We support all companies in Wikidata.
-  Use the `search entities <https://www.nosible.ai/search/v1/docs/
-  swagger#/Miscellaneous/search_entities_search_v1-search_entities_post>`_
-  endpoint to see what companies are supported.
-
 🌐 Change LLM Base URL
 ----------------------
 
 The LLM endpoint is used to generate expansions for searches and calculate sentiment for search results, and by default
 it is set to use OpenRouter. However, if you are using another endpoint and would like to change it, you can do so as
-follows (by changing the argument ``base_url``):
+follows (by changing the argument ``openai_base_url``):
 
 .. code:: python
 
@@ -238,7 +230,7 @@ follows (by changing the argument ``base_url``):
    client = Nosible(
        nosible_api_key="basic|abcd1234...",
        llm_api_key="sk-...",
-       base_url="https://api.openrouter.ai/v1"
+       openai_base_url="https://api.openrouter.ai/v1"
    )
 
 🗣️ Supported Languages

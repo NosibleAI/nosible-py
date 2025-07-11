@@ -1,7 +1,9 @@
 name: Run tests and upload coverage
 
 on:
-  push
+  push:
+    branches:
+      - main
 
 jobs:
   test:
@@ -19,11 +21,20 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
 
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip setuptools wheel
-          pip install -e .
-          pip install pytest pytest-cov pytest-doctestplus
+      - name: Setup Python & UV tool
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: 3.12
+          enable-cache: true
+          
+      - name: Create virtual environment
+        run: uv venv
+
+      - name: Install project dependencies
+        run: uv pip install -e .
+
+      - name: Install test dependencies
+        run: uv pip install pytest pytest-cov pytest-doctestplus
 
       - name: Configure coverage to skip all dunder methods
         run: |
@@ -42,7 +53,7 @@ jobs:
           EOF
 
       - name: Run tests
-        run: pytest --cov --cov-branch --cov-report=xml || true
+        run: uv run pytest --cov --cov-branch --cov-report=xml || true
         continue-on-error: true
 
       - name: Upload results to Codecov

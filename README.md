@@ -1,9 +1,13 @@
-[![Linux Tests](https://github.com/NosibleAI/nosible-py/actions/workflows/tests-linux.yml/badge.svg?branch=main)](https://github.com/NosibleAI/nosible-py/actions/workflows/tests-linux.yml)
-[![Windows Tests](https://github.com/NosibleAI/nosible-py/actions/workflows/tests-windows.yml/badge.svg?branch=main)](https://github.com/NosibleAI/nosible-py/actions/workflows/tests-windows.yml)
-[![macOS Tests](https://github.com/NosibleAI/nosible-py/actions/workflows/tests-macos.yml/badge.svg?branch=main)](https://github.com/NosibleAI/nosible-py/actions/workflows/tests-macos.yml)
+[![Linux Tests](https://img.shields.io/github/actions/workflow/status/NosibleAI/nosible-py/run_tests_and_publish.yml?branch=main&label=Linux%20Tests)](https://github.com/NosibleAI/nosible-py/actions/workflows/run_tests_and_publish.yml)
+[![Windows Tests](https://img.shields.io/github/actions/workflow/status/NosibleAI/nosible-py/run_tests_and_publish.yml?branch=main&label=Windows%20Tests)](https://github.com/NosibleAI/nosible-py/actions/workflows/run_tests_and_publish.yml)
+[![macOS Tests](https://img.shields.io/github/actions/workflow/status/NosibleAI/nosible-py/run_tests_and_publish.yml?branch=main&label=macOS%20Tests)](https://github.com/NosibleAI/nosible-py/actions/workflows/run_tests_and_publish.yml)
 [![Read the Docs](https://img.shields.io/readthedocs/nosible-py/latest.svg?label=docs&logo=readthedocs)](https://nosible-py.readthedocs.io/en/latest/)
 [![PyPI version](https://img.shields.io/pypi/v/nosible.svg?label=PyPI&logo=python)](https://pypi.org/project/nosible/)
 [![codecov](https://codecov.io/gh/NosibleAI/nosible-py/graph/badge.svg?token=DDXGQ3V6P9)](https://codecov.io/gh/NosibleAI/nosible-py)
+[![PyPI - Python Versions](https://img.shields.io/pypi/pyversions/nosible.svg)](https://pypi.org)
+
+
+[//]: # ([![Visit Nosible]&#40;https://img.shields.io/static/v1?label=Visit&message=nosible.ai&style=flat&logoUri=https://www.nosible.ai/assests/favicon.png&logoWidth=20&#41;]&#40;https://www.nosible.ai/&#41;)
 
 ![Logo](https://github.com/NosibleAI/nosible-py/blob/main/docs/_static/readme.png?raw=true)
 
@@ -22,6 +26,13 @@ You can find the full NOSIBLE Search Client documentation
 ```bash
 pip install nosible
 ```
+
+### ⚡ Installing with uv 
+
+```bash
+uv pip install nosible
+```
+
 **Requirements**:
 
 * Python 3.9+
@@ -95,7 +106,7 @@ from nosible import Nosible
 with Nosible(
     nosible_api_key="basic|abcd1234...",
     llm_api_key="sk-...",
-    base_url="https://api.openrouter.ai/v1"
+    openai_base_url="https://api.openrouter.ai/v1"
 ) as client:
     results = client.search(
         question="What are the terms of the partnership between Microsoft and OpenAI?",
@@ -260,3 +271,6 @@ Or you can view them on the [docs](https://nosible-py.readthedocs.io/en/latest/r
 ---
 
 © 2025 Nosible Inc. | [Privacy Policy](https://www.nosible.ai/privacy) | [Terms](https://www.nosible.ai/terms)
+
+
+[nosible-badge]: https://img.shields.io/static/v1?label=Visit&message=nosible.ai&\style=flat&logoUri=https://raw.githubusercontent.com/NosibleAI/nosible-py/main/docs/_static/favicon.png&logoWidth=20

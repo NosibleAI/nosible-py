@@ -1,6 +1,6 @@
 [project]
 name = "nosible"
-version = "0.1.9"
+version = "0.2.1"
 description = "Python client for the NOSIBLE Search API"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.9"
@@ -60,4 +60,7 @@ where = ["src"]
 dev-dependencies = [
   "pytest",
   "pytest-doctestplus",
+  "requests-cache",
+  "pytest-xdist",
+  "urllib3==1.26.15"
 ]
