@@ -559,7 +559,7 @@ class Nosible:
                     yield future.result()
                 except Exception as e:
                     self.logger.warning(f"Search failed: {e!r}")
-                    yield None
+                    raise
 
         return _run_generator()
 
