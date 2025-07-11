@@ -334,7 +334,7 @@ img.rounded-image {
   border-radius: 8px;
 }
 
-/* For the github and website links below the main logo */
+/* For the github and website links below the main logo and sidebar */
 .wy-side-nav-search {
   display: flex;
   flex-direction: column;
@@ -364,6 +364,11 @@ img.rounded-image {
 
 .wy-side-nav-search a.icon-nosible::before .links a.icon-github::before {
   color: #fff !important;
+}
+
+.wy-side-scroll {
+  width: auto;
+  overflow-y: auto;
 }
 
 a.icon-nosible::before {
