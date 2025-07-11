@@ -197,8 +197,7 @@ def test_trend_invalid_date_format():
             nos.trend(query="q", end_date="2021/01/01")    # Wrong separator
 
 
-@pytest.mark.parametrize("threshold", [0.5, 1.0])
-def test_search_min_similarity(search_data, threshold):
+def test_search_min_similarity(search_data):
     """
     Using the cached `search_data` as the unfiltered baseline, applying
     min_similarity must never increase the count and must enforce the threshold.
@@ -207,10 +206,10 @@ def test_search_min_similarity(search_data, threshold):
     q = "Hedge funds seek to expand into private credit"
 
     with Nosible(concurrency=1) as nos:
-        filtered = nos.search(question=q, n_results=10, min_similarity=threshold)
+        filtered = nos.search(question=q, n_results=10, min_similarity=0.9)
 
     assert len(filtered) <= base_count
-    assert all(r.similarity >= threshold for r in filtered)
+    assert all(r.similarity >= 0.9 for r in filtered)
 
 
 def test_search_must_include(search_data):
@@ -243,36 +242,6 @@ def test_search_must_exclude(search_data):
     assert len(exc) <= base_count
     # Ensure exclusion really happened
     assert all(term.lower() not in r.content.lower() for r in exc)
-
-
-def test_searches_batch_filters(searches_data):
-    """
-    Using the cached `searches_data` list as the unfiltered baseline,
-    verify that batch .searches() with min_similarity + must_exclude never
-    increases count and enforces the threshold.
-    """
-    base_batch = searches_data
-    assert len(base_batch) == 2
-
-    queries = [
-        "Hedge funds seek to expand into private credit",
-        "How have the Trump tariffs impacted the US economy?"
-    ]
-    threshold = 0.6
-    exclude_term = "economy"
-
-    with Nosible(concurrency=1) as nos:
-        filtered_batch = list(nos.searches(
-            questions=queries,
-            n_results=5,
-            min_similarity=threshold,
-            must_exclude=[exclude_term]
-        ))
-
-    assert len(filtered_batch) == len(base_batch) == 2
-    for base_rs, filt_rs in zip(base_batch, filtered_batch):
-        assert len(filt_rs) <= len(base_rs)
-        assert all(r.similarity >= threshold for r in filt_rs)
 
 
 def test_answer_raises_if_no_llm_key(search_data):

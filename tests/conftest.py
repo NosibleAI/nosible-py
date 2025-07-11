@@ -1,4 +1,5 @@
 import logging
+import os
 from datetime import timedelta
 
 import pytest
@@ -11,21 +12,15 @@ from nosible.classes.search_set import SearchSet
 logging.getLogger("requests_cache").setLevel(logging.DEBUG)
 
 
-
-
 def pytest_addoption(parser):
+    parser.addoption("--no-cache", action="store_true", default=False, help="Disable requests_cache entirely")
     parser.addoption(
-        "--no-cache",
-        action="store_true",
-        default=False,
-        help="Disable requests_cache entirely"
+        "--cache-only", action="store_true", default=False, help="Use only cached responses; don’t hit the network"
     )
     parser.addoption(
-        "--cache-only",
-        action="store_true",
-        default=False,
-        help="Use only cached responses; don’t hit the network"
+        "--clear-cache", action="store_true", default=False, help="Delete the existing HTTP cache before running tests"
     )
+
 
 @pytest.fixture(autouse=True, scope="session")
 def install_requests_cache(request):
@@ -33,18 +28,30 @@ def install_requests_cache(request):
     - default (no flags): install cache and update it on misses
     - --no-cache: do nothing (no caching)
     - --cache-only: install cache but only serve cached entries (raise if missing)
+    - --clear-cache: delete the cache file before installing (so it will be rebuilt)
     """
-    no_cache    = request.config.getoption("no_cache")
-    cache_only  = request.config.getoption("cache_only")
+    no_cache = request.config.getoption("no_cache")
+    cache_only = request.config.getoption("cache_only")
+    clear_cache = request.config.getoption("clear_cache")
 
     if no_cache:
         # skip caching completely
         yield
         return
 
+    cache_name = "http_tests_cache"
+    cache_file = f"{cache_name}.sqlite"
+
+    if clear_cache:
+        try:
+            os.remove(cache_file)
+            logging.getLogger("requests_cache").info(f"Removed existing cache file: {cache_file}")
+        except FileNotFoundError:
+            logging.getLogger("requests_cache").info(f"No cache file to remove: {cache_file}")
+
     # install the cache (shared session backend)
     requests_cache.install_cache(
-        cache_name="http_tests_cache",
+        cache_name=cache_name,
         backend="sqlite",
         expire_after=60 * 5,
         allowable_methods=["GET", "POST"],
@@ -67,6 +74,7 @@ def install_requests_cache(request):
         requests.Session.request = only_cached
 
     yield
+
 
 @pytest.fixture(scope="session")
 def search_data():
