@@ -1013,8 +1013,9 @@ class Nosible:
         self,
         query: str,
         n_results: int = 100,
+        min_similarity: float = 0.65,
         model: Union[str, None] = "google/gemini-2.0-flash-001",
-        show_context: bool = False,
+        show_context: bool = True,
     ) -> str:
         """
         RAG-style question answering: retrieve top `n_results` via `.search()`
@@ -1026,6 +1027,8 @@ class Nosible:
             The user’s natural-language question.
         n_results : int
             How many docs to fetch to build the context.
+        min_similarity : float
+            Results must have at least this similarity score.
         model : str, optional
             Which LLM to call to answer your question.
         show_context : bool, optional
@@ -1035,13 +1038,39 @@ class Nosible:
         -------
         str
             The LLM’s generated answer, grounded in the retrieved docs.
+
+        Raises
+        ------
+        ValueError
+            If no API key is configured for the LLM client.
+        RuntimeError
+            If the LLM call fails or returns an invalid response.
+
+        Examples
+        --------
+        >>> from nosible import Nosible
+        >>> with Nosible() as nos:
+        ...     ans = nos.answer(
+        ...         query="How is research governance and decision-making structured between Google and DeepMind?",
+        ...         n_results=100,
+        ...         show_context=True
+        ...     )  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+        <BLANKLINE>
+        Doc 1
+        Title: ...
+        >>> print(ans)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+        Answer:
+        ...
         """
+
+        if not self.llm_api_key:
+            raise ValueError("An LLM API key is required for answer().")
 
         # Retrieve top documents
         results = self.search(
             question=query,
             n_results=n_results,
-            min_similarity=0.65,
+            min_similarity=min_similarity,
         )
 
         # Build RAG context
@@ -1077,15 +1106,21 @@ class Nosible:
 
         # Call LLM
         client = OpenAI(base_url=self.openai_base_url, api_key=self.llm_api_key)
-        response = client.chat.completions.create(
-            model = model,
-            messages = [{"role": "user", "content": prompt}],
-        )
+        try:
+            response = client.chat.completions.create(
+                model = model,
+                messages = [{"role": "user", "content": prompt}],
+            )
+        except Exception as e:
+            raise RuntimeError(f"LLM API error: {e}") from e
 
-        print("Answer:")
+        # Validate response shape
+        choices = getattr(response, "choices", None)
+        if not choices or not hasattr(choices[0], "message"):
+            raise RuntimeError(f"Invalid LLM response format: {response!r}")
 
         # Return the generated text
-        return response.choices[0].message.content.strip()
+        return "Answer:\n" + response.choices[0].message.content.strip()
 
     @_rate_limited("visit")
     def visit(
