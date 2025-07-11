@@ -241,6 +241,6 @@ __marimo__/
 
 
 # Requests cache
-http_tests_cache.sqlite
+http_tests_cache
 
 uv.lock

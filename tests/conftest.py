@@ -40,7 +40,7 @@ def install_requests_cache(request):
         return
 
     cache_name = "http_tests_cache"
-    cache_file = f"{cache_name}.sqlite"
+    cache_file = f"{cache_name}"
 
     if clear_cache:
         try:
@@ -52,7 +52,7 @@ def install_requests_cache(request):
     # install the cache (shared session backend)
     requests_cache.install_cache(
         cache_name=cache_name,
-        backend="sqlite",
+        backend="filesystem",
         expire_after=60 * 30,
         allowable_methods=["GET", "POST"],
         # stale_if_error=timedelta(minutes=20)
