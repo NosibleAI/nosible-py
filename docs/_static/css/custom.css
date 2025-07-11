@@ -334,7 +334,7 @@ img.rounded-image {
   border-radius: 8px;
 }
 
-/* For the github and website links below the main logo */
+/* For the github and website links below the main logo and sidebar */
 .wy-side-nav-search {
   display: flex;
   flex-direction: column;

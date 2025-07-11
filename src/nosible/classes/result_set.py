@@ -284,12 +284,13 @@ class ResultSet(Iterator[Result]):
 
     def find_in_search_results(self, query: str, top_k: int = 10) -> ResultSet:
         """
-        Perform an in-memory search over a ResultSet collection using Tantivy.
+        This allows you to search within the results of a search using BM25 scoring by
+        performing an in-memory search over a ResultSet collection using Tantivy.
 
         Parameters
         ----------
         query : str
-            The search string to rank within these results.
+            The search string you want to find within these results.
         top_k : int
             Number of top results to return.
 
