@@ -366,10 +366,10 @@ img.rounded-image {
   color: #fff !important;
 }
 
-.wy-side-scroll {
+/* .wy-side-scroll {
   width: auto;
   overflow-y: auto;
-}
+} */
 
 a.icon-nosible::before {
   width: 1em;
