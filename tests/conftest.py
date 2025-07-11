@@ -53,7 +53,7 @@ def install_requests_cache(request):
     requests_cache.install_cache(
         cache_name=cache_name,
         backend="sqlite",
-        expire_after=60 * 5,
+        expire_after=60 * 30,
         allowable_methods=["GET", "POST"],
         # stale_if_error=timedelta(minutes=20)
     )
