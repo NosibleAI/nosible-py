@@ -15,16 +15,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Restore HTTP cache
-        uses: actions/cache@v4
-        id: cache
-        with:
-          path: http_tests_cache.sqlite
-          key: nosible-http-cache
-          restore-keys: |
-            nosible-http-cache
-          enableCrossOsArchive: true
-
       - name: Setup Python & UV tool
         uses: astral-sh/setup-uv@v6
         with:
@@ -38,7 +28,7 @@ jobs:
         run: uv pip install -e .
 
       - name: Install test dependencies
-        run: uv pip install pytest pytest-doctestplus requests-cache
+        run: uv pip install pytest pytest-doctestplus requests-cache pytest-xdist
 
       - name: Debug ls
         run: |
@@ -47,14 +37,17 @@ jobs:
 
       - name: Run tests in record mode
         run: |
-          uv run pytest --maxfail=1
+          uv run pytest --maxfail=1 -n auto
 
-      - name: Save HTTP cache
+      - name: Save cache of HTTP results (per-run)
+        if: always()
         uses: actions/cache@v4
+        id: cache
         with:
           path: http_tests_cache.sqlite
-          key: nosible-http-cache
+          key: nosible-http-cache-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
+
 
   test:
     name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
@@ -64,7 +57,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-ver sion: ["3.9", "3.12"]
+        python-version: ["3.9", "3.12"]
     env:
       NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY }}
       LLM_API_KEY:     ${{ secrets.LLM_API_KEY }}
@@ -72,14 +65,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Restore HTTP cache
-        uses: actions/cache@v4
+      - name: Restore HTTP cache (per-run)
+        uses: actions/cache/restore@v4
         id: cache
         with:
           path: http_tests_cache.sqlite
-          key: nosible-http-cache
-          restore-keys: |
-            nosible-http-cache
+          key: nosible-http-cache-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
 
       - name: Fail on cache miss
