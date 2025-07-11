@@ -28,7 +28,7 @@ jobs:
         run: uv pip install -e .
 
       - name: Install test dependencies
-        run: uv pip install pytest pytest-doctestplus requests-cache
+        run: uv pip install pytest pytest-doctestplus requests-cache pytest-xdist
 
       - name: Debug ls
         run: |
@@ -37,7 +37,7 @@ jobs:
 
       - name: Run tests in record mode
         run: |
-          uv run pytest --maxfail=1 --clear-cache
+          uv run pytest --maxfail=1 -n auto
 
       - name: Save cache of HTTP results (per-run)
         if: always()

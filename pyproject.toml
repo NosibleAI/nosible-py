@@ -60,5 +60,6 @@ where = ["src"]
 dev-dependencies = [
   "pytest",
   "pytest-doctestplus",
-  "requests-cache"
+  "requests-cache",
+  "pytest-xdist"
 ]
