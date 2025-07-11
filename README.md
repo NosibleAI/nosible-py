@@ -26,6 +26,13 @@ You can find the full NOSIBLE Search Client documentation
 ```bash
 pip install nosible
 ```
+
+### ⚡ Installing with uv 
+
+```bash
+uv pip install nosible
+```
+
 **Requirements**:
 
 * Python 3.9+
