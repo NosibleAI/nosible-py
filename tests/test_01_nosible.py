@@ -195,3 +195,81 @@ def test_trend_invalid_date_format():
             nos.trend(query="q", start_date="20210101")    # Missing hyphens
         with pytest.raises(ValueError):
             nos.trend(query="q", end_date="2021/01/01")    # Wrong separator
+
+
+@pytest.mark.parametrize("threshold", [0.5, 1.0])
+def test_search_min_similarity(search_data, threshold):
+    """
+    Using the cached `search_data` as the unfiltered baseline, applying
+    min_similarity must never increase the count and must enforce the threshold.
+    """
+    base_count = len(search_data)
+    q = "Hedge funds seek to expand into private credit"
+
+    with Nosible(concurrency=1) as nos:
+        filtered = nos.search(question=q, n_results=10, min_similarity=threshold)
+
+    assert len(filtered) <= base_count
+    assert all(r.similarity >= threshold for r in filtered)
+
+
+def test_search_must_include(search_data):
+    """
+    must_include should only filter down from the cached `search_data`.
+    """
+    base_count = len(search_data)
+    q = "Hedge funds seek to expand into private credit"
+    term = "credit"
+
+    with Nosible(concurrency=1) as nos:
+        inc = nos.search(question=q, n_results=10, must_include=[term])
+
+    assert len(inc) <= base_count
+    # At least one hit remains
+    assert len(inc) > 0
+
+
+def test_search_must_exclude(search_data):
+    """
+    must_exclude should only filter out items from the cached `search_data`.
+    """
+    base_count = len(search_data)
+    q = "Hedge funds seek to expand into private credit"
+    term = "funds"
+
+    with Nosible(concurrency=1) as nos:
+        exc = nos.search(question=q, n_results=10, must_exclude=[term])
+
+    assert len(exc) <= base_count
+    # Ensure exclusion really happened
+    assert all(term.lower() not in r.content.lower() for r in exc)
+
+
+def test_searches_batch_filters(searches_data):
+    """
+    Using the cached `searches_data` list as the unfiltered baseline,
+    verify that batch .searches() with min_similarity + must_exclude never
+    increases count and enforces the threshold.
+    """
+    base_batch = searches_data
+    assert len(base_batch) == 2
+
+    queries = [
+        "Hedge funds seek to expand into private credit",
+        "How have the Trump tariffs impacted the US economy?"
+    ]
+    threshold = 0.6
+    exclude_term = "economy"
+
+    with Nosible(concurrency=1) as nos:
+        filtered_batch = list(nos.searches(
+            questions=queries,
+            n_results=5,
+            min_similarity=threshold,
+            must_exclude=[exclude_term]
+        ))
+
+    assert len(filtered_batch) == len(base_batch) == 2
+    for base_rs, filt_rs in zip(base_batch, filtered_batch):
+        assert len(filt_rs) <= len(base_rs)
+        assert all(r.similarity >= threshold for r in filt_rs)
