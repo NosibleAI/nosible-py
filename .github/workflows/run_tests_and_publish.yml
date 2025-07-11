@@ -40,9 +40,8 @@ jobs:
           uv run pytest --maxfail=1 --clear-cache
 
       - name: Save cache of HTTP results
-        if: always()                  
-        uses: actions/cache/save@v4
-        id: cache
+        if: always()
+        uses: actions/cache@v4        # ← combined instead of save-only
         with:
           path: http_tests_cache.sqlite
           key: nosible-http-cache
