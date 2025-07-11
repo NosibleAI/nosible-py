@@ -39,13 +39,15 @@ jobs:
         run: |
           uv run pytest --maxfail=1 --clear-cache
 
-      - name: Save cache of HTTP results
+      - name: Save cache of HTTP results (per-run)
         if: always()
-        uses: actions/cache@v4        # ← combined instead of save-only
+        uses: actions/cache@v4
+        id: cache
         with:
           path: http_tests_cache.sqlite
-          key: nosible-http-cache
+          key: nosible-http-cache-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
+
 
   test:
     name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
@@ -63,12 +65,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Restore HTTP cache
-        uses: actions/cache/restore@v4
+      - name: Restore HTTP cache (per-run)
+        uses: actions/cache@v4
         id: cache
         with:
           path: http_tests_cache.sqlite
-          key: nosible-http-cache
+          key: nosible-http-cache-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
 
       - name: Fail on cache miss
