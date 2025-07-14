@@ -10,7 +10,7 @@ import typing
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Union, Optional
+from typing import Optional, Union, Optional
 
 import polars as pl
 import requests
@@ -32,7 +32,6 @@ from nosible.classes.search_set import SearchSet
 from nosible.classes.snippet_set import SnippetSet
 from nosible.classes.web_page import WebPageData
 from nosible.utils.json_tools import json_loads
-from nosible.utils.question_builder import _get_question
 from nosible.utils.rate_limiter import PLAN_RATE_LIMITS, RateLimiter, _rate_limited
 
 # Set up a module‐level logger.
@@ -106,8 +105,8 @@ class Nosible:
 
     def __init__(
         self,
-        nosible_api_key: str = None,
-        llm_api_key: str = None,
+        nosible_api_key: Optional[str] = None,
+        llm_api_key: Optional[str] = None,
         openai_base_url: str = "https://openrouter.ai/api/v1",
         sentiment_model: str = "openai/gpt-4o",
         timeout: int = 30,
