@@ -103,7 +103,19 @@ class Result:
           0.99 | Example Domain
         >>> result = Result(title=None, similarity=None)
         >>> print(str(result))
-           N/A | No Title
+        {
+            "url": null,
+            "title": null,
+            "description": null,
+            "netloc": null,
+            "published": null,
+            "visited": null,
+            "author": null,
+            "content": null,
+            "language": null,
+            "similarity": null,
+            "url_hash": null
+        }
         """
         return print_dict(self.to_dict())
 
