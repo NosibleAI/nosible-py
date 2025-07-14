@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from openai import OpenAI
 
 from nosible.classes.web_page import WebPageData
+from nosible.utils.json_tools import print_dict
 
 if TYPE_CHECKING:
     from nosible.classes.result_set import ResultSet
@@ -104,9 +105,7 @@ class Result:
         >>> print(str(result))
            N/A | No Title
         """
-        similarity = f"{self.similarity:.2f}" if self.similarity is not None else "N/A"
-        title = self.title or "No Title"
-        return f"{similarity:>6} | {title}"
+        return print_dict(self.to_dict())
 
     def __getitem__(self, key: str) -> str | float | bool | None:
         """
