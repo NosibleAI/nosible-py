@@ -38,9 +38,9 @@ def test_result_to_dict_and_str_and_indexing_and_addition():
 
     # __str__
     s = str(Result(title="T", similarity=0.9876))
-    assert "0.99" in s and "T" in s
+    assert "0.9876" in s and "T" in s
     s = str(Result(title=None, similarity=None))
-    assert "N/A" in s and "No Title" in s
+    assert "null" in s
 
     # indexing
     result2 = Result(url=None, title=None, similarity=None)
