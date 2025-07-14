@@ -182,28 +182,34 @@ class ResultSet(Iterator[Result]):
         # Setup if required
         return self
 
-    def __getitem__(self, key: int) -> Result:
+    def __getitem__(self, key: int | slice) -> Result | ResultSet:
         """
-        Get a Result by index.
+        Get a Result by index or a list of Results by slice.
 
         Parameters
         ----------
-        key : int
-            Index of the result to retrieve.
+        key : int or slice
+            Index or slice of the result(s) to retrieve.
 
         Returns
         -------
-        Result
-            The Result at the specified index.
+        Result or ResultSet
+            A single Result if `key` is an integer, or a ResultSet containing the sliced results if `key` is a slice.
 
         Raises
         ------
         IndexError
             If index is out of range.
+        TypeError
+            If key is not an integer or slice.
         """
-        if 0 <= key < len(self.results):
-            return self.results[key]
-        raise IndexError(f"Index {key} out of range for ResultSet with length {len(self.results)}.")
+        if isinstance(key, int):
+            if 0 <= key < len(self.results):
+                return self.results[key]
+            raise IndexError(f"Index {key} out of range for ResultSet with length {len(self.results)}.")
+        if isinstance(key, slice):
+            return ResultSet(self.results[key])
+        raise TypeError("ResultSet indices must be integers or slices.")
 
     def __add__(self, other: ResultSet | Result) -> ResultSet:
         """

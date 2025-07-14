@@ -127,3 +127,26 @@ def test_resultset_to_pandas(search_data):
     assert "netloc" in df.columns
     assert "published" in df.columns
     assert "similarity" in df.columns
+
+
+def test_resultset_getitem(search_data):
+    """
+    Test the __getitem__ method of ResultSet.
+
+    This test checks if the ResultSet can be indexed with an integer or a slice,
+    and if it raises an IndexError for out-of-range indices.
+
+    Raises
+    ------
+    TypeError
+        If the key is not an integer or a slice.
+    IndexError
+        If the index is out of range.
+    """
+    assert isinstance(search_data[0], Result)
+    assert isinstance(search_data[1:3], ResultSet)
+
+    with pytest.raises(IndexError):
+        _ = search_data[len(search_data)]  # Out of range index
+    with pytest.raises(TypeError):
+        _ = search_data["invalid"]  # Invalid type for index
