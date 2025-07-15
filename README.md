@@ -36,13 +36,14 @@ uv pip install nosible
 **Requirements**:
 
 * Python 3.9+
-* requests
 * polars
-* cryptography
-* tenacity
-* pyrate-limiter
-* tantivy
+* duckdb
 * openai
+* tantivy
+* pyrate-limiter
+* tenacity
+* cryptography
+* pyarrow
 
 ### 🔑 Authentication
 
