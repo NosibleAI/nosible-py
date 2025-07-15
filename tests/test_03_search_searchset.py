@@ -1,4 +1,3 @@
-import pandas as pd
 from nosible import Search, SearchSet
 import pytest
 
