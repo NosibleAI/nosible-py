@@ -1058,7 +1058,6 @@ class Nosible:
         Answer:
         ...
         """
-        from openai import OpenAI
 
         if not self.llm_api_key:
             raise ValueError("An LLM API key is required for answer().")
@@ -1095,6 +1094,7 @@ class Nosible:
             ## Context
             {context}
             """
+        from openai import OpenAI
 
         # Call LLM
         client = OpenAI(base_url=self.openai_base_url, api_key=self.llm_api_key)
