@@ -3,9 +3,8 @@ from __future__ import annotations
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 
-import duckdb
-import pandas as pd
 import polars as pl
+from polars.dependencies import pandas as pd
 from tantivy import Document, Index, SchemaBuilder
 
 from nosible.classes.result import Result
@@ -1347,6 +1346,7 @@ class ResultSet(Iterator[Result]):
         'Example Domain'
         """
         try:
+            import duckdb
             con = duckdb.connect(file_path, read_only=True)
         except Exception as e:
             raise RuntimeError(f"Failed to connect to DuckDB file '{file_path}': {e}") from e
