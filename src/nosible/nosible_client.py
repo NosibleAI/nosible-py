@@ -6,16 +6,14 @@ import sys
 import textwrap
 import time
 import types
-import typing
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Optional, Union, Optional
+from typing import Optional, Union
 
-import polars as pl
+import polars as polars
 import requests
 from cryptography.fernet import Fernet
-from openai import OpenAI
 from polars import SQLContext
 from tenacity import (
     before_sleep_log,
@@ -200,7 +198,6 @@ class Nosible:
 
     def search(
         self,
-        *,
         search: Search = None,
         question: str = None,
         expansions: list[str] = None,
@@ -1052,7 +1049,7 @@ class Nosible:
         ...     ans = nos.answer(
         ...         query="How is research governance and decision-making structured between Google and DeepMind?",
         ...         n_results=100,
-        ...         show_context=True
+        ...         show_context=True,
         ...     )  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
         <BLANKLINE>
         Doc 1
@@ -1061,16 +1058,13 @@ class Nosible:
         Answer:
         ...
         """
+        from openai import OpenAI
 
         if not self.llm_api_key:
             raise ValueError("An LLM API key is required for answer().")
 
         # Retrieve top documents
-        results = self.search(
-            question=query,
-            n_results=n_results,
-            min_similarity=min_similarity,
-        )
+        results = self.search(question=query, n_results=n_results, min_similarity=min_similarity)
 
         # Build RAG context
         context = ""
@@ -1089,7 +1083,7 @@ class Nosible:
             print(textwrap.dedent(context))
 
         # Craft prompt
-        prompt = (f"""
+        prompt = f"""
             # TASK DESCRIPTION
 
             You are a helpful assistant.  Use the following context to answer the question.
@@ -1101,15 +1095,11 @@ class Nosible:
             ## Context
             {context}
             """
-        )
 
         # Call LLM
         client = OpenAI(base_url=self.openai_base_url, api_key=self.llm_api_key)
         try:
-            response = client.chat.completions.create(
-                model = model,
-                messages = [{"role": "user", "content": prompt}],
-            )
+            response = client.chat.completions.create(model=model, messages=[{"role": "user", "content": prompt}])
         except Exception as e:
             raise RuntimeError(f"LLM API error: {e}") from e
 
@@ -1122,13 +1112,7 @@ class Nosible:
         return "Answer:\n" + response.choices[0].message.content.strip()
 
     @_rate_limited("visit")
-    def visit(
-        self,
-        html: str = "",
-        recrawl: bool = False,
-        render: bool = False,
-        url: str = None
-    ) -> WebPageData:
+    def visit(self, html: str = "", recrawl: bool = False, render: bool = False, url: str = None) -> WebPageData:
         """
         Visit a given URL and return a structured WebPageData object for the page.
 
@@ -1261,10 +1245,7 @@ class Nosible:
             payload["sql_filter"] = "SELECT loc, published FROM engine"
 
         # Send the POST to the /trend endpoint
-        response = self._post(
-            url="https://www.nosible.ai/search/v1/trend",
-            payload=payload,
-        )
+        response = self._post(url="https://www.nosible.ai/search/v1/trend", payload=payload)
         # Will raise ValueError on rate-limit or auth errors
         response.raise_for_status()
         payload = response.json().get("response", {})
@@ -1459,7 +1440,7 @@ class Nosible:
         out = [
             "Below are the rate limits for all NOSIBLE plans.",
             "To upgrade your package, visit https://www.nosible.ai/products.\n",
-            "Unless otherwise indicated, bulk searches are limited to one-at-a-time per API key.\n"
+            "Unless otherwise indicated, bulk searches are limited to one-at-a-time per API key.\n",
         ]
 
         user_plan = self._get_user_plan()
@@ -1710,6 +1691,8 @@ class Nosible:
                - Contextual Example: Swap "diabetes treatment" with "insulin therapy" or "blood sugar management".
 
         """.replace("                ", "")
+        # Lazy load
+        from openai import OpenAI
 
         client = OpenAI(base_url=self.openai_base_url, api_key=self.llm_api_key)
 
@@ -1779,10 +1762,7 @@ class Nosible:
             # datetime.fromisoformat accepts both YYYY-MM-DD and full timestamps
             parsed = datetime.fromisoformat(string)
         except Exception:
-            raise ValueError(
-                f"Invalid date for '{name}': {string!r}.  "
-                "Expected ISO format 'YYYY-MM-DD'."
-            )
+            raise ValueError(f"Invalid date for '{name}': {string!r}.  Expected ISO format 'YYYY-MM-DD'.")
 
     def _format_sql(
         self,
@@ -1996,7 +1976,7 @@ class Nosible:
             "doc_hash",
         ]
         # Create a dummy DataFrame with correct columns and no rows
-        df = pl.DataFrame({col: [] for col in columns})
+        df = polars.DataFrame({col: [] for col in columns})
         ctx = SQLContext()
         ctx.register("engine", df)
         try:
@@ -2018,10 +1998,10 @@ class Nosible:
 
     def __exit__(
         self,
-        _exc_type: typing.Optional[type[BaseException]],
-        _exc_val: typing.Optional[BaseException],
-        _exc_tb: typing.Optional[types.TracebackType],
-    ) -> typing.Optional[bool]:
+        _exc_type: Optional[type[BaseException]],
+        _exc_val: Optional[BaseException],
+        _exc_tb: Optional[types.TracebackType],
+    ) -> Optional[bool]:
         """
         Always clean up (self.close()), but let exceptions propagate.
         Return True only if you really want to suppress an exception.
