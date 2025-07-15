@@ -31,6 +31,7 @@ integrate the Nosible Search API into your Python projects.
 - tenacity
 - cryptography
 - pyarrow
+- pandas
 
 🔑 Authentication
 ~~~~~~~~~~~~~~~~~

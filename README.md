@@ -44,6 +44,7 @@ uv pip install nosible
 * tenacity
 * cryptography
 * pyarrow
+* pandas
 
 ### 🔑 Authentication
 
