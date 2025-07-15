@@ -21,6 +21,7 @@ dependencies = [
   "tenacity",
   "cryptography",
   "pyarrow",
+  "pandas"
 ]
 
 license = "MIT"

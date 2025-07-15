@@ -2,6 +2,7 @@ import gzip
 import json
 import logging
 import os
+import re
 import sys
 import textwrap
 import time
@@ -1763,6 +1764,11 @@ class Nosible:
             ...
         ValueError: Invalid date for 'visited_start': '2023/12/31'.  Expected ISO format 'YYYY-MM-DD'.
         """
+        dateregex = r"^\d{4}-\d{2}-\d{2}"
+
+        if not re.match(dateregex, string):
+            raise ValueError(f"Invalid date for '{name}': {string!r}.  Expected ISO format 'YYYY-MM-DD'.")
+
         try:
             # datetime.fromisoformat accepts both YYYY-MM-DD and full timestamps
             parsed = datetime.fromisoformat(string)
