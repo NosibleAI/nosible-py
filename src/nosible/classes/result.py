@@ -311,7 +311,7 @@ class Result:
 
         # Call the chat completions endpoint.
         resp = llm_client.chat.completions.create(
-            model="openai/gpt-4o", messages=[{"role": "user", "content": prompt.strip()}], temperature=0.7
+            model=client.sentiment_model, messages=[{"role": "user", "content": prompt.strip()}], temperature=0.7
         )
 
         raw = resp.choices[0].message.content

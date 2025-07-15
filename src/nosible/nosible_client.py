@@ -56,6 +56,8 @@ class Nosible:
         Base URL for the OpenAI-compatible LLM API. (default is OpenRouter's API endpoint)
     sentiment_model : str, optional
         Model to use for sentiment analysis (default is "openai/gpt-4o").
+    expansions_model : str, optional
+        Model to use for expansions (default is "openai/gpt-4o").
     timeout : int
         Request timeout for HTTP calls.
     retries : int,
@@ -94,7 +96,8 @@ class Nosible:
     - The `nosible_api_key` is required to access the Nosible Search API.
     - The `llm_api_key` is optional and used for LLM-based query expansions.
     - The `openai_base_url` defaults to OpenRouter's API endpoint.
-    - The `sentiment_model` is used for generating query expansions and sentiment analysis.
+    - The `sentiment_model` is used for sentiment analysis.
+    - The `expansions_model` is used for generating query expansions.
     - The `timeout`, `retries`, and `concurrency` parameters control the behavior of HTTP requests.
 
     Examples
@@ -110,6 +113,7 @@ class Nosible:
         llm_api_key: str = None,
         openai_base_url: str = "https://openrouter.ai/api/v1",
         sentiment_model: str = "openai/gpt-4o",
+        expansions_model: str = "openai/gpt-4o",
         timeout: int = 30,
         retries: int = 5,
         concurrency: int = 10,
@@ -142,6 +146,7 @@ class Nosible:
         self.llm_api_key = llm_api_key or os.getenv("LLM_API_KEY")
         self.openai_base_url = openai_base_url
         self.sentiment_model = sentiment_model
+        self.expansions_model = expansions_model
         # Network parameters
         self.timeout = timeout
         self.retries = retries
@@ -1716,7 +1721,7 @@ class Nosible:
 
         # Call the chat completions endpoint.
         resp = client.chat.completions.create(
-            model=self.sentiment_model, messages=[{"role": "user", "content": prompt.strip()}], temperature=0.7
+            model=self.expansions_model, messages=[{"role": "user", "content": prompt.strip()}], temperature=0.7
         )
 
         raw = resp.choices[0].message.content
