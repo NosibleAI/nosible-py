@@ -15,17 +15,19 @@ CACHE_DIR = "httpx_tests_cache"
 
 
 @pytest.fixture(autouse=True, scope="session")
-def install_httpx_cache(request):
+def install_httpx_cache():
     """
-    Setup Caching for httpx requests during tests.
+    Setup caching for all httpx requests (both sync and async) during tests.
     """
 
     storage = FileStorage(base_path=CACHE_DIR, ttl=60 * 30)
+    # ensure POSTs are cacheable
     controller = Controller(force_cache=True, cacheable_methods=["GET", "POST"])
     transport = CacheTransport(transport=httpx.HTTPTransport(), storage=storage, controller=controller)
 
-    # Patch httpx.Client to use cached transport by default
+    # patch both sync and async clients
     httpx.Client = partial(httpx.Client, transport=transport, follow_redirects=True)
+    httpx.AsyncClient = partial(httpx.AsyncClient, transport=transport, follow_redirects=True)
 
     yield
 
