@@ -2,21 +2,17 @@ import gzip
 import json
 import logging
 import os
+import re
 import sys
 import textwrap
 import time
 import types
-import typing
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Union, Optional
+from typing import Optional, Union
 
-import polars as pl
-import requests
-from cryptography.fernet import Fernet
-from openai import OpenAI
-from polars import SQLContext
+import httpx
 from tenacity import (
     before_sleep_log,
     retry,
@@ -32,7 +28,6 @@ from nosible.classes.search_set import SearchSet
 from nosible.classes.snippet_set import SnippetSet
 from nosible.classes.web_page import WebPageData
 from nosible.utils.json_tools import json_loads
-from nosible.utils.question_builder import _get_question
 from nosible.utils.rate_limiter import PLAN_RATE_LIMITS, RateLimiter, _rate_limited
 
 # Set up a module‐level logger.
@@ -56,6 +51,8 @@ class Nosible:
         Base URL for the OpenAI-compatible LLM API. (default is OpenRouter's API endpoint)
     sentiment_model : str, optional
         Model to use for sentiment analysis (default is "openai/gpt-4o").
+    expansions_model : str, optional
+        Model to use for expansions (default is "openai/gpt-4o").
     timeout : int
         Request timeout for HTTP calls.
     retries : int,
@@ -94,7 +91,8 @@ class Nosible:
     - The `nosible_api_key` is required to access the Nosible Search API.
     - The `llm_api_key` is optional and used for LLM-based query expansions.
     - The `openai_base_url` defaults to OpenRouter's API endpoint.
-    - The `sentiment_model` is used for generating query expansions and sentiment analysis.
+    - The `sentiment_model` is used for sentiment analysis.
+    - The `expansions_model` is used for generating query expansions.
     - The `timeout`, `retries`, and `concurrency` parameters control the behavior of HTTP requests.
 
     Examples
@@ -106,10 +104,11 @@ class Nosible:
 
     def __init__(
         self,
-        nosible_api_key: str = None,
-        llm_api_key: str = None,
+        nosible_api_key: Optional[str] = None,
+        llm_api_key: Optional[str] = None,
         openai_base_url: str = "https://openrouter.ai/api/v1",
         sentiment_model: str = "openai/gpt-4o",
+        expansions_model: str = "openai/gpt-4o",
         timeout: int = 30,
         retries: int = 5,
         concurrency: int = 10,
@@ -142,6 +141,7 @@ class Nosible:
         self.llm_api_key = llm_api_key or os.getenv("LLM_API_KEY")
         self.openai_base_url = openai_base_url
         self.sentiment_model = sentiment_model
+        self.expansions_model = expansions_model
         # Network parameters
         self.timeout = timeout
         self.retries = retries
@@ -162,7 +162,7 @@ class Nosible:
             reraise=True,
             stop=stop_after_attempt(self.retries) | stop_after_delay(self.timeout),
             wait=wait_exponential(multiplier=1, min=1, max=10),
-            retry=retry_if_exception_type(requests.exceptions.RequestException),
+            retry=retry_if_exception_type(httpx.RequestError),
             before_sleep=before_sleep_log(self.logger, logging.WARNING),
         )(self._post)
 
@@ -171,12 +171,12 @@ class Nosible:
             reraise=True,
             stop=stop_after_attempt(self.retries) | stop_after_delay(self.timeout),
             wait=wait_exponential(multiplier=1, min=1, max=10),
-            retry=retry_if_exception_type(requests.exceptions.RequestException),
+            retry=retry_if_exception_type(httpx.RequestError),
             before_sleep=before_sleep_log(self.logger, logging.WARNING),
         )(self._generate_expansions)
 
         # Thread pool for parallel searches
-        self._session = requests.Session()
+        self._session = httpx.Client(follow_redirects=True)
         self._executor = ThreadPoolExecutor(max_workers=self.concurrency)
 
         # Headers
@@ -201,7 +201,6 @@ class Nosible:
 
     def search(
         self,
-        *,
         search: Search = None,
         question: str = None,
         expansions: list[str] = None,
@@ -873,6 +872,8 @@ class Nosible:
         ...
         ValueError: Bulk search cannot have more than 10000 results per query.
         """
+        from cryptography.fernet import Fernet
+
         previous_level = self.logger.level
         if verbose:
             self.logger.setLevel(logging.INFO)
@@ -981,7 +982,7 @@ class Nosible:
             resp = self._post(url="https://www.nosible.ai/search/v1/slow-search", payload=payload)
             try:
                 resp.raise_for_status()
-            except requests.HTTPError as e:
+            except httpx.HTTPStatusError as e:
                 raise ValueError(f"[{question!r}] HTTP {resp.status_code}: {resp.text}") from e
 
             data = resp.json()
@@ -993,7 +994,7 @@ class Nosible:
             decrypt_using = data.get("decrypt_using")
             for _ in range(100):
                 dl = self._session.get(download_from, timeout=self.timeout)
-                if dl.ok:
+                if dl.status_code == 200:
                     fernet = Fernet(decrypt_using.encode())
                     decrypted = fernet.decrypt(dl.content)
                     decompressed = gzip.decompress(decrypted)
@@ -1053,7 +1054,7 @@ class Nosible:
         ...     ans = nos.answer(
         ...         query="How is research governance and decision-making structured between Google and DeepMind?",
         ...         n_results=100,
-        ...         show_context=True
+        ...         show_context=True,
         ...     )  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
         <BLANKLINE>
         Doc 1
@@ -1067,11 +1068,7 @@ class Nosible:
             raise ValueError("An LLM API key is required for answer().")
 
         # Retrieve top documents
-        results = self.search(
-            question=query,
-            n_results=n_results,
-            min_similarity=min_similarity,
-        )
+        results = self.search(question=query, n_results=n_results, min_similarity=min_similarity)
 
         # Build RAG context
         context = ""
@@ -1090,7 +1087,7 @@ class Nosible:
             print(textwrap.dedent(context))
 
         # Craft prompt
-        prompt = (f"""
+        prompt = f"""
             # TASK DESCRIPTION
 
             You are a helpful assistant.  Use the following context to answer the question.
@@ -1102,15 +1099,12 @@ class Nosible:
             ## Context
             {context}
             """
-        )
+        from openai import OpenAI
 
         # Call LLM
         client = OpenAI(base_url=self.openai_base_url, api_key=self.llm_api_key)
         try:
-            response = client.chat.completions.create(
-                model = model,
-                messages = [{"role": "user", "content": prompt}],
-            )
+            response = client.chat.completions.create(model=model, messages=[{"role": "user", "content": prompt}])
         except Exception as e:
             raise RuntimeError(f"LLM API error: {e}") from e
 
@@ -1123,13 +1117,7 @@ class Nosible:
         return "Answer:\n" + response.choices[0].message.content.strip()
 
     @_rate_limited("visit")
-    def visit(
-        self,
-        html: str = "",
-        recrawl: bool = False,
-        render: bool = False,
-        url: str = None
-    ) -> WebPageData:
+    def visit(self, html: str = "", recrawl: bool = False, render: bool = False, url: str = None) -> WebPageData:
         """
         Visit a given URL and return a structured WebPageData object for the page.
 
@@ -1262,10 +1250,7 @@ class Nosible:
             payload["sql_filter"] = "SELECT loc, published FROM engine"
 
         # Send the POST to the /trend endpoint
-        response = self._post(
-            url="https://www.nosible.ai/search/v1/trend",
-            payload=payload,
-        )
+        response = self._post(url="https://www.nosible.ai/search/v1/trend", payload=payload)
         # Will raise ValueError on rate-limit or auth errors
         response.raise_for_status()
         payload = response.json().get("response", {})
@@ -1365,7 +1350,7 @@ class Nosible:
                 return False
             # If we reach here, the response is unexpected
             return False
-        except requests.HTTPError:
+        except httpx.HTTPError:
             return False
         except:
             return False
@@ -1460,7 +1445,7 @@ class Nosible:
         out = [
             "Below are the rate limits for all NOSIBLE plans.",
             "To upgrade your package, visit https://www.nosible.ai/products.\n",
-            "Unless otherwise indicated, bulk searches are limited to one-at-a-time per API key.\n"
+            "Unless otherwise indicated, bulk searches are limited to one-at-a-time per API key.\n",
         ]
 
         user_plan = self._get_user_plan()
@@ -1521,7 +1506,7 @@ class Nosible:
         except Exception:
             pass
 
-    def _post(self, url: str, payload: dict, headers: dict = None, timeout: int = None) -> requests.Response:
+    def _post(self, url: str, payload: dict, headers: dict = None, timeout: int = None) -> httpx.Response:
         """
         Internal helper to send a POST request with retry logic.
 
@@ -1553,7 +1538,7 @@ class Nosible:
 
         Returns
         -------
-        requests.Response
+        httpx.Response
             The HTTP response object.
         """
         response = self._session.post(
@@ -1561,18 +1546,18 @@ class Nosible:
             json=payload,
             headers=headers if headers is not None else self.headers,
             timeout=timeout if timeout is not None else self.timeout,
+            follow_redirects=True,
         )
 
         # If unauthorized, or if the payload is string too short, treat as invalid API key
         if response.status_code == 401:
             raise ValueError("Your API key is not valid.")
         if response.status_code == 422:
-            # Only inspect JSON if it’s a JSON response
             content_type = response.headers.get("Content-Type", "")
             if content_type.startswith("application/json"):
                 body = response.json()
                 if isinstance(body, list):
-                    body = body[0]  # NOSIBLE returns a list of errors
+                    body = body[0]
                 print(body)
                 if body.get("type") == "string_too_short":
                     raise ValueError("Your API key is not valid: Too Short.")
@@ -1711,12 +1696,14 @@ class Nosible:
                - Contextual Example: Swap "diabetes treatment" with "insulin therapy" or "blood sugar management".
 
         """.replace("                ", "")
+        # Lazy load
+        from openai import OpenAI
 
         client = OpenAI(base_url=self.openai_base_url, api_key=self.llm_api_key)
 
         # Call the chat completions endpoint.
         resp = client.chat.completions.create(
-            model=self.sentiment_model, messages=[{"role": "user", "content": prompt.strip()}], temperature=0.7
+            model=self.expansions_model, messages=[{"role": "user", "content": prompt.strip()}], temperature=0.7
         )
 
         raw = resp.choices[0].message.content
@@ -1776,14 +1763,16 @@ class Nosible:
             ...
         ValueError: Invalid date for 'visited_start': '2023/12/31'.  Expected ISO format 'YYYY-MM-DD'.
         """
+        dateregex = r"^\d{4}-\d{2}-\d{2}"
+
+        if not re.match(dateregex, string):
+            raise ValueError(f"Invalid date for '{name}': {string!r}.  Expected ISO format 'YYYY-MM-DD'.")
+
         try:
             # datetime.fromisoformat accepts both YYYY-MM-DD and full timestamps
             parsed = datetime.fromisoformat(string)
         except Exception:
-            raise ValueError(
-                f"Invalid date for '{name}': {string!r}.  "
-                "Expected ISO format 'YYYY-MM-DD'."
-            )
+            raise ValueError(f"Invalid date for '{name}': {string!r}.  Expected ISO format 'YYYY-MM-DD'.")
 
     def _format_sql(
         self,
@@ -1996,9 +1985,11 @@ class Nosible:
             "company_3",
             "doc_hash",
         ]
+        import polars as pl  # Lazy import
+
         # Create a dummy DataFrame with correct columns and no rows
         df = pl.DataFrame({col: [] for col in columns})
-        ctx = SQLContext()
+        ctx = pl.SQLContext()
         ctx.register("engine", df)
         try:
             ctx.execute(sql)
@@ -2019,10 +2010,10 @@ class Nosible:
 
     def __exit__(
         self,
-        _exc_type: typing.Optional[type[BaseException]],
-        _exc_val: typing.Optional[BaseException],
-        _exc_tb: typing.Optional[types.TracebackType],
-    ) -> typing.Optional[bool]:
+        _exc_type: Optional[type[BaseException]],
+        _exc_val: Optional[BaseException],
+        _exc_tb: Optional[types.TracebackType],
+    ) -> Optional[bool]:
         """
         Always clean up (self.close()), but let exceptions propagate.
         Return True only if you really want to suppress an exception.

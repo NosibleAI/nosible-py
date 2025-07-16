@@ -3,9 +3,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING
 
-from openai import OpenAI
-
 from nosible.classes.web_page import WebPageData
+from nosible.utils.json_tools import print_dict
 
 if TYPE_CHECKING:
     from nosible.classes.result_set import ResultSet
@@ -102,11 +101,21 @@ class Result:
           0.99 | Example Domain
         >>> result = Result(title=None, similarity=None)
         >>> print(str(result))
-           N/A | No Title
+        {
+            "url": null,
+            "title": null,
+            "description": null,
+            "netloc": null,
+            "published": null,
+            "visited": null,
+            "author": null,
+            "content": null,
+            "language": null,
+            "similarity": null,
+            "url_hash": null
+        }
         """
-        similarity = f"{self.similarity:.2f}" if self.similarity is not None else "N/A"
-        title = self.title or "No Title"
-        return f"{similarity:>6} | {title}"
+        return print_dict(self.to_dict())
 
     def __getitem__(self, key: str) -> str | float | bool | None:
         """
@@ -295,12 +304,12 @@ class Result:
 
             The response must be a float in [-1.0, 1.0]. No other text must be returned.
         """
-
+        from openai import OpenAI
         llm_client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=client.llm_api_key)
 
         # Call the chat completions endpoint.
         resp = llm_client.chat.completions.create(
-            model="openai/gpt-4o", messages=[{"role": "user", "content": prompt.strip()}], temperature=0.7
+            model=client.sentiment_model, messages=[{"role": "user", "content": prompt.strip()}], temperature=0.7
         )
 
         raw = resp.choices[0].message.content
