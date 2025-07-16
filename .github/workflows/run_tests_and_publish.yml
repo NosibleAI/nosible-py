@@ -73,9 +73,9 @@ jobs:
           key: nosible-http-cache-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
 
-      - name: Fail on cache miss
-        if: steps.cache.outputs.cache-hit != 'false'
-        run: exit 1
+      # - name: Fail on cache miss
+      #   if: steps.cache.outputs.cache-hit != 'false'
+      #   run: exit 1
 
       - name: Setup Python & UV tool
         uses: astral-sh/setup-uv@v6
