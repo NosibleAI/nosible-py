@@ -45,7 +45,7 @@ jobs:
         id: cache
         with:
           path: httpx_tests_cache
-          key: nosible-http-cache-${{ github.run_id }}-${{ github.run_attempt }}
+          key: nosible-http-cache-${{ github.ref_name }}-${{ github.sha }}
           enableCrossOsArchive: true
 
 
@@ -70,7 +70,7 @@ jobs:
         id: cache
         with:
           path: httpx_tests_cache
-          key: nosible-http-cache-${{ github.run_id }}-${{ github.run_attempt }}
+          key: nosible-http-cache-${{ github.ref_name }}-${{ github.sha }}
           enableCrossOsArchive: true
 
       # - name: Fail on cache miss
