@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-
-import polars as pl
-from polars.dependencies import pandas as pd
-from tantivy import Document, Index, SchemaBuilder
+from typing import TYPE_CHECKING
 
 from nosible.classes.result import Result
 from nosible.utils.json_tools import json_dumps, json_loads
+
+if TYPE_CHECKING:
+    import pandas as pd
+    import polars as pl
 
 
 @dataclass(frozen=True)
@@ -321,6 +322,8 @@ class ResultSet(Iterator[Result]):
         Document returned
         Document returned
         """
+        from tantivy import Document, Index, SchemaBuilder
+
         # Build the Tantivy schema
         schema_builder = SchemaBuilder()
         # Int for doc retrieval.
@@ -444,6 +447,9 @@ class ResultSet(Iterator[Result]):
         Traceback (most recent call last):
         ValueError: Cannot analyze by 'foobar' - not a valid field.
         """
+        import pandas as pd
+        import polars as pl
+
         # Convert to Polars DataFrame
         df: pl.DataFrame = self.to_polars()
 
@@ -576,6 +582,10 @@ class ResultSet(Iterator[Result]):
         >>> "url" in df.columns
         True
         """
+        # Lazy import for runtime, but allow static type checking
+
+        import polars as pl
+
         return pl.DataFrame(self.to_dicts())
 
     def to_pandas(self) -> pd.DataFrame:
@@ -916,7 +926,7 @@ class ResultSet(Iterator[Result]):
             import duckdb
 
             # Convert to Polars DataFrame and then to Arrow Table
-            df = self.to_polars()
+            df = self.to_polars()  # noqa: F841
             # Connect to DuckDB and write the Arrow Table to a table
             con = duckdb.connect(out)
             # Write the DataFrame to the specified table name, replacing if exists
@@ -969,6 +979,8 @@ class ResultSet(Iterator[Result]):
         >>> results[0].title
         'Example Domain'
         """
+        import polars as pl
+
         try:
             df = pl.read_csv(file_path)
         except Exception as e:
@@ -1129,6 +1141,8 @@ class ResultSet(Iterator[Result]):
         >>> print(len(df))
         1
         """
+        import polars as pl
+
         pl_df = pl.from_pandas(df)
         return cls.from_polars(pl_df)
 
@@ -1244,6 +1258,8 @@ class ResultSet(Iterator[Result]):
         >>> results[0].title
         'Example Domain'
         """
+        import polars as pl
+
         try:
             df = pl.read_parquet(file_path)
         except Exception as e:
@@ -1293,6 +1309,8 @@ class ResultSet(Iterator[Result]):
         >>> results[0].title
         'Example Domain'
         """
+        import polars as pl
+
         try:
             df = pl.read_ipc(file_path)
         except Exception as e:
@@ -1345,8 +1363,11 @@ class ResultSet(Iterator[Result]):
         >>> loaded[0].title
         'Example Domain'
         """
+        import polars as pl
+
         try:
             import duckdb
+
             con = duckdb.connect(file_path, read_only=True)
         except Exception as e:
             raise RuntimeError(f"Failed to connect to DuckDB file '{file_path}': {e}") from e
@@ -1498,10 +1519,3 @@ class ResultSet(Iterator[Result]):
         """
         # TODO: cleanup handles, sessions, etc.
         pass
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod(optionflags=doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE)
-    print("All tests passed!")
