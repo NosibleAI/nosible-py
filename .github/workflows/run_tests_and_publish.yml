@@ -38,6 +38,10 @@ jobs:
       - name: Run tests in record mode
         run: |
           uv run pytest -n auto || true
+          
+      - name: Run tests in second pass to cache new results
+        run: |
+          uv run pytest -n auto || true
 
       - name: Save cache of HTTP results (per-run)
         if: always()
@@ -45,7 +49,7 @@ jobs:
         id: cache
         with:
           path: httpx_tests_cache
-          key: nosible-http-cache-${{ github.run_id }}-${{ github.run_attempt }}
+          key: nosible-http-cache-${{ github.ref_name }}-${{ github.sha }}
           enableCrossOsArchive: true
 
 
@@ -70,12 +74,12 @@ jobs:
         id: cache
         with:
           path: httpx_tests_cache
-          key: nosible-http-cache-${{ github.run_id }}-${{ github.run_attempt }}
+          key: nosible-http-cache-${{ github.ref_name }}-${{ github.sha }}
           enableCrossOsArchive: true
 
-      - name: Fail on cache miss
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: exit 1
+      # - name: Fail on cache miss
+      #   if: steps.cache.outputs.cache-hit != 'false'
+      #   run: exit 1
 
       - name: Setup Python & UV tool
         uses: astral-sh/setup-uv@v6

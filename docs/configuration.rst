@@ -74,7 +74,40 @@ algorithm
 Which `scoring algorithms <search_algorithms_>`_ to use (e.g., “hybrid-1”, “string”, “verbatim”, etc.).
     - **Type**: ``str``
     - **Default**: ``hybrid-1``
-    - **Example**: ``"hybrid-2"``
+    - **Example**: ``hybrid-2``
+
+min_similarity
+~~~~~~~~~~~~~~
+
+Results must have at least this similarity score.
+    - **Type**: ``float``
+    - **Default**: ``0``
+    - **Example**: ``0.65``
+
+must_include
+~~~~~~~~~~~~
+
+Only results mentioning these strings will be included.
+    - **Type**: ``list of str``
+    - **Default**: ``None``
+    - **Example**: ``["String 1", "String 2"]``
+
+must_exclude
+~~~~~~~~~~~~
+
+Any result mentioning these strings will be excluded.
+    - **Type**: ``list of str``
+    - **Default**: ``None``
+    - **Example**: ``["String 1", "String 2"]``
+
+
+autogenerate_expansions
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Do you want to generate expansions automatically using a LLM?
+    - **Type**: ``bool``
+    - **Default**: ``False``
+    - **Example**: ``True``
 
 publish_start
 ~~~~~~~~~~~~~
