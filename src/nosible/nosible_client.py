@@ -12,9 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Optional, Union
 
-import polars as polars
-from cryptography.fernet import Fernet
-from polars import SQLContext
+import httpx
 from tenacity import (
     before_sleep_log,
     retry,
@@ -37,7 +35,6 @@ logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.INFO)
 logging.basicConfig(level=logging.DEBUG)
 logging.disable(logging.CRITICAL)
-import httpx
 
 
 class Nosible:
@@ -875,6 +872,8 @@ class Nosible:
         ...
         ValueError: Bulk search cannot have more than 10000 results per query.
         """
+        from cryptography.fernet import Fernet
+
         previous_level = self.logger.level
         if verbose:
             self.logger.setLevel(logging.INFO)
@@ -1986,9 +1985,11 @@ class Nosible:
             "company_3",
             "doc_hash",
         ]
+        import polars as pl  # Lazy import
+
         # Create a dummy DataFrame with correct columns and no rows
-        df = polars.DataFrame({col: [] for col in columns})
-        ctx = SQLContext()
+        df = pl.DataFrame({col: [] for col in columns})
+        ctx = pl.SQLContext()
         ctx.register("engine", df)
         try:
             ctx.execute(sql)
