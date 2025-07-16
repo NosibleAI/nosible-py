@@ -13,7 +13,6 @@ from datetime import datetime
 from typing import Optional, Union
 
 import polars as polars
-import requests
 from cryptography.fernet import Fernet
 from polars import SQLContext
 from tenacity import (
@@ -38,6 +37,7 @@ logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.INFO)
 logging.basicConfig(level=logging.DEBUG)
 logging.disable(logging.CRITICAL)
+import httpx
 
 
 class Nosible:
@@ -165,7 +165,7 @@ class Nosible:
             reraise=True,
             stop=stop_after_attempt(self.retries) | stop_after_delay(self.timeout),
             wait=wait_exponential(multiplier=1, min=1, max=10),
-            retry=retry_if_exception_type(requests.exceptions.RequestException),
+            retry=retry_if_exception_type(httpx.RequestError),
             before_sleep=before_sleep_log(self.logger, logging.WARNING),
         )(self._post)
 
@@ -174,12 +174,12 @@ class Nosible:
             reraise=True,
             stop=stop_after_attempt(self.retries) | stop_after_delay(self.timeout),
             wait=wait_exponential(multiplier=1, min=1, max=10),
-            retry=retry_if_exception_type(requests.exceptions.RequestException),
+            retry=retry_if_exception_type(httpx.RequestError),
             before_sleep=before_sleep_log(self.logger, logging.WARNING),
         )(self._generate_expansions)
 
         # Thread pool for parallel searches
-        self._session = requests.Session()
+        self._session = httpx.Client(follow_redirects=True)
         self._executor = ThreadPoolExecutor(max_workers=self.concurrency)
 
         # Headers
@@ -983,7 +983,7 @@ class Nosible:
             resp = self._post(url="https://www.nosible.ai/search/v1/slow-search", payload=payload)
             try:
                 resp.raise_for_status()
-            except requests.HTTPError as e:
+            except httpx.HTTPStatusError as e:
                 raise ValueError(f"[{question!r}] HTTP {resp.status_code}: {resp.text}") from e
 
             data = resp.json()
@@ -995,7 +995,7 @@ class Nosible:
             decrypt_using = data.get("decrypt_using")
             for _ in range(100):
                 dl = self._session.get(download_from, timeout=self.timeout)
-                if dl.ok:
+                if dl.status_code == 200:
                     fernet = Fernet(decrypt_using.encode())
                     decrypted = fernet.decrypt(dl.content)
                     decompressed = gzip.decompress(decrypted)
@@ -1351,7 +1351,7 @@ class Nosible:
                 return False
             # If we reach here, the response is unexpected
             return False
-        except requests.HTTPError:
+        except httpx.HTTPError:
             return False
         except:
             return False
@@ -1507,7 +1507,7 @@ class Nosible:
         except Exception:
             pass
 
-    def _post(self, url: str, payload: dict, headers: dict = None, timeout: int = None) -> requests.Response:
+    def _post(self, url: str, payload: dict, headers: dict = None, timeout: int = None) -> httpx.Response:
         """
         Internal helper to send a POST request with retry logic.
 
@@ -1539,7 +1539,7 @@ class Nosible:
 
         Returns
         -------
-        requests.Response
+        httpx.Response
             The HTTP response object.
         """
         response = self._session.post(
@@ -1547,18 +1547,18 @@ class Nosible:
             json=payload,
             headers=headers if headers is not None else self.headers,
             timeout=timeout if timeout is not None else self.timeout,
+            follow_redirects=True,
         )
 
         # If unauthorized, or if the payload is string too short, treat as invalid API key
         if response.status_code == 401:
             raise ValueError("Your API key is not valid.")
         if response.status_code == 422:
-            # Only inspect JSON if it’s a JSON response
             content_type = response.headers.get("Content-Type", "")
             if content_type.startswith("application/json"):
                 body = response.json()
                 if isinstance(body, list):
-                    body = body[0]  # NOSIBLE returns a list of errors
+                    body = body[0]
                 print(body)
                 if body.get("type") == "string_too_short":
                     raise ValueError("Your API key is not valid: Too Short.")

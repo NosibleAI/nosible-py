@@ -21,7 +21,7 @@ dependencies = [
   "tenacity",
   "cryptography",
   "pyarrow",
-  "pandas"
+  "pandas",
 ]
 
 license = "MIT"
@@ -62,5 +62,6 @@ dev-dependencies = [
   "pytest-doctestplus",
   "requests-cache",
   "pytest-xdist",
-  "urllib3==1.26.15"
+  "urllib3==1.26.15",
+  "hishel",
 ]
