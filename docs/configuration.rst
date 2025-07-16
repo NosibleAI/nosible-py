@@ -220,8 +220,8 @@ hybrid-2
 ----------------------
 
 The LLM endpoint is used to generate expansions for searches and calculate sentiment for search results, and by default
-it is set to use OpenRouter. However, if you are using another endpoint (one that supports openaiand would like to
-change it, you can do so as follows (by changing the argument ``openai_base_url``):
+it is set to use OpenRouter. However, **we support any endpoint that supports openai**. If you want to use a different
+endpoint, you can do so by changing the client argument ``openai_base_url``:
 
 .. code:: python
 
