@@ -1,4 +1,3 @@
-import pandas as pd
 from nosible import Snippet, SnippetSet, WebPageData
 import pytest
 
