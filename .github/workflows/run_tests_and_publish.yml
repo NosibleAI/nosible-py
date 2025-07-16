@@ -28,7 +28,7 @@ jobs:
         run: uv pip install -e .
 
       - name: Install test dependencies
-        run: uv pip install pytest pytest-doctestplus requests-cache pytest-xdist
+        run: uv pip install pytest pytest-doctestplus pytest-xdist
 
       - name: Debug ls
         run: |
@@ -37,14 +37,14 @@ jobs:
 
       - name: Run tests in record mode
         run: |
-          uv run pytest --maxfail=1 -n auto
+          uv run pytest -n auto || true
 
       - name: Save cache of HTTP results (per-run)
         if: always()
         uses: actions/cache@v4
         id: cache
         with:
-          path: http_tests_cache
+          path: httpx_tests_cache
           key: nosible-http-cache-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
 
@@ -69,7 +69,7 @@ jobs:
         uses: actions/cache/restore@v4
         id: cache
         with:
-          path: http_tests_cache
+          path: httpx_tests_cache
           key: nosible-http-cache-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
 
@@ -99,7 +99,7 @@ jobs:
           ls
 
       - name: Run tests
-        run: uv run pytest --maxfail=1 --cache-only # Enforcing cache only here
+        run: uv run pytest --maxfail=1
 
   build:
     name: Build package distribution

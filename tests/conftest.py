@@ -1,10 +1,9 @@
 import logging
-import os
-from datetime import timedelta
+from functools import partial
 
+import httpx
 import pytest
-import requests
-import requests_cache
+from hishel import CacheTransport, Controller, FileStorage
 
 from nosible import Nosible, Search
 from nosible.classes.search_set import SearchSet
@@ -12,66 +11,21 @@ from nosible.classes.search_set import SearchSet
 logging.getLogger("requests_cache").setLevel(logging.DEBUG)
 
 
-def pytest_addoption(parser):
-    parser.addoption("--no-cache", action="store_true", default=False, help="Disable requests_cache entirely")
-    parser.addoption(
-        "--cache-only", action="store_true", default=False, help="Use only cached responses; don’t hit the network"
-    )
-    parser.addoption(
-        "--clear-cache", action="store_true", default=False, help="Delete the existing HTTP cache before running tests"
-    )
+CACHE_DIR = "httpx_tests_cache"
 
 
 @pytest.fixture(autouse=True, scope="session")
-def install_requests_cache(request):
+def install_httpx_cache(request):
     """
-    - default (no flags): install cache and update it on misses
-    - --no-cache: do nothing (no caching)
-    - --cache-only: install cache but only serve cached entries (raise if missing)
-    - --clear-cache: delete the cache file before installing (so it will be rebuilt)
+    Setup Caching for httpx requests during tests.
     """
-    no_cache = request.config.getoption("no_cache")
-    cache_only = request.config.getoption("cache_only")
-    clear_cache = request.config.getoption("clear_cache")
 
-    if no_cache:
-        # skip caching completely
-        yield
-        return
+    storage = FileStorage(base_path=CACHE_DIR, ttl=60 * 30)
+    controller = Controller(force_cache=True, cacheable_methods=["GET", "POST"])
+    transport = CacheTransport(transport=httpx.HTTPTransport(), storage=storage, controller=controller)
 
-    cache_name = "http_tests_cache"
-    cache_file = f"{cache_name}"
-
-    if clear_cache:
-        try:
-            os.remove(cache_file)
-            logging.getLogger("requests_cache").info(f"Removed existing cache file: {cache_file}")
-        except FileNotFoundError:
-            logging.getLogger("requests_cache").info(f"No cache file to remove: {cache_file}")
-
-    # install the cache (shared session backend)
-    requests_cache.install_cache(
-        cache_name=cache_name,
-        backend="filesystem",
-        expire_after=60 * 30,
-        allowable_methods=["GET", "POST"],
-        # stale_if_error=timedelta(minutes=20)
-    )
-    logging.getLogger("requests_cache").setLevel(logging.DEBUG)
-
-    if cache_only:
-        # monkey-patch Session.request to only_if_cached=True
-        orig_request = requests.Session.request
-
-        def only_cached(self, method, url, *args, **kwargs):
-            # force only_if_cached; raise if not in cache
-            kwargs.setdefault("only_if_cached", True)
-            resp = orig_request(self, method, url, *args, **kwargs)
-            if getattr(resp, "from_cache", False) is False:
-                raise RuntimeError(f"No cached response for {method} {url}")
-            return resp
-
-        requests.Session.request = only_cached
+    # Patch httpx.Client to use cached transport by default
+    httpx.Client = partial(httpx.Client, transport=transport, follow_redirects=True)
 
     yield
 
@@ -130,4 +84,3 @@ def trend_data():
     """Cache a single trend() invocation."""
     with Nosible() as nos:
         return nos.trend(query="Christmas shopping")
-

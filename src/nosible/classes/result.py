@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING
 
-from openai import OpenAI
-
 from nosible.classes.web_page import WebPageData
 from nosible.utils.json_tools import print_dict
 
@@ -306,7 +304,7 @@ class Result:
 
             The response must be a float in [-1.0, 1.0]. No other text must be returned.
         """
-
+        from openai import OpenAI
         llm_client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=client.llm_api_key)
 
         # Call the chat completions endpoint.

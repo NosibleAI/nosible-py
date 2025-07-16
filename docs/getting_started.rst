@@ -22,14 +22,16 @@ integrate the Nosible Search API into your Python projects.
 
 **Requirements**:
 
--  Python 3.9+
--  requests
--  polars
--  cryptography
--  tenacity
--  pyrate-limiter
--  tantivy
--  openai
+- Python 3.9+
+- polars
+- duckdb
+- openai
+- tantivy
+- pyrate-limiter
+- tenacity
+- cryptography
+- pyarrow
+- pandas
 
 🔑 Authentication
 ~~~~~~~~~~~~~~~~~

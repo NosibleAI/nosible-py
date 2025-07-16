@@ -1,16 +1,16 @@
 import tempfile
-import pandas as pd
+
 import polars as pl
 import pytest
+from polars.dependencies import pandas as pd
 
-from nosible import ResultSet, Result
+from nosible import Result, ResultSet
+
 
 @pytest.fixture
 def simple_results():
-    return [
-        Result(url="https://example.com", title="Example Domain"),
-        Result(url="https://openai.com", title="OpenAI"),
-    ]
+    return [Result(url="https://example.com", title="Example Domain"), Result(url="https://openai.com", title="OpenAI")]
+
 
 def test_csv_polars_pandas_json_ndjson_parquet_arrow_duckdb_io(tmp_path, simple_results):
     rs = ResultSet(simple_results)
