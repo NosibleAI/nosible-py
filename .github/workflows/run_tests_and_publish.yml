@@ -28,7 +28,7 @@ jobs:
         run: uv pip install -e .
 
       - name: Install test dependencies
-        run: uv pip install pytest pytest-doctestplus requests-cache pytest-xdist
+        run: uv pip install pytest pytest-doctestplus pytest-xdist
 
       - name: Debug ls
         run: |
@@ -99,7 +99,7 @@ jobs:
           ls
 
       - name: Run tests
-        run: uv run pytest --maxfail=1 --cache-only # Enforcing cache only here
+        run: uv run pytest --maxfail=1
 
   build:
     name: Build package distribution
