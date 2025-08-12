@@ -208,7 +208,7 @@ class Nosible:
         n_results: int = 100,
         n_probes: int = 30,
         n_contextify: int = 128,
-        algorithm: str = "hybrid-2",
+        algorithm: str = "hybrid-3",
         min_similarity: float = None,
         must_include: list[str] = None,
         must_exclude: list[str] = None,
@@ -385,7 +385,7 @@ class Nosible:
         n_results: int = 100,
         n_probes: int = 30,
         n_contextify: int = 128,
-        algorithm: str = "hybrid-2",
+        algorithm: str = "hybrid-3",
         min_similarity: float = None,
         must_include: list[str] = None,
         must_exclude: list[str] = None,
@@ -604,7 +604,7 @@ class Nosible:
         n_results = search_obj.n_results if search_obj.n_results is not None else 100
         n_probes = search_obj.n_probes if search_obj.n_probes is not None else 30
         n_contextify = search_obj.n_contextify if search_obj.n_contextify is not None else 128
-        algorithm = search_obj.algorithm if search_obj.algorithm is not None else "hybrid-2"
+        algorithm = search_obj.algorithm if search_obj.algorithm is not None else "hybrid-3"
         min_similarity = search_obj.min_similarity if search_obj.min_similarity is not None else 0
         must_include = search_obj.must_include if search_obj.must_include is not None else []
         must_exclude = search_obj.must_exclude if search_obj.must_exclude is not None else []
@@ -732,7 +732,7 @@ class Nosible:
         n_results: int = 1000,
         n_probes: int = 30,
         n_contextify: int = 128,
-        algorithm: str = "hybrid-2",
+        algorithm: str = "hybrid-3",
         min_similarity: float = None,
         must_include: list[str] = None,
         must_exclude: list[str] = None,
