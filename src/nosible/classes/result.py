@@ -332,7 +332,7 @@ class Result:
         n_results: int = 100,
         n_probes: int = 30,
         n_contextify: int = 128,
-        algorithm: str = "hybrid-2",
+        algorithm: str = "hybrid-3",
         publish_start: str = None,
         publish_end: str = None,
         include_netlocs: list = None,
