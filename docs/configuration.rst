@@ -73,7 +73,7 @@ algorithm
 
 Which `scoring algorithms <search_algorithms_>`_ to use (e.g., “hybrid-1”, “string”, “verbatim”, etc.).
     - **Type**: ``str``
-    - **Default**: ``hybrid-1``
+    - **Default**: ``hybrid-3``
     - **Example**: ``hybrid-2``
 
 min_similarity
@@ -248,6 +248,11 @@ hybrid-2
 ~~~~~~~~
 
 - First use lexical search to narrow results, then refines the results with a semantic search.
+
+hybrid-3
+~~~~~~~~
+
+- Our most cutting edge search algorithm. Beats everything else.
 
 🌐 Change LLM Base URL
 ----------------------
