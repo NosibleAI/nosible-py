@@ -6,7 +6,7 @@ pandas
 polars
 pyarrow
 pyrate-limiter
-requests
+httpx
 tantivy
 tenacity
 sphinx
