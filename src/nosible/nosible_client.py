@@ -11,6 +11,7 @@ from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Optional, Union
+import warnings
 
 import httpx
 from tenacity import (
@@ -73,10 +74,6 @@ class Nosible:
         List of netlocs (domains) to include in the search. (Max: 50)
     exclude_netlocs : list of str, optional
         List of netlocs (domains) to exclude in the search. (Max: 50)
-    include_languages : list of str, optional
-        Languages to include in the search. (Max: 50, ISO 639-1 language codes).
-    exclude_languages : list of str, optional
-        Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
     include_companies : list of str, optional
         Google KG IDs of public companies to require (Max: 50).
     exclude_companies : list of str, optional
@@ -85,6 +82,32 @@ class Nosible:
         URL hashes of docs to include (Max: 50).
     exclude_docs : list of str, optional
         URL hashes of docs to exclude (Max: 50).
+    brand_safety : str, optional
+        Whether it is safe, sensitve, or unsafe to advertise on this content.
+    language : str, optional
+        Language code to use in search (ISO 639-1 language code).
+    continent : str, optional
+        Continent the results must come from (e.g., "Europe", "Asia").
+    region : str, optional
+        Region or subcontinent the results must come from (e.g., "Southern Africa", "Caribbean").
+    country : str, optional
+        Country the results must come from.
+    sector : str, optional
+        Sector the results must relate to (e.g., "Energy", "Information Technology").
+    industry_group : str, optional
+        Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance").
+    industry : str, optional
+        Industry group the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
+    sub_industry : str, optional
+        Sub-industry classification of the content's subject.
+    iab_tier_1 : str, optional
+        IAB Tier 1 category for the content.
+    iab_tier_2 : str, optional
+        IAB Tier 2 category for the content.
+    iab_tier_3 : str, optional
+        IAB Tier 3 category for the content.
+    iab_tier_4 : str, optional
+        IAB Tier 4 category for the content.
 
     Notes
     -----
@@ -119,13 +142,37 @@ class Nosible:
         visited_start: str = None,
         visited_end: str = None,
         certain: bool = None,
-        include_languages: list = None,
-        exclude_languages: list = None,
         include_companies: list = None,
         exclude_companies: list = None,
         include_docs: list = None,
         exclude_docs: list = None,
+        brand_safety: str = None,
+        language: str = None,
+        continent: str = None,
+        region: str = None,
+        country: str = None,
+        sector: str = None,
+        industry_group: str = None,
+        industry: str = None,
+        sub_industry: str = None,
+        iab_tier_1: str = None,
+        iab_tier_2: str = None,
+        iab_tier_3: str = None,
+        iab_tier_4: str = None,
+        *args, **kwargs
     ) -> None:
+
+        if "include_languages" in kwargs:
+            warnings.warn(
+                "The 'include_languages' parameter is deprecated and will be removed in a future release. "
+                "Please use the parameter 'language' instead.",
+            )
+        if "exclude_languages" in kwargs:
+            warnings.warn(
+                "The 'exclude_languages' parameter is deprecated and will be removed in a future release. "
+                "Please use the parameter 'language' instead.",
+            )
+
         # API Keys
         if nosible_api_key is not None:
             self.nosible_api_key = nosible_api_key
@@ -192,12 +239,23 @@ class Nosible:
         self.visited_start = visited_start
         self.visited_end = visited_end
         self.certain = certain
-        self.include_languages = include_languages
-        self.exclude_languages = exclude_languages
         self.include_companies = include_companies
         self.exclude_companies = exclude_companies
         self.exclude_docs = exclude_docs
         self.include_docs = include_docs
+        self.brand_safety = brand_safety
+        self.language = language
+        self.continent = continent
+        self.region = region
+        self.country = country
+        self.sector = sector
+        self.industry_group = industry_group
+        self.industry = industry
+        self.sub_industry = sub_industry
+        self.iab_tier_1 = iab_tier_1
+        self.iab_tier_2 = iab_tier_2
+        self.iab_tier_3 = iab_tier_3
+        self.iab_tier_4 = iab_tier_4
 
     def search(
         self,
@@ -220,12 +278,24 @@ class Nosible:
         visited_start: str = None,
         visited_end: str = None,
         certain: bool = None,
-        include_languages: list = None,
-        exclude_languages: list = None,
         include_companies: list = None,
         exclude_companies: list = None,
         include_docs: list = None,
         exclude_docs: list = None,
+        brand_safety: str = None,
+        language: str = None,
+        continent: str = None,
+        region: str = None,
+        country: str = None,
+        sector: str = None,
+        industry_group: str = None,
+        industry: str = None,
+        sub_industry: str = None,
+        iab_tier_1: str = None,
+        iab_tier_2: str = None,
+        iab_tier_3: str = None,
+        iab_tier_4: str = None,
+        *args, **kwargs
     ) -> ResultSet:
         """
         Run a single search query.
@@ -273,10 +343,6 @@ class Nosible:
             List of netlocs (domains) to include in the search. (Max: 50)
         exclude_netlocs : list of str, optional
             List of netlocs (domains) to exclude in the search. (Max: 50)
-        include_languages : list of str, optional
-            Languages to include in the search. (Max: 50, ISO 639-1 language codes).
-        exclude_languages : list of str, optional
-            Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
         include_companies : list of str, optional
             Google KG IDs of public companies to require (Max: 50).
         exclude_companies : list of str, optional
@@ -285,6 +351,32 @@ class Nosible:
             URL hashes of docs to include (Max: 50).
         exclude_docs : list of str, optional
             URL hashes of docs to exclude (Max: 50).
+        brand_safety : str, optional
+            Whether it is safe, sensitve, or unsafe to advertise on this content.
+        language : str, optional
+            Language code to use in search (ISO 639-1 language code).
+        continent : str, optional
+            Continent the results must come from (e.g., "Europe", "Asia").
+        region : str, optional
+            Region or subcontinent the results must come from (e.g., "Southern Africa", "Caribbean").
+        country : str, optional
+            Country the results must come from.
+        sector : str, optional
+            Sector the results must relate to (e.g., "Energy", "Information Technology").
+        industry_group : str, optional
+            Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance").
+        industry : str, optional
+            Industry group the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
+        sub_industry : str, optional
+            Sub-industry classification of the content's subject.
+        iab_tier_1 : str, optional
+            IAB Tier 1 category for the content.
+        iab_tier_2 : str, optional
+            IAB Tier 2 category for the content.
+        iab_tier_3 : str, optional
+            IAB Tier 3 category for the content.
+        iab_tier_4 : str, optional
+            IAB Tier 4 category for the content.
 
         Returns
         -------
@@ -335,6 +427,17 @@ class Nosible:
         ...
         ValueError: Search can not have more than 100 results - Use bulk search instead.
         """
+        if "include_languages" in kwargs:
+            warnings.warn(
+                "The 'include_languages' parameter is deprecated and will be removed in a future release. "
+                "Please use the parameter 'language' instead.",
+            )
+        if "exclude_languages" in kwargs:
+            warnings.warn(
+                "The 'exclude_languages' parameter is deprecated and will be removed in a future release. "
+                "Please use the parameter 'language' instead.",
+            )
+
         if (question is None and search is None) or (question is not None and search is not None):
             raise TypeError("Specify exactly one of 'question' or 'search'.")
 
@@ -357,19 +460,30 @@ class Nosible:
             visited_start=visited_start,
             visited_end=visited_end,
             certain=certain,
-            include_languages=include_languages,
-            exclude_languages=exclude_languages,
             include_companies=include_companies,
             exclude_companies=exclude_companies,
             include_docs=include_docs,
             exclude_docs=exclude_docs,
+            brand_safety=brand_safety,
+            language=language,
+            continent=continent,
+            region=region,
+            country=country,
+            sector=sector,
+            industry_group=industry_group,
+            industry=industry,
+            sub_industry=sub_industry,
+            iab_tier_1=iab_tier_1,
+            iab_tier_2=iab_tier_2,
+            iab_tier_3=iab_tier_3,
+            iab_tier_4=iab_tier_4,
         )
 
         future = self._executor.submit(self._search_single, search_obj)
         try:
             return future.result()
         except ValueError:
-            # Propagate our own “too many results” error directly
+            # Propagate our own "too many results" error directly.
             raise
         except Exception as e:
             self.logger.warning(f"Search for {search_obj.question!r} failed: {e}")
@@ -403,6 +517,20 @@ class Nosible:
         exclude_companies: list = None,
         include_docs: list = None,
         exclude_docs: list = None,
+        brand_safety: str = None,
+        language: str = None,
+        continent: str = None,
+        region: str = None,
+        country: str = None,
+        sector: str = None,
+        industry_group: str = None,
+        industry: str = None,
+        sub_industry: str = None,
+        iab_tier_1: str = None,
+        iab_tier_2: str = None,
+        iab_tier_3: str = None,
+        iab_tier_4: str = None,
+        **kwargs
     ) -> Iterator[ResultSet]:
         """
         Run multiple searches concurrently and yield results.
@@ -459,6 +587,32 @@ class Nosible:
             URL hashes of docs to include (Max: 50).
         exclude_docs : list of str, optional
             URL hashes of docs to exclude (Max: 50).
+        brand_safety : str, optional
+            Whether it is safe, sensitve, or unsafe to advertise on this content.
+        language : str, optional
+            Language code to use in search (ISO 639-1 language code).
+        continent : str, optional
+            Continent the results must come from (e.g., "Europe", "Asia").
+        region : str, optional
+            Region or subcontinent the results must come from (e.g., "Southern Africa", "Caribbean").
+        country : str, optional
+            Country the results must come from.
+        sector : str, optional
+            Sector the results must relate to (e.g., "Energy", "Information Technology").
+        industry_group : str, optional
+            Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance").
+        industry : str, optional
+            Industry group the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
+        sub_industry : str, optional
+            Sub-industry classification of the content's subject.
+        iab_tier_1 : str, optional
+            IAB Tier 1 category for the content.
+        iab_tier_2 : str, optional
+            IAB Tier 2 category for the content.
+        iab_tier_3 : str, optional
+            IAB Tier 3 category for the content.
+        iab_tier_4 : str, optional
+            IAB Tier 4 category for the content.
 
         Returns
         ------
@@ -517,6 +671,17 @@ class Nosible:
         ...
         TypeError: Specify exactly one of 'questions' or 'searches'.
         """
+        if "include_languages" in kwargs:
+            warnings.warn(
+                "The 'include_languages' parameter is deprecated and will be removed in a future release. "
+                "Please use the parameter 'language' instead.",
+            )
+        if "exclude_languages" in kwargs:
+            warnings.warn(
+                "The 'exclude_languages' parameter is deprecated and will be removed in a future release. "
+                "Please use the parameter 'language' instead.",
+            )
+
         if (questions is None and searches is None) or (questions is not None and searches is not None):
             raise TypeError("Specify exactly one of 'questions' or 'searches'.")
 
@@ -549,6 +714,19 @@ class Nosible:
                 exclude_companies=exclude_companies,
                 include_docs=include_docs,
                 exclude_docs=exclude_docs,
+                brand_safety=brand_safety,
+                language=language,
+                continent=continent,
+                region=region,
+                country=country,
+                sector=sector,
+                industry_group=industry_group,
+                industry=industry,
+                sub_industry=sub_industry,
+                iab_tier_1=iab_tier_1,
+                iab_tier_2=iab_tier_2,
+                iab_tier_3=iab_tier_3,
+                iab_tier_4=iab_tier_4,
             )
 
             futures = [self._executor.submit(self._search_single, s) for s in searches_list]
@@ -561,6 +739,8 @@ class Nosible:
                     raise
 
         return _run_generator()
+
+    # TODO This is the point where you have reached
 
     @_rate_limited("fast")
     def _search_single(self, search_obj: Search) -> ResultSet:

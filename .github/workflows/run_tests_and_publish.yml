@@ -56,8 +56,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.9", "3.12"]
+        include:
+          - os: ubuntu-latest
+            python-version: "3.9"
+            NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY_UBUNTU_3_9 }}
+            LLM_API_KEY:     ${{ secrets.LLM_API_KEY_UBUNTU_3_9 }}
+          - os: ubuntu-latest
+            python-version: "3.12"
+            NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY_UBUNTU_3_12 }}
+            LLM_API_KEY:     ${{ secrets.LLM_API_KEY_UBUNTU_3_12 }}
+          - os: macos-latest
+            python-version: "3.9"
+            NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY_MACOS_3_9 }}
+            LLM_API_KEY:     ${{ secrets.LLM_API_KEY_MACOS_3_9 }}
+          - os: macos-latest
+            python-version: "3.12"
+            NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY_MACOS_3_12 }}
+            LLM_API_KEY:     ${{ secrets.LLM_API_KEY_MACOS_3_12 }}
+          - os: windows-latest
+            python-version: "3.9"
+            NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY_WINDOWS_3_9 }}
+            LLM_API_KEY:     ${{ secrets.LLM_API_KEY_WINDOWS_3_9 }}
+          - os: windows-latest
+            python-version: "3.12"
+            NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY_WINDOWS_3_12 }}
+            LLM_API_KEY:     ${{ secrets.LLM_API_KEY_WINDOWS_3_12 }}
     env:
       NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY }}
       LLM_API_KEY:     ${{ secrets.LLM_API_KEY }}
