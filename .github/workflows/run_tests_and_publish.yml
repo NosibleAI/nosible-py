@@ -2,7 +2,6 @@ name: CI & Publish
 
 on:
   push:
-  pull_request:
 
 jobs:
   record:
@@ -36,6 +35,10 @@ jobs:
           ls
 
       - name: Run tests in record mode
+        run: |
+          uv run pytest -n auto || true
+          
+      - name: Run tests in second pass to cache new results
         run: |
           uv run pytest -n auto || true
 
