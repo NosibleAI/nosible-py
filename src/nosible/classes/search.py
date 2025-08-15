@@ -97,7 +97,7 @@ class Search:
     >>> search = Search(
     ...     question="What is Python?",
     ...     n_results=5,
-    ...     include_languages=["en"],
+    ...     language="en",
     ...     publish_start="2023-01-01",
     ...     publish_end="2023-12-31",
     ...     certain=True,
@@ -275,7 +275,7 @@ class Search:
         Examples
         --------
         >>> search = Search(
-        ...     question="What is Python?", n_results=5, include_languages=["en"], publish_start="2023-01-01"
+        ...     question="What is Python?", n_results=5, language="en", publish_start="2023-01-01"
         ... )
         >>> search.to_dict()["question"]
         'What is Python?'
@@ -329,7 +329,7 @@ class Search:
         Examples
         --------
         >>> search = Search(
-        ...     question="What is Python?", n_results=5, include_languages=["en"], publish_start="2023-01-01"
+        ...     question="What is Python?", n_results=5, language="en", publish_start="2023-01-01"
         ... )
         >>> search.save("search.json")
         """
@@ -364,7 +364,7 @@ class Search:
         Save and load a Search instance:
 
         >>> search = Search(
-        ...     question="What is Python?", n_results=3, include_languages=["en"], publish_start="2023-01-01"
+        ...     question="What is Python?", n_results=3, language="en", publish_start="2023-01-01"
         ... )
         >>> search.save("search.json")
         >>> loaded_search = Search.load("search.json")
