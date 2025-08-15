@@ -132,6 +132,7 @@ with Nosible(
     results = client.search(
         question="What are the terms of the partnership between Microsoft and OpenAI?",
         n_results=20,
+        language="en",
         publish_start="2020-06-01",
         publish_end="2025-06-30",
         visited_start="2023-06-01",
