@@ -83,7 +83,7 @@ class Nosible:
     exclude_docs : list of str, optional
         URL hashes of docs to exclude (Max: 50).
     brand_safety : str, optional
-        Whether it is safe, sensitve, or unsafe to advertise on this content.
+        Whether it is safe, sensitive, or unsafe to advertise on this content.
     language : str, optional
         Language code to use in search (ISO 639-1 language code).
     continent : str, optional
@@ -97,7 +97,7 @@ class Nosible:
     industry_group : str, optional
         Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance").
     industry : str, optional
-        Industry group the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
+        Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
     sub_industry : str, optional
         Sub-industry classification of the content's subject.
     iab_tier_1 : str, optional
@@ -352,7 +352,7 @@ class Nosible:
         exclude_docs : list of str, optional
             URL hashes of docs to exclude (Max: 50).
         brand_safety : str, optional
-            Whether it is safe, sensitve, or unsafe to advertise on this content.
+            Whether it is safe, sensitive, or unsafe to advertise on this content.
         language : str, optional
             Language code to use in search (ISO 639-1 language code).
         continent : str, optional
@@ -366,7 +366,7 @@ class Nosible:
         industry_group : str, optional
             Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance").
         industry : str, optional
-            Industry group the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
+            Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
         sub_industry : str, optional
             Sub-industry classification of the content's subject.
         iab_tier_1 : str, optional
@@ -511,8 +511,6 @@ class Nosible:
         visited_start: str = None,
         visited_end: str = None,
         certain: bool = None,
-        include_languages: list = None,
-        exclude_languages: list = None,
         include_companies: list = None,
         exclude_companies: list = None,
         include_docs: list = None,
@@ -575,9 +573,6 @@ class Nosible:
             List of netlocs (domains) to include in the search. (Max: 50)
         exclude_netlocs : list of str, optional
             List of netlocs (domains) to exclude in the search. (Max: 50)
-        include_languages : list of str, optional
-            Languages to include in the search. (Max: 50, ISO 639-1 language codes).
-        exclude_languages : list of str, optional
             Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
         include_companies : list of str, optional
             Google KG IDs of public companies to require (Max: 50).
@@ -588,7 +583,7 @@ class Nosible:
         exclude_docs : list of str, optional
             URL hashes of docs to exclude (Max: 50).
         brand_safety : str, optional
-            Whether it is safe, sensitve, or unsafe to advertise on this content.
+            Whether it is safe, sensitive, or unsafe to advertise on this content.
         language : str, optional
             Language code to use in search (ISO 639-1 language code).
         continent : str, optional
@@ -602,7 +597,7 @@ class Nosible:
         industry_group : str, optional
             Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance").
         industry : str, optional
-            Industry group the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
+            Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
         sub_industry : str, optional
             Sub-industry classification of the content's subject.
         iab_tier_1 : str, optional
@@ -708,8 +703,6 @@ class Nosible:
                 visited_start=visited_start,
                 visited_end=visited_end,
                 certain=certain,
-                include_languages=include_languages,
-                exclude_languages=exclude_languages,
                 include_companies=include_companies,
                 exclude_companies=exclude_companies,
                 include_docs=include_docs,
@@ -740,7 +733,6 @@ class Nosible:
 
         return _run_generator()
 
-    # TODO This is the point where you have reached
 
     @_rate_limited("fast")
     def _search_single(self, search_obj: Search) -> ResultSet:
@@ -798,18 +790,31 @@ class Nosible:
         visited_start = search_obj.visited_start if search_obj.visited_start is not None else self.visited_start
         visited_end = search_obj.visited_end if search_obj.visited_end is not None else self.visited_end
         certain = search_obj.certain if search_obj.certain is not None else self.certain
-        include_languages = (
-            search_obj.include_languages if search_obj.include_languages is not None else self.include_languages
-        )
-        exclude_languages = (
-            search_obj.exclude_languages if search_obj.exclude_languages is not None else self.exclude_languages
-        )
         include_companies = (
             search_obj.include_companies if search_obj.include_companies is not None else self.include_companies
         )
         exclude_companies = (
             search_obj.exclude_companies if search_obj.exclude_companies is not None else self.exclude_companies
         )
+        include_docs = search_obj.include_docs if search_obj.include_docs is not None else self.include_docs
+        exclude_docs = search_obj.exclude_docs if search_obj.exclude_docs is not None else self.exclude_docs
+        brand_safety = search_obj.brand_safety if search_obj.brand_safety is not None else self.brand_safety
+        language = search_obj.language if search_obj.language is not None else self.language
+        continent = search_obj.continent if search_obj.continent is not None else self.continent
+        region = search_obj.region if search_obj.region is not None else self.region
+        country = search_obj.country if search_obj.country is not None else self.country
+        sector = search_obj.sector if search_obj.sector is not None else self.sector
+        industry_group = search_obj.industry_group if search_obj.industry_group is not None else self.industry_group
+        industry = search_obj.industry if search_obj.industry is not None else self.industry
+        sub_industry = search_obj.sub_industry if search_obj.sub_industry is not None else self.sub_industry
+        iab_tier_1 = search_obj.iab_tier_1 if search_obj.iab_tier_1 is not None else self.iab_tier_1
+        iab_tier_2 = search_obj.iab_tier_2 if search_obj.iab_tier_2 is not None else self.iab_tier_2
+        iab_tier_3 = search_obj.iab_tier_3 if search_obj.iab_tier_3 is not None else self.iab_tier_3
+        iab_tier_4 = search_obj.iab_tier_4 if search_obj.iab_tier_4 is not None else self.iab_tier_4
+
+        must_include = must_include if must_include is not None else []
+        must_exclude = must_exclude if must_exclude is not None else []
+        min_similarity = min_similarity if min_similarity is not None else 0
 
         if not (0.0 <= min_similarity <= 1.0):
             raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
@@ -830,10 +835,10 @@ class Nosible:
                 visited_start=visited_start,
                 visited_end=visited_end,
                 certain=certain,
-                include_languages=include_languages,
-                exclude_languages=exclude_languages,
                 include_companies=include_companies,
                 exclude_companies=exclude_companies,
+                include_docs=include_docs,
+                exclude_docs=exclude_docs,
             )
 
         # Enforce limits
@@ -853,6 +858,19 @@ class Nosible:
             "min_similarity": min_similarity,
             "must_include": must_include,
             "must_exclude": must_exclude,
+            "brand_safety":brand_safety,
+            "language": language,
+            "continent": continent,
+            "region": region,
+            "country": country,
+            "sector": sector,
+            "industry_group": industry_group,
+            "industry": industry,
+            "sub_industry": sub_industry,
+            "iab_tier_1": iab_tier_1,
+            "iab_tier_2": iab_tier_2,
+            "iab_tier_3": iab_tier_3,
+            "iab_tier_4": iab_tier_4,
         }
 
         resp = self._post(url="https://www.nosible.ai/search/v1/fast-search", payload=payload)
@@ -919,18 +937,30 @@ class Nosible:
         autogenerate_expansions: bool = False,
         publish_start: str = None,
         publish_end: str = None,
-        include_netlocs: list = None,
-        exclude_netlocs: list = None,
         visited_start: str = None,
         visited_end: str = None,
         certain: bool = None,
-        include_languages: list = None,
-        exclude_languages: list = None,
+        include_netlocs: list = None,
+        exclude_netlocs: list = None,
         include_companies: list = None,
         exclude_companies: list = None,
         include_docs: list = None,
         exclude_docs: list = None,
+        brand_safety: str = None,
+        language: str = None,
+        continent: str = None,
+        region: str = None,
+        country: str = None,
+        sector: str = None,
+        industry_group: str = None,
+        industry: str = None,
+        sub_industry: str = None,
+        iab_tier_1: str = None,
+        iab_tier_2: str = None,
+        iab_tier_3: str = None,
+        iab_tier_4: str = None,
         verbose: bool = False,
+        **kwargs,
     ) -> ResultSet:
         """
         Perform a bulk (slow) search query (1,000–10,000 results) against the Nosible API.
@@ -975,10 +1005,6 @@ class Nosible:
             List of netlocs (domains) to include in the search. (Max: 50)
         exclude_netlocs : list of str, optional
             List of netlocs (domains) to exclude in the search. (Max: 50)
-        include_languages : list of str, optional
-            Languages to include in the search. (Max: 50, ISO 639-1 language codes).
-        exclude_languages : list of str, optional
-            Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
         include_companies : list of str, optional
             Google KG IDs of public companies to require (Max: 50).
         exclude_companies : list of str, optional
@@ -987,6 +1013,32 @@ class Nosible:
             URL hashes of docs to include (Max: 50).
         exclude_docs : list of str, optional
             URL hashes of docs to exclude (Max: 50).
+        brand_safety : str, optional
+            Whether it is safe, sensitive, or unsafe to advertise on this content.
+        language : str, optional
+            Language code to use in search (ISO 639-1 language code).
+        continent : str, optional
+            Continent the results must come from (e.g., "Europe", "Asia").
+        region : str, optional
+            Region or subcontinent the results must come from (e.g., "Southern Africa", "Caribbean").
+        country : str, optional
+            Country the results must come from.
+        sector : str, optional
+            Sector the results must relate to (e.g., "Energy", "Information Technology").
+        industry_group : str, optional
+            Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance").
+        industry : str, optional
+            Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
+        sub_industry : str, optional
+            Sub-industry classification of the content's subject.
+        iab_tier_1 : str, optional
+            IAB Tier 1 category for the content.
+        iab_tier_2 : str, optional
+            IAB Tier 2 category for the content.
+        iab_tier_3 : str, optional
+            IAB Tier 3 category for the content.
+        iab_tier_4 : str, optional
+            IAB Tier 4 category for the content.
         verbose : bool, optional
             Show verbose output, Bulk search will print more information.
 
@@ -1052,6 +1104,17 @@ class Nosible:
         ...
         ValueError: Bulk search cannot have more than 10000 results per query.
         """
+        if "include_languages" in kwargs:
+            warnings.warn(
+                "The 'include_languages' parameter is deprecated and will be removed in a future release. "
+                "Please use the parameter 'language' instead.",
+            )
+        if "exclude_languages" in kwargs:
+            warnings.warn(
+                "The 'exclude_languages' parameter is deprecated and will be removed in a future release. "
+                "Please use the parameter 'language' instead.",
+            )
+
         from cryptography.fernet import Fernet
 
         previous_level = self.logger.level
@@ -1074,11 +1137,8 @@ class Nosible:
             n_contextify = search.n_contextify if search.n_contextify is not None else n_contextify
             algorithm = search.algorithm if search.algorithm is not None else algorithm
             min_similarity = search.min_similarity if search.min_similarity is not None else min_similarity
-            min_similarity = min_similarity if min_similarity is not None else 0
             must_include = search.must_include if search.must_include is not None else must_include
-            must_include = must_include if must_include is not None else []
             must_exclude = search.must_exclude if search.must_exclude is not None else must_exclude
-            must_exclude = must_exclude if must_exclude is not None else []
             autogenerate_expansions = (
                 search.autogenerate_expansions
                 if search.autogenerate_expansions is not None
@@ -1091,12 +1151,23 @@ class Nosible:
             visited_start = search.visited_start if search.visited_start is not None else visited_start
             visited_end = search.visited_end if search.visited_end is not None else visited_end
             certain = search.certain if search.certain is not None else certain
-            include_languages = search.include_languages if search.include_languages is not None else include_languages
-            exclude_languages = search.exclude_languages if search.exclude_languages is not None else exclude_languages
             include_companies = search.include_companies if search.include_companies is not None else include_companies
             exclude_companies = search.exclude_companies if search.exclude_companies is not None else exclude_companies
-            include_docs = search.include_docs if search.include_docs is not None else include_docs
-            exclude_docs = search.exclude_docs if search.exclude_docs is not None else exclude_docs
+            include_docs = search.include_docs if search.include_docs is not None else self.include_docs
+            exclude_docs = search.exclude_docs if search.exclude_docs is not None else self.exclude_docs
+            brand_safety = search.brand_safety if search.brand_safety is not None else self.brand_safety
+            language = search.language if search.language is not None else self.language
+            continent = search.continent if search.continent is not None else self.continent
+            region = search.region if search.region is not None else self.region
+            country = search.country if search.country is not None else self.country
+            sector = search.sector if search.sector is not None else self.sector
+            industry_group = search.industry_group if search.industry_group is not None else self.industry_group
+            industry = search.industry if search.industry is not None else self.industry
+            sub_industry = search.sub_industry if search.sub_industry is not None else self.sub_industry
+            iab_tier_1 = search.iab_tier_1 if search.iab_tier_1 is not None else self.iab_tier_1
+            iab_tier_2 = search.iab_tier_2 if search.iab_tier_2 is not None else self.iab_tier_2
+            iab_tier_3 = search.iab_tier_3 if search.iab_tier_3 is not None else self.iab_tier_3
+            iab_tier_4 = search.iab_tier_4 if search.iab_tier_4 is not None else self.iab_tier_4
 
         # Default expansions and filters
         if expansions is None:
@@ -1116,13 +1187,11 @@ class Nosible:
             sql_filter = self._format_sql(
                 publish_start=publish_start if publish_start is not None else self.publish_start,
                 publish_end=publish_end if publish_end is not None else self.publish_end,
-                include_netlocs=include_netlocs if include_netlocs is not None else self.include_netlocs,
-                exclude_netlocs=exclude_netlocs if exclude_netlocs is not None else self.exclude_netlocs,
                 visited_start=visited_start if visited_start is not None else self.visited_start,
                 visited_end=visited_end if visited_end is not None else self.visited_end,
                 certain=certain if certain is not None else self.certain,
-                include_languages=include_languages if include_languages is not None else self.include_languages,
-                exclude_languages=exclude_languages if exclude_languages is not None else self.exclude_languages,
+                include_netlocs=include_netlocs if include_netlocs is not None else self.include_netlocs,
+                exclude_netlocs=exclude_netlocs if exclude_netlocs is not None else self.exclude_netlocs,
                 include_companies=include_companies if include_companies is not None else self.include_companies,
                 exclude_companies=exclude_companies if exclude_companies is not None else self.exclude_companies,
                 include_docs=include_docs if include_docs is not None else self.include_docs,
@@ -1158,6 +1227,19 @@ class Nosible:
                 "min_similarity": min_similarity,
                 "must_include": must_include,
                 "must_exclude": must_exclude,
+                "brand_safety":brand_safety,
+                "language": language,
+                "continent": continent,
+                "region": region,
+                "country": country,
+                "sector": sector,
+                "industry_group": industry_group,
+                "industry": industry,
+                "sub_industry": sub_industry,
+                "iab_tier_1": iab_tier_1,
+                "iab_tier_2": iab_tier_2,
+                "iab_tier_3": iab_tier_3,
+                "iab_tier_4": iab_tier_4,
             }
             resp = self._post(url="https://www.nosible.ai/search/v1/slow-search", payload=payload)
             try:
@@ -1958,13 +2040,11 @@ class Nosible:
         self,
         publish_start: str = None,
         publish_end: str = None,
-        include_netlocs: list = None,
-        exclude_netlocs: list = None,
         visited_start: str = None,
         visited_end: str = None,
         certain: bool = None,
-        include_languages: list = None,
-        exclude_languages: list = None,
+        include_netlocs: list = None,
+        exclude_netlocs: list = None,
         include_companies: list = None,
         exclude_companies: list = None,
         include_docs: list = None,
@@ -1989,10 +2069,6 @@ class Nosible:
             List of netlocs (domains) to include in the search. (Max: 50)
         exclude_netlocs : list of str, optional
             List of netlocs (domains) to exclude in the search. (Max: 50)
-        include_languages : list of str, optional
-            Languages to include in the search. (Max: 50, ISO 639-1 language codes).
-        exclude_languages : list of str, optional
-            Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
         include_companies : list of str, optional
             Google KG IDs of public companies to require (Max: 50).
         exclude_companies : list of str, optional
@@ -2025,8 +2101,6 @@ class Nosible:
         for name, value in [
             ("include_netlocs", include_netlocs),
             ("exclude_netlocs", exclude_netlocs),
-            ("include_languages", include_languages),
-            ("exclude_languages", exclude_languages),
             ("include_companies", include_companies),
             ("exclude_companies", exclude_companies),
             ("include_docs", include_docs),
@@ -2097,14 +2171,6 @@ class Nosible:
             clauses.append(
                 f"(company_1 NOT IN ({company_list}) AND company_2 NOT IN ({company_list}) AND company_3 NOT IN ({company_list}))"
             )
-
-        # Include / exclude languages
-        if include_languages:
-            langs = ", ".join(f"'{lang}-{lang}'" for lang in include_languages)
-            clauses.append(f"language IN ({langs})")
-        if exclude_languages:
-            langs = ", ".join(f"'{lang}-{lang}'" for lang in exclude_languages)
-            clauses.append(f"language NOT IN ({langs})")
 
         if include_docs:
             # Assume these are URL hashes, e.g. "ENNmqkF1mGNhVhvhmbUEs4U2"
