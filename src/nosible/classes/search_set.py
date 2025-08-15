@@ -28,8 +28,8 @@ class SearchSet(Iterator[Search]):
     0: What is Python?
     1: What is PEP8?
     >>> searches.add(Search(question="What is AI?", n_results=1))
-    >>> searches.to_json("searches.json")
-    >>> loaded = SearchSet.from_json("searches.json")
+    >>> searches.write_json("searches.json")
+    >>> loaded = SearchSet.read_json("searches.json")
     >>> print(loaded[2].question)
     What is AI?
     """
@@ -227,7 +227,7 @@ class SearchSet(Iterator[Search]):
         """
         return [s.to_dict() for s in self.searches]
 
-    def to_json(self, path: str = None) -> str:
+    def write_json(self, path: str = None) -> str:
         """
         Convert the entire SearchSet collection to a JSON string or save to a file.
 
@@ -255,10 +255,10 @@ class SearchSet(Iterator[Search]):
         >>> s1 = Search(question="What is Python?", n_results=3)
         >>> s2 = Search(question="What is PEP8?", n_results=2)
         >>> searches = SearchSet([s1, s2])
-        >>> json_str = searches.to_json()
+        >>> json_str = searches.write_json()
         >>> isinstance(json_str, str)
         True
-        >>> searches.to_json(
+        >>> searches.write_json(
         ...     "searches.json"
         ... )  # The file 'searches.json' will contain both search queries in JSON format.
         """
@@ -276,7 +276,7 @@ class SearchSet(Iterator[Search]):
             raise RuntimeError(f"Failed to serialize results to JSON: {e}") from e
 
     @classmethod
-    def from_json(cls, path: str) -> "SearchSet":
+    def read_json(cls, path: str) -> "SearchSet":
         """
         Load a SearchSet collection from a JSON file.
 
@@ -302,8 +302,8 @@ class SearchSet(Iterator[Search]):
         >>> s1 = Search(question="Python basics", n_results=2)
         >>> s2 = Search(question="PEP8 guidelines", n_results=1)
         >>> searches = SearchSet([s1, s2])
-        >>> searches.to_json("searches.json")
-        >>> loaded_searches = SearchSet.from_json("searches.json")
+        >>> searches.write_json("searches.json")
+        >>> loaded_searches = SearchSet.read_json("searches.json")
         >>> print([s.question for s in loaded_searches])
         ['Python basics', 'PEP8 guidelines']
         """

@@ -147,18 +147,18 @@ def test_visit_full_attributes(visit_data):
 def test_visit_save_load(tmp_path, visit_data):
     # save to JSON and reload
     path = tmp_path / "visit_data.json"
-    visit_data.save(path)
-    loaded = WebPageData.load(path)
+    visit_data.write_json(path)
+    loaded = WebPageData.read_json(path)
     assert isinstance(loaded, WebPageData)
     assert loaded == visit_data
     assert isinstance(loaded.snippets, SnippetSet)
 
 
-def test_visit_to_json_roundtrip(visit_data):
-    # to_json / from_json
-    s = visit_data.to_json()
+def test_visit_write_json_roundtrip(tmp_path, visit_data):
+    # write_json / read_json
+    s = visit_data.write_json(tmp_path / "visit_data.json")
     assert isinstance(s, str)
-    rehydrated = WebPageData.from_json(s)
+    rehydrated = WebPageData.read_json(tmp_path / "visit_data.json")
     assert isinstance(rehydrated, WebPageData)
     assert isinstance(rehydrated.snippets, SnippetSet)
 

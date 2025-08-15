@@ -17,9 +17,9 @@ def test_csv_polars_pandas_json_ndjson_parquet_arrow_duckdb_io(tmp_path, simple_
 
     # CSV
     csv_path = tmp_path / "r.csv"
-    out = rs.to_csv(csv_path)
+    out = rs.write_csv(csv_path)
     assert str(out).endswith(".csv")
-    assert rs == ResultSet.from_csv(csv_path)
+    assert rs == ResultSet.read_csv(csv_path)
 
     # Polars
     dfp = pl.DataFrame([r.to_dict() for r in simple_results])
@@ -28,23 +28,23 @@ def test_csv_polars_pandas_json_ndjson_parquet_arrow_duckdb_io(tmp_path, simple_
 
     # Arrow
     ipc_path = tmp_path / "r.ipc"
-    assert str(rs.to_arrow(ipc_path)).endswith(".ipc")
-    assert rs == ResultSet.from_arrow(ipc_path)
+    assert str(rs.write_ipc(ipc_path)).endswith(".ipc")
+    assert rs == ResultSet.read_ipc(ipc_path)
 
     # Parquet
     pq_path = tmp_path / "r.parquet"
-    assert str(rs.to_parquet(pq_path)).endswith(".parquet")
-    assert rs == ResultSet.from_parquet(pq_path)
+    assert str(rs.write_parquet(pq_path)).endswith(".parquet")
+    assert rs == ResultSet.read_parquet(pq_path)
 
     # JSON
     json_path = tmp_path / "r.json"
-    assert str(rs.to_json(file_path=json_path)).endswith(".json")
-    assert rs == ResultSet.from_json(json_path)
+    assert str(rs.write_json(file_path=json_path)).endswith(".json")
+    assert rs == ResultSet.read_json(json_path)
 
     # NDJSON
     ndj_path = tmp_path / "r.ndjson"
-    assert str(rs.to_ndjson(file_path=ndj_path)).endswith(".ndjson")
-    assert rs == ResultSet.from_ndjson(ndj_path)
+    assert str(rs.write_ndjson(file_path=ndj_path)).endswith(".ndjson")
+    assert rs == ResultSet.read_ndjson(ndj_path)
 
     # dicts
     dicts = rs.to_dicts()
@@ -61,5 +61,5 @@ def test_csv_polars_pandas_json_ndjson_parquet_arrow_duckdb_io(tmp_path, simple_
 
     # DuckDB
     db_path = tmp_path / "r.duckdb"
-    assert str(rs.to_duckdb(file_path=db_path, table_name="t")).endswith(".duckdb")
-    assert rs == ResultSet.from_duckdb(db_path)
+    assert str(rs.write_duckdb(file_path=db_path, table_name="t")).endswith(".duckdb")
+    assert rs == ResultSet.read_duckdb(db_path)
