@@ -204,7 +204,106 @@ Document IDs to exclude from the search.
     - **Example**: ``["SMkZ5HuEBYmevqbYHm-G5N36z1h...", "H5FIc-yuUDU4deFtowSPDEbM..."]``
 
 brand_saftey
-TODO
+~~~~~~~~~~~~
+
+Whether it is safe, sensitive, or unsafe to advertise on this content.
+    - **Type**: ``str``
+    - **Default**: None
+    - **Example**: ``"Safe"``
+
+language
+~~~~~~~~
+    - **Type**: ``str``
+    - **Default**: None
+    - **Example**: ``"en"``
+
+continent
+~~~~~~~~~
+
+The continent you would like your search results to be refined to.
+    - **Type**: ``str``
+    - **Default**: None
+    - **Example**: ``"Africa"``
+
+region
+~~~~~~
+
+The geographic region you would like your search results to be refined to.
+    - **Type**: ``str``
+    - **Default**: None
+    - **Example**: ``"Central Africa"``
+
+country
+~~~~~~~
+
+The country you would like your search results to be refined to.
+    - **Type**: ``str``
+    - **Default**: None
+    - **Example**: ``"Denmark"``
+
+sector
+~~~~~~
+
+The GICS sector you would like your search results to be refined to.
+    - **Type**: ``str``
+    - **Default**: None
+    - **Example**: ``"Information Technology"``
+
+industry_group
+~~~~~~~~~~~~~~
+
+The GICS industry group you would like your search results to be refined to.
+    - **Type**: ``str``
+    - **Default**: None
+    - **Example**: ``"Banks"``
+
+industry
+~~~~~~~~
+
+The GICS industry you would like your search results to be refined to.
+    - **Type**: ``str``
+    - **Default**: None
+    - **Example**: ``"Containers & Packaging"``
+
+sub_industry
+~~~~~~~~~~~~
+
+The GICS sub-industry you would like your search results to be refined to.
+    - **Type**: ``str``
+    - **Default**: None
+    - **Example**: ``"Air Freight & Logistics"``
+
+iab_tier_1
+~~~~~~~~~~
+
+The tier 1 IAB category you would like your search results to be refined to.
+    - **Type**: ``str``
+    - **Default**: None
+    - **Example**: ``"Attractions"``
+
+iab_tier_2
+~~~~~~~~~~
+
+The tier 2 IAB category you would like your search results to be refined to.
+    - **Type**: ``str``
+    - **Default**: None
+    - **Example**: ``"Field Hockey"``
+
+iab_tier_3
+~~~~~~~~~~
+
+The tier 3 IAB category you would like your search results to be refined to.
+    - **Type**: ``str``
+    - **Default**: None
+    - **Example**: ``"Concept Cars"``
+
+iab_tier_4
+~~~~~~~~~~
+
+The tier 4 IAB category you would like your search results to be refined to.
+    - **Type**: ``str``
+    - **Default**: None
+    - **Example**: ``"Auto Rentals"``
 
 .. _search_algorithms:
 
