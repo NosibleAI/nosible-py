@@ -40,8 +40,8 @@
    .. autosummary::
    
       ~Search.from_dict
-      ~Search.load
-      ~Search.save
+      ~Search.read_json
+      ~Search.write_json
       ~Search.to_dict
 
    

@@ -23,9 +23,9 @@ def test_snippet_getitem_and_str(snippets_data):
 def test_snippet_to_dict_and_json(snippets_data):
     ss = snippets_data
     if len(ss) == 0:
-        pytest.skip("no snippets to test to_dict/to_json")
+        pytest.skip("no snippets to test to_dict/write_json")
     snippet = ss[0]
     d = snippet.to_dict()
     assert isinstance(d, dict) and "content" in d
-    js = snippet.to_json()
+    js = snippet.write_json()
     assert json.loads(js) == d
