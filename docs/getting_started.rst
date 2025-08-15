@@ -79,18 +79,18 @@ Or in code:
 🎯 Core Workflows
 ~~~~~~~~~~~~~~~~~
 
-+-------------------------------+-------------+-----------------------+
-| I need                        | Method      | Use case              |
-+===============================+=============+=======================+
-| Single query, up to 100       | ``search``  | Interactive lookups   |
-| results                       |             |                       |
-+-------------------------------+-------------+-----------------------+
-| Multiple queries in parallel  |``searches`` | Dashboards,           |
-|                               |             | comparisons           |
-+-------------------------------+-------------+-----------------------+
-| Thousands of results          | ``bu        | Analytics, offline    |
-| (100–10k)                     | lk_search`` | jobs                  |
-+-------------------------------+-------------+-----------------------+
++-------------------------------+-----------------+-----------------------+
+| I need                        | Method          | Use case              |
++===============================+=================+=======================+
+| Single query, up to 100       | ``fast_search`` | Interactive lookups   |
+| results                       |                 |                       |
++-------------------------------+-----------------+-----------------------+
+| Multiple queries in parallel  |``fast_searches``| Dashboards,           |
+|                               |                 | comparisons           |
++-------------------------------+-----------------+-----------------------+
+| Thousands of results          | ``bulk_search`` | Analytics, offline    |
+| (100–10k)                     |                 | jobs                  |
++-------------------------------+-----------------+-----------------------+
 
 --------------
 
@@ -102,8 +102,8 @@ Search
 
 The Search and Searches functions enables you to retrieve **up to 100** results for a single query. This is ideal for most use cases where you need to retrieve information quickly and efficiently.
 
-- Use the ``search`` method when you need between **10 and 100** results for a single query.
-- The same applies for the ``searches`` and ``.similar()`` methods.
+- Use the ``fast_search`` method when you need between **10 and 100** results for a single query.
+- The same applies for the ``fast_searches`` and ``.similar()`` methods.
 
 - A search will return a set of ``Result`` objects.
 - The ``Result`` object is used to represent a single search result and provides methods to access the result’s properties:
@@ -148,7 +148,7 @@ Parallel Searches
 
 Allows you to run multiple searches concurrently and ``yields`` the results as they come in.
 
-- You can pass a list of questions to the ``searches`` method.
+- You can pass a list of questions to the ``fast_searches`` method.
 
 .. code:: python
 
@@ -206,7 +206,7 @@ Bulk search enables you to retrieve a large number of results in a single reques
 
 - Use the ``bulk_search`` method when you need more than 1,000 results for a single query.
 - You can request between **1,000 and 10,000** results per query.
-- All parameters available in the standard ``search`` method—such as ``expansions``, ``include_companies``, and more—are also supported in ``bulk_search``.
+- All parameters available in the standard ``fast_search`` method—such as ``expansions``, ``include_companies``, and more—are also supported in ``bulk_search``.
 - A bulk search for 10,000 results typically completes in about 30 seconds or less.
 
 .. code:: python
