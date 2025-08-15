@@ -57,6 +57,19 @@ class ResultSet(Iterator[Result]):
         "language",
         "similarity",
         "url_hash",
+        "brand_safety",
+        "language",
+        "continent",
+        "region",
+        "country",
+        "sector",
+        "industry_group",
+        "industry",
+        "sub_industry",
+        "iab_tier_1",
+        "iab_tier_2",
+        "iab_tier_3",
+        "iab_tier_4",
     ]
 
     results: list[Result] = field(default_factory=list)
