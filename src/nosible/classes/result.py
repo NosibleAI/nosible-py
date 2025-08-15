@@ -550,7 +550,7 @@ class Result:
                 iab_tier_3=iab_tier_3,
                 iab_tier_4=iab_tier_4,
             )
-            return client.search(search=s)
+            return client.fast_search(search=s)
         except Exception as e:
             raise RuntimeError(f"Failed to find similar results for title '{self.title}': {e}") from e
 
