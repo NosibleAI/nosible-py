@@ -310,7 +310,7 @@ class Search:
         """
         return cls(**{field: data.get(field) for field in cls._FIELDS})
 
-    def save(self, path: str) -> None:
+    def write_json(self, path: str) -> None:
         """
         Save the current Search instance to a JSON file.
 
@@ -331,14 +331,14 @@ class Search:
         >>> search = Search(
         ...     question="What is Python?", n_results=5, language="en", publish_start="2023-01-01"
         ... )
-        >>> search.save("search.json")
+        >>> search.write_json("search.json")
         """
         data = json_dumps(self.to_dict())
         with open(path, "w") as f:
             f.write(data)
 
     @classmethod
-    def load(cls, path: str) -> Search:
+    def read_json(cls, path: str) -> Search:
         """
         Load a Search instance from a JSON file.
 
@@ -354,7 +354,7 @@ class Search:
         Returns
         -------
         Search
-            An instance of the Search class initialized with the loaded parameters.
+            An instancex  of the Search class initialized with the loaded parameters.
 
         Raises
         ------
@@ -366,8 +366,8 @@ class Search:
         >>> search = Search(
         ...     question="What is Python?", n_results=3, language="en", publish_start="2023-01-01"
         ... )
-        >>> search.save("search.json")
-        >>> loaded_search = Search.load("search.json")
+        >>> search.write_json("search.json")
+        >>> loaded_search = Search.read_json("search.json")
         >>> print(loaded_search.question)
         What is Python?
         """
