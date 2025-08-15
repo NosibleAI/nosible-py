@@ -47,4 +47,4 @@ def test_search_addition_combines_into_searchset():
     s2 = Search(question="Q2")
     combined = s1 + s2
     assert isinstance(combined, SearchSet)
-    assert len(combined.searches) == 2
+    assert len(combined.searches_list) == 2

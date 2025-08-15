@@ -188,7 +188,7 @@ Allows you to run multiple searches concurrently and `yields` the results as the
 from nosible import Nosible
 
 with Nosible(nosible_api_key="basic|abcd1234...", llm_api_key="sk-...") as client:
-    for batch in client.searches(
+    for batch in client.fast_searches(
         questions=[
             "What are the terms of the partnership between Microsoft and OpenAI?",
             "What exclusivity or non-compete clauses are included in their partnership?"

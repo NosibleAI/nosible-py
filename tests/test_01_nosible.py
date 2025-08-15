@@ -39,9 +39,9 @@ def test_searches_success(searches_data):
 def test_searches_type_errors():
     nos = Nosible(nosible_api_key="test|xyz")
     with pytest.raises(TypeError):
-        nos.searches()
+        nos.fast_searches()
     with pytest.raises(TypeError):
-        nos.searches(questions=["A"], searches=SearchSet(searches=["A"]))
+        nos.fast_searches(questions=["A"], searches=SearchSet(searches=["A"]))
 
 
 def test_bulk_search_errors_and_success(bulk_search_data):
