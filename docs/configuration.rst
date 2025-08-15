@@ -167,25 +167,6 @@ List of netlocs (domains) to exclude from the search.
     - **Maximum**: 50
     - **Example**: ``["bbc.com", "cnn.com"]``
 
-include_languages
-~~~~~~~~~~~~~~~~~
-
-Languages to include in the search. Find out which languages we support here.
-    - **Type**: ``List[str]``
-    - **Default**: None
-    - **Maximum**: 50
-    - **Example**: ``["en", "nl"]``
-
-exclude_languages
-~~~~~~~~~~~~~~~~~
-
-Languages to exclude from the search. Find out which languages we support here.
-    - **Type**: ``List[str]``
-    - **Default**: None
-    - **Maximum**: 50
-    - **Example**: ``["en", "nl"]``
-
-
 include_companies
 ~~~~~~~~~~~~~~~~~
 
@@ -221,6 +202,9 @@ Document IDs to exclude from the search.
     - **Default**: None
     - **Maximum**: 50
     - **Example**: ``["SMkZ5HuEBYmevqbYHm-G5N36z1h...", "H5FIc-yuUDU4deFtowSPDEbM..."]``
+
+brand_saftey
+TODO
 
 .. _search_algorithms:
 
