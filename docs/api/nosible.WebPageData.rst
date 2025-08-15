@@ -29,11 +29,9 @@
 
    .. autosummary::
    
-      ~WebPageData.from_json
-      ~WebPageData.load
-      ~WebPageData.save
+      ~WebPageData.read_json
       ~WebPageData.to_dict
-      ~WebPageData.to_json
+      ~WebPageData.write_json
 
    
    

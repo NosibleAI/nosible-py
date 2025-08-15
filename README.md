@@ -290,29 +290,29 @@ Supported formats for saving and loading:
 from nosible import Nosible, ResultSet
 
 with Nosible(nosible_api_key="basic|abcd1234...") as client:
-    combined = client.search(
-        question="What are the terms of the partnership between Microsoft and OpenAI?",
-        n_results=5
-    ) + client.search(
-        question="How is research governance and decision-making structured between Google and DeepMind?",
-        n_results=5
-    )
+  combined = client.search(
+    question="What are the terms of the partnership between Microsoft and OpenAI?",
+    n_results=5
+  ) + client.search(
+    question="How is research governance and decision-making structured between Google and DeepMind?",
+    n_results=5
+  )
 
-    # Save
-    combined.to_csv("all_news.csv")
-    combined.to_json("all_news.json")
-    combined.to_parquet("all_news.parquet")
-    combined.to_arrow("all_news.arrow")
-    combined.to_duckdb("all_news.duckdb", table_name="news")
-    combined.to_ndjson("all_news.ndjson")
+  # Save
+  combined.write_csv("all_news.csv")
+  combined.write_json("all_news.json")
+  combined.write_parquet("all_news.parquet")
+  combined.write_ipc("all_news.arrow")
+  combined.write_duckdb("all_news.duckdb", table_name="news")
+  combined.write_ndjson("all_news.ndjson")
 
-    # Load
-    rs_csv    = ResultSet.from_csv("all_news.csv")
-    rs_json   = ResultSet.from_json("all_news.json")
-    rs_parq   = ResultSet.from_parquet("all_news.parquet")
-    rs_arrow  = ResultSet.from_arrow("all_news.arrow")
-    rs_duckdb = ResultSet.from_duckdb("all_news.duckdb")
-    rs_ndjson = ResultSet.from_ndjson("all_news.ndjson")
+  # Load
+  rs_csv = ResultSet.read_csv("all_news.csv")
+  rs_json = ResultSet.read_json("all_news.json")
+  rs_parq = ResultSet.read_parquet("all_news.parquet")
+  rs_arrow = ResultSet.read_ipc("all_news.arrow")
+  rs_duckdb = ResultSet.read_duckdb("all_news.duckdb")
+  rs_ndjson = ResultSet.read_ndjson("all_news.ndjson")
 ```
 
 #### More Examples
