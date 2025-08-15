@@ -79,18 +79,18 @@ Or in code:
 🎯 Core Workflows
 ~~~~~~~~~~~~~~~~~
 
-+-------------------------------+-------------+-----------------------+
-| I need                        | Method      | Use case              |
-+===============================+=============+=======================+
-| Single query, up to 100       | ``search``  | Interactive lookups   |
-| results                       |             |                       |
-+-------------------------------+-------------+-----------------------+
-| Multiple queries in parallel  |``searches`` | Dashboards,           |
-|                               |             | comparisons           |
-+-------------------------------+-------------+-----------------------+
-| Thousands of results          | ``bu        | Analytics, offline    |
-| (100–10k)                     | lk_search`` | jobs                  |
-+-------------------------------+-------------+-----------------------+
++-------------------------------+-----------------+-----------------------+
+| I need                        | Method          | Use case              |
++===============================+=================+=======================+
+| Single query, up to 100       | ``fast_search`` | Interactive lookups   |
+| results                       |                 |                       |
++-------------------------------+-----------------+-----------------------+
+| Multiple queries in parallel  |``fast_searches``| Dashboards,           |
+|                               |                 | comparisons           |
++-------------------------------+-----------------+-----------------------+
+| Thousands of results          | ``bulk_search`` | Analytics, offline    |
+| (100–10k)                     |                 | jobs                  |
++-------------------------------+-----------------+-----------------------+
 
 --------------
 
@@ -102,8 +102,8 @@ Search
 
 The Search and Searches functions enables you to retrieve **up to 100** results for a single query. This is ideal for most use cases where you need to retrieve information quickly and efficiently.
 
-- Use the ``search`` method when you need between **10 and 100** results for a single query.
-- The same applies for the ``searches`` and ``.similar()`` methods.
+- Use the ``fast_search`` method when you need between **10 and 100** results for a single query.
+- The same applies for the ``fast_searches`` and ``.similar()`` methods.
 
 - A search will return a set of ``Result`` objects.
 - The ``Result`` object is used to represent a single search result and provides methods to access the result’s properties:
@@ -129,7 +129,7 @@ They can be accessed directly from the ``Result`` object (e.g. ``print(result.ti
        llm_api_key="sk-...",
        openai_base_url="https://api.openrouter.ai/v1"
    ) as client:
-       results = client.search(
+       results = client.fast_search(
            question="What are the terms of the partnership between Microsoft and OpenAI?",
            n_results=20,
            publish_start="2020-06-01",
@@ -138,8 +138,6 @@ They can be accessed directly from the ``Result`` object (e.g. ``print(result.ti
            exclude_netlocs=["example.com"],
            visited_start="2023-06-01",
            visited_end="2025-06-29",
-           include_languages=["en", "fr"],
-           exclude_languages=["de"],
            include_companies=["/m/04sv4"],  # Microsoft's GKID
            exclude_companies=["/m/045c7b"]  # Google GKID
        )
@@ -150,7 +148,7 @@ Parallel Searches
 
 Allows you to run multiple searches concurrently and ``yields`` the results as they come in.
 
-- You can pass a list of questions to the ``searches`` method.
+- You can pass a list of questions to the ``fast_searches`` method.
 
 .. code:: python
 
@@ -181,7 +179,7 @@ Expansions
 
     # Example of using your own expansions
     with Nosible() as nos:
-        results = nos.search(
+        results = nos.fast_search(
             question="How have the Trump tariffs impacted the US economy?",
             expansions=[
                 "What are the consequences of Trump's 2018 steel and aluminum tariffs on American manufacturers?",
@@ -208,7 +206,7 @@ Bulk search enables you to retrieve a large number of results in a single reques
 
 - Use the ``bulk_search`` method when you need more than 1,000 results for a single query.
 - You can request between **1,000 and 10,000** results per query.
-- All parameters available in the standard ``search`` method—such as ``expansions``, ``include_companies``, ``include_languages``, and more—are also supported in ``bulk_search``.
+- All parameters available in the standard ``fast_search`` method—such as ``expansions``, ``include_companies``, and more—are also supported in ``bulk_search``.
 - A bulk search for 10,000 results typically completes in about 30 seconds or less.
 
 .. code:: python
@@ -233,11 +231,11 @@ Add two ResultSets together:
    from nosible import Nosible
 
    with Nosible(nosible_api_key="basic|abcd1234...") as client:
-       r1 = client.search(
+       r1 = client.fast_search(
            question="What are the terms of the partnership between Microsoft and OpenAI?",
            n_results=5
        )
-       r2 = client.search(
+       r2 = client.fast_search(
            question="How is research governance and decision-making structured between Google and DeepMind?",
            n_results=5
        )
@@ -259,10 +257,11 @@ Use the ``Search`` class to encapsulate parameters:
            n_results=3,
            publish_start="2025-01-15",
            publish_end="2025-06-20",
+           language="en",
            include_netlocs=["arxiv.org", "bbc.com"],
            certain=True
        )
-       results = client.search(search=search)
+       results = client.fast_search(search=search)
        print([r for r in results])
 
 Sentiment Analysis
@@ -283,7 +282,7 @@ Compute sentiment for a single result (uses GPT-4o; requires LLM API key):
    from nosible import Nosible
 
    with Nosible(nosible_api_key="basic|abcd1234...", llm_api_key="sk-...") as client:
-       results = client.search(
+       results = client.fast_search(
            question="What are the terms of the partnership between Microsoft and OpenAI?",
            n_results=1
        )
@@ -300,29 +299,29 @@ Supported formats for saving and loading:
    from nosible import Nosible, ResultSet
 
    with Nosible(nosible_api_key="basic|abcd1234...") as client:
-       combined = client.search(
+       combined = client.fast_search(
            question="What are the terms of the partnership between Microsoft and OpenAI?",
            n_results=5
-       ) + client.search(
+       ) + client.fast_search(
            question="How is research governance and decision-making structured between Google and DeepMind?",
            n_results=5
        )
 
        # Save
-       combined.to_csv("all_news.csv")
-       combined.to_json("all_news.json")
-       combined.to_parquet("all_news.parquet")
-       combined.to_arrow("all_news.arrow")
-       combined.to_duckdb("all_news.duckdb", table_name="news")
-       combined.to_ndjson("all_news.ndjson")
+       combined.write_csv("all_news.csv")
+       combined.write_json("all_news.json")
+       combined.write_parquet("all_news.parquet")
+       combined.write_ipc("all_news.ipc")
+       combined.write_duckdb("all_news.duckdb", table_name="news")
+       combined.write_ndjson("all_news.ndjson")
 
        # Load
-       rs_csv    = ResultSet.from_csv("all_news.csv")
-       rs_json   = ResultSet.from_json("all_news.json")
-       rs_parq   = ResultSet.from_parquet("all_news.parquet")
-       rs_arrow  = ResultSet.from_arrow("all_news.arrow")
-       rs_duckdb = ResultSet.from_duckdb("all_news.duckdb")
-       rs_ndjson = ResultSet.from_ndjson("all_news.ndjson")
+       rs_csv    = ResultSet.read_csv("all_news.csv")
+       rs_json   = ResultSet.read_json("all_news.json")
+       rs_parq   = ResultSet.read_parquet("all_news.parquet")
+       rs_arrow  = ResultSet.read_ipc("all_news.ipc")
+       rs_duckdb = ResultSet.read_duckdb("all_news.duckdb")
+       rs_ndjson = ResultSet.read_ndjson("all_news.ndjson")
 
 Find in Search Results
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -337,7 +336,7 @@ This allows you to search within the results of a search using BM25 scoring.
 
     # Simple search with just date.
     with Nosible() as nos:
-        results = nos.search(
+        results = nos.fast_search(
             question="Hedge funds seek to expand into private credit", n_results=100, publish_start="2024-06-01"
         )
 

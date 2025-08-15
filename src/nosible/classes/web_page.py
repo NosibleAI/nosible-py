@@ -1,4 +1,5 @@
 from dataclasses import asdict, dataclass, field
+from pathlib import Path
 
 from nosible.classes.snippet_set import SnippetSet
 from nosible.utils.json_tools import json_dumps, json_loads
@@ -97,27 +98,9 @@ class WebPageData:
         data["snippets"] = self.snippets.to_dict()
         return data
 
-    def to_json(self) -> str:
+    def write_json(self, path: str = None) -> str:
         """
-        Convert the WebPageData to a JSON string representation.
-
-        Returns
-        -------
-        str
-            JSON string containing all fields of the WebPageData.
-
-        Examples
-        --------
-        >>> data = WebPageData(languages={"en": 1}, metadata={"description": "Example"})
-        >>> json_str = data.to_json()
-        >>> isinstance(json_str, str)
-        True
-        """
-        return json_dumps(self.to_dict())
-
-    def save(self, path: str) -> None:
-        """
-        Save the WebPageData to a JSON file.
+        Save the WebPageData to a JSON file and optionally return the json.
 
         Parameters
         ----------
@@ -127,7 +110,7 @@ class WebPageData:
         Examples
         --------
         >>> data = WebPageData(languages={"en": 1}, metadata={"description": "Example"})
-        >>> data.save("test_webpage.json")
+        >>> data.write_json("test_webpage.json")
         >>> with open("test_webpage.json", "r", encoding="utf-8") as f:
         ...     content = f.read()
         >>> import json
@@ -137,42 +120,14 @@ class WebPageData:
         >>> d["metadata"]
         {'description': 'Example'}
         """
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(self.to_json())
+        if path is not None:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(json_dumps(self.to_dict()))
+
+        return json_dumps(self.to_dict())
 
     @classmethod
-    def from_json(cls, data: str) -> "WebPageData":
-        """
-        Create a WebPageData instance from a JSON string.
-
-        Parameters
-        ----------
-        data : str
-            JSON string containing fields to initialize the WebPageData.
-
-        Returns
-        -------
-        WebPageData
-            An instance of WebPageData initialized with the provided JSON data.
-
-        Examples
-        --------
-        >>> json_str = '{"languages": {"en": 1}, "metadata": {"description": "Example"}}'
-        >>> webpage_data = WebPageData.from_json(json_str)
-        >>> isinstance(webpage_data, WebPageData)
-        True
-        >>> webpage_data.languages
-        {'en': 1}
-        """
-        data_dict = json_loads(data)
-        # Handle snippets separately to avoid passing it twice
-        snippets_data = data_dict.pop("snippets", None)
-        if snippets_data is not None:
-            data_dict["snippets"] = SnippetSet.from_dict(snippets_data)
-        return cls(**data_dict)
-
-    @classmethod
-    def load(cls, path: str) -> "WebPageData":
+    def read_json(cls, path: Path) -> "WebPageData":
         """
         Create a WebPageData instance from a JSON file.
 
@@ -189,8 +144,8 @@ class WebPageData:
         Examples
         --------
         >>> data = WebPageData(languages={"en": 1}, metadata={"description": "Example"})
-        >>> data.save("test_webpage.json")
-        >>> loaded = WebPageData.load("test_webpage.json")
+        >>> data.write_json("test_webpage.json")
+        >>> loaded = WebPageData.read_json(Path("test_webpage.json"))
         >>> isinstance(loaded, WebPageData)
         True
         >>> loaded.languages

@@ -29,7 +29,7 @@ def test_snippetset_to_dict_and_json_roundtrip(snippets_data):
     assert isinstance(d, dict)
     for inner in d.values():
         assert isinstance(inner, dict) and "content" in inner
-    js = ss.to_json()
+    js = ss.write_json()
     assert json.loads(js) == d
     rebuilt = SnippetSet.from_dict(d)
     assert [s.content for s in rebuilt] == [s.content for s in ss]

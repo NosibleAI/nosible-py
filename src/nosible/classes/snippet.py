@@ -141,7 +141,7 @@ class Snippet:
         """
         return cls(**data)
 
-    def to_json(self) -> str:
+    def write_json(self) -> str:
         """
         Convert the Snippet to a JSON string representation.
 
@@ -153,7 +153,7 @@ class Snippet:
         Examples
         --------
         >>> snippet = Snippet(content="Example snippet", snippet_hash="hash1")
-        >>> json_str = snippet.to_json()
+        >>> json_str = snippet.write_json()
         >>> isinstance(json_str, str)
         True
         """

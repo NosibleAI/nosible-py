@@ -38,29 +38,29 @@ def test_resultset_addition_and_equality(search_data):
 
 
 def test_resultset_json_io(tmp_path, search_data):
-    search_data.to_json(tmp_path / "results_copy.json")
-    results_copy = ResultSet.from_json(tmp_path / "results_copy.json")
+    search_data.write_json(tmp_path / "results_copy.json")
+    results_copy = ResultSet.read_json(tmp_path / "results_copy.json")
     assert search_data == results_copy
     assert len(search_data) == len(results_copy)
 
 
 def test_resultset_csv_io(tmp_path, search_data):
-    search_data.to_csv(tmp_path / "results_copy.csv")
-    results_copy_csv = ResultSet.from_csv(tmp_path / "results_copy.csv")
+    search_data.write_csv(tmp_path / "results_copy.csv")
+    results_copy_csv = ResultSet.read_csv(tmp_path / "results_copy.csv")
     assert search_data == results_copy_csv
     assert len(search_data) == len(results_copy_csv)
 
 
 def test_resultset_parquet_io(tmp_path, search_data):
-    search_data.to_parquet(tmp_path / "results_copy.parquet")
-    results_copy_parquet = ResultSet.from_parquet(tmp_path / "results_copy.parquet")
+    search_data.write_parquet(tmp_path / "results_copy.parquet")
+    results_copy_parquet = ResultSet.read_parquet(tmp_path / "results_copy.parquet")
     assert search_data == results_copy_parquet
     assert len(search_data) == len(results_copy_parquet)
 
 
 def test_resultset_arrow_io(tmp_path, search_data):
-    search_data.to_arrow(tmp_path / "results_copy.ipc")
-    results_copy_arrow = ResultSet.from_arrow(tmp_path / "results_copy.ipc")
+    search_data.write_ipc(tmp_path / "results_copy.ipc")
+    results_copy_arrow = ResultSet.read_ipc(tmp_path / "results_copy.ipc")
     assert search_data == results_copy_arrow
     assert len(search_data) == len(results_copy_arrow)
 
@@ -105,9 +105,9 @@ def test_resultset_to_dicts(search_data):
 
 
 # ndjson
-def test_resultset_to_ndjson(tmp_path, search_data):
-    search_data.to_ndjson(tmp_path / "results_copy.ndjson")
-    results_copy_ndjson = ResultSet.from_ndjson(tmp_path / "results_copy.ndjson")
+def test_resultset_write_ndjson(tmp_path, search_data):
+    search_data.write_ndjson(tmp_path / "results_copy.ndjson")
+    results_copy_ndjson = ResultSet.read_ndjson(tmp_path / "results_copy.ndjson")
     assert search_data == results_copy_ndjson
     assert len(search_data) == len(results_copy_ndjson)
 

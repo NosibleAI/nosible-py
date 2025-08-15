@@ -17,7 +17,7 @@
    .. autosummary::
    
       ~SnippetSet.to_dict
-      ~SnippetSet.to_json
+      ~SnippetSet.write_json
       ~SnippetSet.from_dict
    
    

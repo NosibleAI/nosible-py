@@ -32,7 +32,7 @@
    
       ~Snippet.to_dict
       ~Snippet.from_dict
-      ~Snippet.to_json
+      ~Snippet.write_json
    
 
    

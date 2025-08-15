@@ -55,10 +55,6 @@ class Search:
         List of netlocs (domains) to include in the search. (Max 50)
     exclude_netlocs : list of str, optional
         List of netlocs (domains) to exclude in the search. (Max 50)
-    include_languages : list of str, optional
-        Languages to include in the search. (Max 50, ISO 639-1 language codes).
-    exclude_languages : list of str, optional
-        Language codes to exclude in the search (Max 50, ISO 639-1 language codes).
     include_companies : list of str, optional
         Google KG IDs of public companies to require (Max 50).
     exclude_companies : list of str, optional
@@ -67,6 +63,32 @@ class Search:
         URL hashes of docs to include (Max 50).
     exclude_docs : list of str, optional
         URL hashes of docs to exclude (Max 50).
+    brand_safety : str, optional
+        Whether it is safe, sensitive, or unsafe to advertise on this content.
+    language : str, optional
+        Language code to use in search (ISO 639-1 language code).
+    continent : str, optional
+        Continent the results must come from (e.g., "Europe", "Asia").
+    region : str, optional
+        Region or subcontinent the results must come from (e.g., "Southern Africa", "Caribbean").
+    country : str, optional
+        Country the results must come from.
+    sector : str, optional
+        GICS Sector the results must relate to (e.g., "Energy", "Information Technology").
+    industry_group : str, optional
+        GICS Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance").
+    industry : str, optional
+        GICS Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
+    sub_industry : str, optional
+        GICS Sub-industry classification of the content's subject.
+    iab_tier_1 : str, optional
+        IAB Tier 1 category for the content.
+    iab_tier_2 : str, optional
+        IAB Tier 2 category for the content.
+    iab_tier_3 : str, optional
+        IAB Tier 3 category for the content.
+    iab_tier_4 : str, optional
+        IAB Tier 4 category for the content.
 
     Examples
     --------
@@ -75,7 +97,7 @@ class Search:
     >>> search = Search(
     ...     question="What is Python?",
     ...     n_results=5,
-    ...     include_languages=["en"],
+    ...     language="en",
     ...     publish_start="2023-01-01",
     ...     publish_end="2023-12-31",
     ...     certain=True,
@@ -120,10 +142,6 @@ class Search:
     """List of netlocs (domains) to include in the search (Max 50)."""
     exclude_netlocs: list[str] | None = None
     """List of netlocs (domains) to exclude in the search (Max 50)."""
-    include_languages: list[str] | None = None
-    """Languages to include in the search. (Max 50)"""
-    exclude_languages: list[str] | None = None
-    """Language codes to exclude in the search (Max 50)"""
     include_companies: list[str] | None = None
     """Google KG IDs of public companies to require (Max 50)."""
     exclude_companies: list[str] | None = None
@@ -132,6 +150,32 @@ class Search:
     """URL hashes of docs to include (Max 50)."""
     exclude_docs: list[str] | None = None
     """URL hashes of docs to exclude (Max 50)."""
+    brand_safety: str | None = None
+    """Whether it is safe, sensitive, or unsafe to advertise on this content."""
+    language: str | None = None
+    """Language code to use in search (ISO 639-1 language code)."""
+    continent: str | None = None
+    """Continent the results must come from (e.g., "Europe", "Asia")."""
+    region: str | None = None
+    """Region or subcontinent the results must come from (e.g., "Southern Africa", "Caribbean")."""
+    country: str | None = None
+    """Country the results must come from."""
+    sector: str | None = None
+    """GICS Sector the results must relate to (e.g., "Energy", "Information Technology")."""
+    industry_group: str | None = None
+    """GICS Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance")."""
+    industry: str | None = None
+    """GICS Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines")."""
+    sub_industry: str | None = None
+    """GICS Sub-industry classification of the content's subject."""
+    iab_tier_1: str | None = None
+    """IAB Tier 1 category for the content."""
+    iab_tier_2: str | None = None
+    """IAB Tier 2 category for the content."""
+    iab_tier_3: str | None = None
+    """IAB Tier 3 category for the content."""
+    iab_tier_4: str | None = None
+    """IAB Tier 4 category for the content."""
 
     _FIELDS = [
         "question",
@@ -147,17 +191,28 @@ class Search:
         "autogenerate_expansions",
         "publish_start",
         "publish_end",
-        "include_netlocs",
-        "exclude_netlocs",
         "visited_start",
         "visited_end",
         "certain",
-        "include_languages",
-        "exclude_languages",
+        "include_netlocs",
+        "exclude_netlocs",
         "include_companies",
         "exclude_companies",
         "include_docs",
         "exclude_docs",
+        "brand_safety",
+        "language",
+        "continent",
+        "region",
+        "country",
+        "sector",
+        "industry_group",
+        "industry",
+        "sub_industry",
+        "iab_tier_1",
+        "iab_tier_2",
+        "iab_tier_3",
+        "iab_tier_4",
     ]
 
     def __str__(self) -> str:
@@ -220,7 +275,7 @@ class Search:
         Examples
         --------
         >>> search = Search(
-        ...     question="What is Python?", n_results=5, include_languages=["en"], publish_start="2023-01-01"
+        ...     question="What is Python?", n_results=5, language="en", publish_start="2023-01-01"
         ... )
         >>> search.to_dict()["question"]
         'What is Python?'
@@ -255,7 +310,7 @@ class Search:
         """
         return cls(**{field: data.get(field) for field in cls._FIELDS})
 
-    def save(self, path: str) -> None:
+    def write_json(self, path: str) -> None:
         """
         Save the current Search instance to a JSON file.
 
@@ -274,16 +329,16 @@ class Search:
         Examples
         --------
         >>> search = Search(
-        ...     question="What is Python?", n_results=5, include_languages=["en"], publish_start="2023-01-01"
+        ...     question="What is Python?", n_results=5, language="en", publish_start="2023-01-01"
         ... )
-        >>> search.save("search.json")
+        >>> search.write_json("search.json")
         """
         data = json_dumps(self.to_dict())
         with open(path, "w") as f:
             f.write(data)
 
     @classmethod
-    def load(cls, path: str) -> Search:
+    def read_json(cls, path: str) -> Search:
         """
         Load a Search instance from a JSON file.
 
@@ -299,7 +354,7 @@ class Search:
         Returns
         -------
         Search
-            An instance of the Search class initialized with the loaded parameters.
+            An instancex  of the Search class initialized with the loaded parameters.
 
         Raises
         ------
@@ -309,10 +364,10 @@ class Search:
         Save and load a Search instance:
 
         >>> search = Search(
-        ...     question="What is Python?", n_results=3, include_languages=["en"], publish_start="2023-01-01"
+        ...     question="What is Python?", n_results=3, language="en", publish_start="2023-01-01"
         ... )
-        >>> search.save("search.json")
-        >>> loaded_search = Search.load("search.json")
+        >>> search.write_json("search.json")
+        >>> loaded_search = Search.read_json("search.json")
         >>> print(loaded_search.question)
         What is Python?
         """

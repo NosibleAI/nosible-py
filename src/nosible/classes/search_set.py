@@ -16,7 +16,7 @@ class SearchSet(Iterator[Search]):
 
     Parameters
     ----------
-    searches : list of Search
+    searches_list : list of Search
         The list of Search objects in the collection.
 
     Examples
@@ -28,13 +28,13 @@ class SearchSet(Iterator[Search]):
     0: What is Python?
     1: What is PEP8?
     >>> searches.add(Search(question="What is AI?", n_results=1))
-    >>> searches.to_json("searches.json")
-    >>> loaded = SearchSet.from_json("searches.json")
+    >>> searches.write_json("searches.json")
+    >>> loaded = SearchSet.read_json("searches.json")
     >>> print(loaded[2].question)
     What is AI?
     """
 
-    searches: list[Search] = field(default_factory=list)
+    searches_list: list[Search] = field(default_factory=list)
     """ A list of Search objects in the collection."""
     _index: int = field(default=0, init=False, repr=False, compare=False)
     """ Internal index for iteration over searches."""
@@ -65,8 +65,8 @@ class SearchSet(Iterator[Search]):
         Search
             The next Search instance in the collection.
         """
-        if self._index < len(self.searches):
-            search = self.searches[self._index]
+        if self._index < len(self.searches_list):
+            search = self.searches_list[self._index]
             self._index += 1
             return search
         raise StopIteration
@@ -80,7 +80,7 @@ class SearchSet(Iterator[Search]):
         str
             A string representation of the SearchSet, showing each search's question with its index.
         """
-        return "\n".join(f"{i}: {s.question}" for i, s in enumerate(self.searches))
+        return "\n".join(f"{i}: {s.question}" for i, s in enumerate(self.searches_list))
 
     def __getitem__(self, index: int) -> Search:
         """
@@ -101,9 +101,9 @@ class SearchSet(Iterator[Search]):
         IndexError
             If index is out of range.
         """
-        if 0 <= index < len(self.searches):
-            return self.searches[index]
-        raise IndexError(f"Index {index} out of range for searches collection of size {len(self.searches)}")
+        if 0 <= index < len(self.searches_list):
+            return self.searches_list[index]
+        raise IndexError(f"Index {index} out of range for searches collection of size {len(self.searches_list)}")
 
     def __len__(self) -> int:
         """
@@ -112,7 +112,7 @@ class SearchSet(Iterator[Search]):
         Returns:
             int: The number of Search instances in the collection.
         """
-        return len(self.searches)
+        return len(self.searches_list)
 
     def __add__(self, other: "SearchSet") -> "SearchSet":
         """
@@ -135,7 +135,7 @@ class SearchSet(Iterator[Search]):
         """
         if not isinstance(other, SearchSet):
             raise TypeError("Can only add another SearchSet instance")
-        return SearchSet(self.searches + other.searches)
+        return SearchSet(self.searches_list + other.searches_list)
 
     def __setitem__(self, index: int, value: Search) -> None:
         """
@@ -153,10 +153,10 @@ class SearchSet(Iterator[Search]):
         IndexError
             If index is out of range.
         """
-        if 0 <= index < len(self.searches):
-            self.searches[index] = value
+        if 0 <= index < len(self.searches_list):
+            self.searches_list[index] = value
         else:
-            raise IndexError(f"Index {index} out of range for searches collection of size {len(self.searches)}")
+            raise IndexError(f"Index {index} out of range for searches collection of size {len(self.searches_)}")
 
     def add(self, search: Search) -> None:
         """
@@ -177,7 +177,7 @@ class SearchSet(Iterator[Search]):
         >>> print(searches[0].question)
         What is Python?
         """
-        self.searches.append(search)
+        self.searches_list.append(search)
 
     def remove(self, index: int) -> None:
         """
@@ -200,7 +200,7 @@ class SearchSet(Iterator[Search]):
         >>> [s.question for s in searches.searches]
         ['First', 'Third']
         """
-        del self.searches[index]
+        del self.searches_list[index]
 
     def to_dicts(self) -> list[dict]:
         """
@@ -225,9 +225,9 @@ class SearchSet(Iterator[Search]):
         >>> searches.to_dicts()[1]["question"]
         'What is PEP8?'
         """
-        return [s.to_dict() for s in self.searches]
+        return [s.to_dict() for s in self.searches_list]
 
-    def to_json(self, path: str = None) -> str:
+    def write_json(self, path: str = None) -> str:
         """
         Convert the entire SearchSet collection to a JSON string or save to a file.
 
@@ -255,10 +255,10 @@ class SearchSet(Iterator[Search]):
         >>> s1 = Search(question="What is Python?", n_results=3)
         >>> s2 = Search(question="What is PEP8?", n_results=2)
         >>> searches = SearchSet([s1, s2])
-        >>> json_str = searches.to_json()
+        >>> json_str = searches.write_json()
         >>> isinstance(json_str, str)
         True
-        >>> searches.to_json(
+        >>> searches.write_json(
         ...     "searches.json"
         ... )  # The file 'searches.json' will contain both search queries in JSON format.
         """
@@ -276,7 +276,7 @@ class SearchSet(Iterator[Search]):
             raise RuntimeError(f"Failed to serialize results to JSON: {e}") from e
 
     @classmethod
-    def from_json(cls, path: str) -> "SearchSet":
+    def read_json(cls, path: str) -> "SearchSet":
         """
         Load a SearchSet collection from a JSON file.
 
@@ -302,13 +302,13 @@ class SearchSet(Iterator[Search]):
         >>> s1 = Search(question="Python basics", n_results=2)
         >>> s2 = Search(question="PEP8 guidelines", n_results=1)
         >>> searches = SearchSet([s1, s2])
-        >>> searches.to_json("searches.json")
-        >>> loaded_searches = SearchSet.from_json("searches.json")
+        >>> searches.write_json("searches.json")
+        >>> loaded_searches = SearchSet.read_json("searches.json")
         >>> print([s.question for s in loaded_searches])
         ['Python basics', 'PEP8 guidelines']
         """
         with open(path) as f:
             raw = f.read()
             data_list = json_loads(raw)
-        searches = [Search(**item) for item in data_list]
-        return cls(searches)
+        searches_list= [Search(**item) for item in data_list]
+        return cls(searches_list)

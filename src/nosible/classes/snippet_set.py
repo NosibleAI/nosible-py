@@ -131,7 +131,7 @@ class SnippetSet(Iterator[Snippet]):
         """
         return {s.snippet_hash: s.to_dict() for s in self.snippets} if self.snippets else {}
 
-    def to_json(self) -> str:
+    def write_json(self) -> str:
         """
         Convert the SnippetSet to a JSON string representation.
 
@@ -144,7 +144,7 @@ class SnippetSet(Iterator[Snippet]):
         --------
         >>> snippets_data = {"hash1": {"content": "Example snippet", "snippet_hash": "hash1"}}
         >>> snippets = SnippetSet().from_dict(snippets_data)
-        >>> json_str = snippets.to_json()
+        >>> json_str = snippets.write_json()
         >>> isinstance(json_str, str)
         True
         """

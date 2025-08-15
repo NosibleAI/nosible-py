@@ -36,7 +36,7 @@ def install_httpx_cache():
 def search_data():
     """Cache the search results for the session."""
     with Nosible() as nos:
-        results = nos.search(question="Hedge funds seek to expand into private credit", n_results=10)
+        results = nos.fast_search(question="Hedge funds seek to expand into private credit", n_results=10)
     return results
 
 
@@ -56,7 +56,7 @@ def searches_data():
         ]
     )
     with Nosible() as nos:
-        return list(nos.searches(searches=queries))
+        return list(nos.fast_searches(searches=queries))
 
 
 @pytest.fixture(scope="session")
