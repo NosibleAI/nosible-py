@@ -507,7 +507,7 @@ class ResultSet(Iterator[Result]):
         return {str(row[0]): int(row[1]) for row in sorted_vc.rows()}
 
     # Conversion methods
-    def to_csv(self, file_path: str | None = None, delimiter: str = ",", encoding: str = "utf-8") -> str:
+    def write_csv(self, file_path: str | None = None, delimiter: str = ",", encoding: str = "utf-8") -> str:
         """
         Serialize the search results to a CSV file.
 
@@ -542,7 +542,7 @@ class ResultSet(Iterator[Result]):
         ...     Result(url="https://openai.com", title="OpenAI"),
         ... ]
         >>> search_results = ResultSet(results)
-        >>> path = search_results.to_csv("out.csv")
+        >>> path = search_results.write_csv("out.csv")
         >>> path.endswith(".csv")
         True
         """
@@ -622,7 +622,7 @@ class ResultSet(Iterator[Result]):
         except Exception as e:
             raise RuntimeError(f"Failed to convert search results to Pandas DataFrame: {e}") from e
 
-    def to_json(self, file_path: str | None = None) -> str | bytes:
+    def write_json(self, file_path: str | None = None) -> str | bytes:
         """
         Serialize the search results to a JSON string and optionally write to disk.
 
@@ -648,11 +648,11 @@ class ResultSet(Iterator[Result]):
         ...     Result(url="https://openai.com", title="OpenAI"),
         ... ]
         >>> search_results = ResultSet(results)
-        >>> json_str = search_results.to_json()
+        >>> json_str = search_results.write_json()
         >>> isinstance(json_str, str)
         True
         >>> # Optionally write to file
-        >>> path = search_results.to_json(file_path="results.json")
+        >>> path = search_results.write_json(file_path="results.json")
         >>> path.endswith(".json")
         True
         """
@@ -747,7 +747,7 @@ class ResultSet(Iterator[Result]):
         except Exception as e:
             raise RuntimeError(f"Failed to convert results to dict: {e}") from e
 
-    def to_ndjson(self, file_path: str | None = None) -> str:
+    def write_ndjson(self, file_path: str | None = None) -> str:
         """
         Serialize search results to newline-delimited JSON (NDJSON) format.
 
@@ -777,11 +777,11 @@ class ResultSet(Iterator[Result]):
         ...     Result(url="https://openai.com", title="OpenAI"),
         ... ]
         >>> search_results = ResultSet(results)
-        >>> ndjson_str = search_results.to_ndjson()
+        >>> ndjson_str = search_results.write_ndjson()
         >>> print(ndjson_str.splitlines()[0])  # doctest: +ELLIPSIS
         {"url":"https://example.com","title":"Example Domain","description":null,"netloc":null..."url_hash":null}
         >>> # Optionally write to file
-        >>> path = search_results.to_ndjson(file_path="results.ndjson")
+        >>> path = search_results.write_ndjson(file_path="results.ndjson")
         >>> path.endswith(".ndjson")
         True
         """
@@ -802,7 +802,7 @@ class ResultSet(Iterator[Result]):
                 raise RuntimeError(f"Failed to write NDJSON to '{file_path}': {e}") from e
         return "\n".join(ndjson_lines) + "\n"
 
-    def to_parquet(self, file_path: str | None = None) -> str:
+    def write_parquet(self, file_path: str | None = None) -> str:
         """
         Serialize the search results to Apache Parquet format using Polars.
 
@@ -832,7 +832,7 @@ class ResultSet(Iterator[Result]):
         ...     Result(url="https://openai.com", title="OpenAI"),
         ... ]
         >>> search_results = ResultSet(results)
-        >>> parquet_path = search_results.to_parquet("my_results.parquet")
+        >>> parquet_path = search_results.write_parquet("my_results.parquet")
         >>> parquet_path.endswith(".parquet")
         True
         """
@@ -843,7 +843,7 @@ class ResultSet(Iterator[Result]):
             raise RuntimeError(f"Failed to write Parquet to '{out}': {e}") from e
         return out
 
-    def to_arrow(self, file_path: str | None = None) -> str:
+    def write_ipc(self, file_path: str | None = None) -> str:
         """
         Serialize the search results to Apache Arrow IPC (Feather) format using Polars.
 
@@ -873,7 +873,7 @@ class ResultSet(Iterator[Result]):
         ...     Result(url="https://openai.com", title="OpenAI"),
         ... ]
         >>> search_results = ResultSet(results)
-        >>> arrow_path = search_results.to_arrow("my_results.arrow")
+        >>> arrow_path = search_results.write_ipc("my_results.arrow")
         >>> arrow_path.endswith(".arrow")
         True
         """
@@ -884,7 +884,7 @@ class ResultSet(Iterator[Result]):
             raise RuntimeError(f"Failed to write Arrow IPC to '{out}': {e}") from e
         return out
 
-    def to_duckdb(self, file_path: str | None = None, table_name: str = "results") -> str:
+    def write_duckdb(self, file_path: str | None = None, table_name: str = "results") -> str:
         """
         Serialize the search results to a DuckDB database file and table.
 
@@ -917,7 +917,7 @@ class ResultSet(Iterator[Result]):
         ...     Result(url="https://openai.com", title="OpenAI"),
         ... ]
         >>> search_results = ResultSet(results)
-        >>> db_path = search_results.to_duckdb(file_path="my_results.duckdb", table_name="search_table")
+        >>> db_path = search_results.write_duckdb(file_path="my_results.duckdb", table_name="search_table")
         >>> db_path.endswith(".duckdb")
         True
         """
@@ -939,7 +939,7 @@ class ResultSet(Iterator[Result]):
 
     # Loading from disk
     @classmethod
-    def from_csv(cls, file_path: str) -> ResultSet:
+    def read_csv(cls, file_path: str) -> ResultSet:
         """
         Load search results from a CSV file using Polars.
 
@@ -971,7 +971,7 @@ class ResultSet(Iterator[Result]):
         ...         {"url": "https://openai.com", "title": "OpenAI", "description": "AI research"},
         ...     ]
         ... ).write_csv("data.csv")
-        >>> results = ResultSet.from_csv("data.csv")
+        >>> results = ResultSet.read_csv("data.csv")
         >>> isinstance(results, ResultSet)
         True
         >>> len(results)
@@ -1007,7 +1007,7 @@ class ResultSet(Iterator[Result]):
         return cls(results)
 
     @classmethod
-    def from_json(cls, file_path: str) -> ResultSet:
+    def read_json(cls, file_path: str) -> ResultSet:
         """
         Load search results from a JSON file.
 
@@ -1039,7 +1039,7 @@ class ResultSet(Iterator[Result]):
         ...         ],
         ...         f,
         ...     )
-        >>> results = ResultSet.from_json("data.json")
+        >>> results = ResultSet.read_json("data.json")
         >>> isinstance(results, ResultSet)
         True
         >>> len(results)
@@ -1147,7 +1147,7 @@ class ResultSet(Iterator[Result]):
         return cls.from_polars(pl_df)
 
     @classmethod
-    def from_ndjson(cls, file_path: str) -> ResultSet:
+    def read_ndjson(cls, file_path: str) -> ResultSet:
         """
         Load search results from a newline-delimited JSON (NDJSON) file.
 
@@ -1181,7 +1181,7 @@ class ResultSet(Iterator[Result]):
         ...     f.write('{"url": "https://openai.com", "title": "OpenAI"}\\n')
         58
         49
-        >>> results = ResultSet.from_ndjson("data.ndjson")
+        >>> results = ResultSet.read_ndjson("data.ndjson")
         >>> isinstance(results, ResultSet)
         True
         >>> len(results)
@@ -1219,7 +1219,7 @@ class ResultSet(Iterator[Result]):
         return cls(results)
 
     @classmethod
-    def from_parquet(cls, file_path: str) -> ResultSet:
+    def read_parquet(cls, file_path: str) -> ResultSet:
         """
         Load search results from a Parquet file using Polars.
 
@@ -1250,7 +1250,7 @@ class ResultSet(Iterator[Result]):
         ...     ]
         ... )
         >>> df.write_parquet("sample.parquet")
-        >>> results = ResultSet.from_parquet("sample.parquet")
+        >>> results = ResultSet.read_parquet("sample.parquet")
         >>> isinstance(results, ResultSet)
         True
         >>> len(results)
@@ -1270,7 +1270,7 @@ class ResultSet(Iterator[Result]):
             raise RuntimeError(f"Failed to create ResultSet from Parquet data in '{file_path}': {e}") from e
 
     @classmethod
-    def from_arrow(cls, file_path: str) -> ResultSet:
+    def read_ipc(cls, file_path: str) -> ResultSet:
         """
         Load search results from an Apache Arrow IPC (Feather) file using Polars.
 
@@ -1301,7 +1301,7 @@ class ResultSet(Iterator[Result]):
         ...     ]
         ... )
         >>> df.write_ipc("sample.arrow")
-        >>> results = ResultSet.from_arrow("sample.arrow")
+        >>> results = ResultSet.read_ipc("sample.arrow")
         >>> isinstance(results, ResultSet)
         True
         >>> len(results)
@@ -1321,7 +1321,7 @@ class ResultSet(Iterator[Result]):
             raise RuntimeError(f"Failed to create ResultSet from Arrow data in '{file_path}': {e}") from e
 
     @classmethod
-    def from_duckdb(cls, file_path: str) -> ResultSet:
+    def read_duckdb(cls, file_path: str) -> ResultSet:
         """
         Load search results from a DuckDB database file.
 
@@ -1354,8 +1354,8 @@ class ResultSet(Iterator[Result]):
         ...     Result(url="https://openai.com", title="OpenAI", similarity=0.99),
         ... ]
         >>> search_results = ResultSet(results)
-        >>> db_path = search_results.to_duckdb(file_path="results.duckdb", table_name="search_results")
-        >>> loaded = ResultSet.from_duckdb("results.duckdb")
+        >>> db_path = search_results.write_duckdb(file_path="results.duckdb", table_name="search_results")
+        >>> loaded = ResultSet.read_duckdb("results.duckdb")
         >>> isinstance(loaded, ResultSet)
         True
         >>> len(loaded)
