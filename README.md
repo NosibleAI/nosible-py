@@ -129,7 +129,7 @@ with Nosible(
     llm_api_key="sk-...",
     openai_base_url="https://api.openrouter.ai/v1"
 ) as client:
-    results = client.search(
+    results = client.fast_search(
         question="What are the terms of the partnership between Microsoft and OpenAI?",
         n_results=20,
         language="en",
@@ -159,7 +159,7 @@ with Nosible(
 ```python
 # Example of using your own expansions
 with Nosible() as nos:
-    results = nos.search(
+    results = nos.fast_search(
         question="How have the Trump tariffs impacted the US economy?",
         expansions=[
             "What are the consequences of Trump's 2018 steel and aluminum tariffs on American manufacturers?",
@@ -228,11 +228,11 @@ Add two ResultSets together:
 from nosible import Nosible
 
 with Nosible(nosible_api_key="basic|abcd1234...") as client:
-    r1 = client.search(
+    r1 = client.fast_search(
         question="What are the terms of the partnership between Microsoft and OpenAI?",
         n_results=5
     )
-    r2 = client.search(
+    r2 = client.fast_search(
         question="How is research governance and decision-making structured between Google and DeepMind?",
         n_results=5
     )
@@ -256,7 +256,7 @@ with Nosible(nosible_api_key="basic|abcd1234...") as client:
         include_netlocs=["arxiv.org", "bbc.com"],
         certain=True
     )
-    results = client.search(search=search)
+    results = client.fast_search(search=search)
     print([r for r in results])
 ```
 
@@ -273,7 +273,7 @@ This fetches a sentiment score for each search result.
 from nosible import Nosible
 
 with Nosible(nosible_api_key="basic|abcd1234...", llm_api_key="sk-...") as client:
-    results = client.search(
+    results = client.fast_search(
         question="What are the terms of the partnership between Microsoft and OpenAI?",
         n_results=1
     )
@@ -289,10 +289,10 @@ Supported formats for saving and loading:
 from nosible import Nosible, ResultSet
 
 with Nosible(nosible_api_key="basic|abcd1234...") as client:
-  combined = client.search(
+  combined = client.fast_search(
     question="What are the terms of the partnership between Microsoft and OpenAI?",
     n_results=5
-  ) + client.search(
+  ) + client.fast_search(
     question="How is research governance and decision-making structured between Google and DeepMind?",
     n_results=5
   )

@@ -129,7 +129,7 @@ They can be accessed directly from the ``Result`` object (e.g. ``print(result.ti
        llm_api_key="sk-...",
        openai_base_url="https://api.openrouter.ai/v1"
    ) as client:
-       results = client.search(
+       results = client.fast_search(
            question="What are the terms of the partnership between Microsoft and OpenAI?",
            n_results=20,
            publish_start="2020-06-01",
@@ -179,7 +179,7 @@ Expansions
 
     # Example of using your own expansions
     with Nosible() as nos:
-        results = nos.search(
+        results = nos.fast_search(
             question="How have the Trump tariffs impacted the US economy?",
             expansions=[
                 "What are the consequences of Trump's 2018 steel and aluminum tariffs on American manufacturers?",
@@ -231,11 +231,11 @@ Add two ResultSets together:
    from nosible import Nosible
 
    with Nosible(nosible_api_key="basic|abcd1234...") as client:
-       r1 = client.search(
+       r1 = client.fast_search(
            question="What are the terms of the partnership between Microsoft and OpenAI?",
            n_results=5
        )
-       r2 = client.search(
+       r2 = client.fast_search(
            question="How is research governance and decision-making structured between Google and DeepMind?",
            n_results=5
        )
@@ -261,7 +261,7 @@ Use the ``Search`` class to encapsulate parameters:
            include_netlocs=["arxiv.org", "bbc.com"],
            certain=True
        )
-       results = client.search(search=search)
+       results = client.fast_search(search=search)
        print([r for r in results])
 
 Sentiment Analysis
@@ -282,7 +282,7 @@ Compute sentiment for a single result (uses GPT-4o; requires LLM API key):
    from nosible import Nosible
 
    with Nosible(nosible_api_key="basic|abcd1234...", llm_api_key="sk-...") as client:
-       results = client.search(
+       results = client.fast_search(
            question="What are the terms of the partnership between Microsoft and OpenAI?",
            n_results=1
        )
@@ -299,10 +299,10 @@ Supported formats for saving and loading:
    from nosible import Nosible, ResultSet
 
    with Nosible(nosible_api_key="basic|abcd1234...") as client:
-       combined = client.search(
+       combined = client.fast_search(
            question="What are the terms of the partnership between Microsoft and OpenAI?",
            n_results=5
-       ) + client.search(
+       ) + client.fast_search(
            question="How is research governance and decision-making structured between Google and DeepMind?",
            n_results=5
        )
@@ -336,7 +336,7 @@ This allows you to search within the results of a search using BM25 scoring.
 
     # Simple search with just date.
     with Nosible() as nos:
-        results = nos.search(
+        results = nos.fast_search(
             question="Hedge funds seek to expand into private credit", n_results=100, publish_start="2024-06-01"
         )
 

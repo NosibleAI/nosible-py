@@ -122,7 +122,7 @@ class Nosible:
     --------
     >>> from nosible import Nosible  # doctest: +SKIP
     >>> nos = Nosible(nosible_api_key="your_api_key_here")  # doctest: +SKIP
-    >>> search = nos.search(question="What is Nosible?", n_results=5)  # doctest: +SKIP
+    >>> search = nos.fast_search(question="What is Nosible?", n_results=5)  # doctest: +SKIP
     """
 
     def __init__(
@@ -257,7 +257,7 @@ class Nosible:
         self.iab_tier_3 = iab_tier_3
         self.iab_tier_4 = iab_tier_4
 
-    def search(
+    def fast_search(
         self,
         search: Search = None,
         question: str = None,
@@ -406,23 +406,23 @@ class Nosible:
         >>> from nosible import Nosible
         >>> s = Search(question="Hedge funds seek to expand into private credit", n_results=10)
         >>> with Nosible() as nos:
-        ...     results = nos.search(search=s)
+        ...     results = nos.fast_search(search=s)
         ...     print(isinstance(results, ResultSet))
         ...     print(len(results))
         True
         10
         >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.search()  # doctest: +ELLIPSIS
+        >>> nos.fast_search()  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         TypeError: Specify exactly one of 'question' or 'search'.
         >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.search(question="foo", search=s)  # doctest: +ELLIPSIS
+        >>> nos.fast_search(question="foo", search=s)  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         TypeError: Specify exactly one of 'question' or 'search'.
         >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.search(question="foo", n_results=101)  # doctest: +ELLIPSIS
+        >>> nos.fast_search(question="foo", n_results=101)  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         ValueError: Search can not have more than 100 results - Use bulk search instead.
@@ -489,7 +489,7 @@ class Nosible:
             self.logger.warning(f"Search for {search_obj.question!r} failed: {e}")
             raise RuntimeError(f"Search for {search_obj.question!r} failed") from e
 
-    def searches(
+    def fast_searches(
         self,
         *,
         searches: Union[SearchSet, list[Search]] = None,
@@ -637,7 +637,7 @@ class Nosible:
         ...         Search(question="How have the Trump tariffs impacted the US economy?", n_results=5),
         ...     ]
         ... )
-        >>> with Nosible(nosible_api_key="bus+|dfq3UxoZ2Cem5g6uYBa9KUeRV-DiSrrRFnLYjl03") as nos:
+        >>> with Nosible() as nos:
         ...     results_list = list(nos.searches(searches=queries))
         >>> print(len(results_list))
         2
@@ -645,7 +645,7 @@ class Nosible:
         ...     print(isinstance(r, ResultSet), bool(r))
         True True
         True True
-        >>> with Nosible(nosible_api_key="bus+|dfq3UxoZ2Cem5g6uYBa9KUeRV-DiSrrRFnLYjl03") as nos:
+        >>> with Nosible() as nos:
         ...     results_list_str = list(
         ...         nos.searches(
         ...             questions=[
@@ -762,7 +762,7 @@ class Nosible:
         >>> from nosible import Nosible
         >>> s = Search(question="Nvidia insiders dump more than $1 billion in stock", n_results=200)
         >>> with Nosible() as nos:
-        ...     results = nos.search(search=s)  # doctest: +ELLIPSIS
+        ...     results = nos.fast_search(search=s)  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         ValueError: Search can not have more than 100 results - Use bulk search instead.
@@ -1297,7 +1297,7 @@ class Nosible:
         show_context: bool = True,
     ) -> str:
         """
-        RAG-style question answering: retrieve top `n_results` via `.search()`
+        RAG-style question answering: retrieve top `n_results` via `.fast_search()`
         then answer `query` using those documents as context.
 
         Parameters
@@ -1346,7 +1346,7 @@ class Nosible:
             raise ValueError("An LLM API key is required for answer().")
 
         # Retrieve top documents
-        results = self.search(question=query, n_results=n_results, min_similarity=min_similarity)
+        results = self.fast_search(question=query, n_results=n_results, min_similarity=min_similarity)
 
         # Build RAG context
         context = ""
