@@ -19,7 +19,7 @@ def test_searchset_initialization():
     assert len(search_set) == 2
     assert search_set[0] == s1
     assert search_set[1] == s2
-    assert search_set.searches == [s1, s2]
+    assert search_set.searches_list== [s1, s2]
 
 
 def test_searchset_iterable():

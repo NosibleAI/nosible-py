@@ -638,7 +638,7 @@ class Nosible:
         ...     ]
         ... )
         >>> with Nosible() as nos:
-        ...     results_list = list(nos.searches(searches=queries))
+        ...     results_list = list(nos.fast_searches(searches=queries))
         >>> print(len(results_list))
         2
         >>> for r in results_list:
@@ -647,7 +647,7 @@ class Nosible:
         True True
         >>> with Nosible() as nos:
         ...     results_list_str = list(
-        ...         nos.searches(
+        ...         nos.fast_searches(
         ...             questions=[
         ...                 "What are the terms of the partnership between Microsoft and OpenAI?",
         ...                 "What are the terms of the partnership between Volkswagen and Uber?",
@@ -655,13 +655,13 @@ class Nosible:
         ...         )
         ...     )
         >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +ELLIPSIS
-        >>> nos.searches()  # doctest: +ELLIPSIS
+        >>> nos.fast_searches()  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         TypeError: Specify exactly one of 'questions' or 'searches'.
         >>> from nosible import Nosible
         >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.searches(questions=["A"], searches=SearchSet(searches=["A"]))  # doctest: +ELLIPSIS
+        >>> nos.fast_searches(questions=["A"], searches=SearchSet(searches=["A"]))  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ...
         TypeError: Specify exactly one of 'questions' or 'searches'.
