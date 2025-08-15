@@ -371,7 +371,7 @@ class ResultSet(Iterator[Result]):
         tantivy_query = index.parse_query(query, ["content"])
 
         # Map Tantivy hits back to original indices
-        hits = searcher.fast_search(tantivy_query, top_k).hits
+        hits = searcher.search(tantivy_query, top_k).hits
         matched_idxs = [searcher.doc(addr).get_first("doc_id") for (_score, addr) in hits]
         top_results = [self.results[i] for i in matched_idxs]
 
