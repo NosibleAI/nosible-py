@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from nosible.classes.result_set import ResultSet
 else:
     ResultSet = None
+import warnings
 
 
 @dataclass(init=True, repr=True, eq=True, frozen=False)
@@ -335,17 +336,29 @@ class Result:
         algorithm: str = "hybrid-3",
         publish_start: str = None,
         publish_end: str = None,
-        include_netlocs: list = None,
-        exclude_netlocs: list = None,
         visited_start: str = None,
         visited_end: str = None,
         certain: bool = None,
-        include_languages: list = None,
-        exclude_languages: list = None,
+        include_netlocs: list = None,
+        exclude_netlocs: list = None,
         include_companies: list = None,
         exclude_companies: list = None,
         include_docs: list = None,
         exclude_docs: list = None,
+        brand_safety: str = None,
+        language: str = None,
+        continent: str = None,
+        region: str = None,
+        country: str = None,
+        sector: str = None,
+        industry_group: str = None,
+        industry: str = None,
+        sub_industry: str = None,
+        iab_tier_1: str = None,
+        iab_tier_2: str = None,
+        iab_tier_3: str = None,
+        iab_tier_4: str = None,
+        *args, **kwargs
     ) -> ResultSet:
         """
         Find similar search results based on the content or metadata of this Result.
@@ -381,10 +394,6 @@ class Result:
             List of netlocs (domains) to include in the search. (Max: 50)
         exclude_netlocs : list of str, optional
             List of netlocs (domains) to exclude in the search. (Max: 50)
-        include_languages : list of str, optional
-            Languages to include in the search. (Max: 50, ISO 639-1 language codes).
-        exclude_languages : list of str, optional
-            Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
         include_companies : list of str, optional
             Google KG IDs of public companies to require (Max: 50).
         exclude_companies : list of str, optional
@@ -393,6 +402,32 @@ class Result:
             URL hashes of docs to include (Max: 50).
         exclude_docs : list of str, optional
             URL hashes of docs to exclude (Max: 50).
+        brand_safety : str, optional
+            Whether it is safe, sensitive, or unsafe to advertise on this content.
+        language : str, optional
+            Language code to use in search (ISO 639-1 language code).
+        continent : str, optional
+            Continent the results must come from (e.g., "Europe", "Asia").
+        region : str, optional
+            Region or subcontinent the results must come from (e.g., "Southern Africa", "Caribbean").
+        country : str, optional
+            Country the results must come from.
+        sector : str, optional
+            Sector the results must relate to (e.g., "Energy", "Information Technology").
+        industry_group : str, optional
+            Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance").
+        industry : str, optional
+            Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
+        sub_industry : str, optional
+            Sub-industry classification of the content's subject.
+        iab_tier_1 : str, optional
+            IAB Tier 1 category for the content.
+        iab_tier_2 : str, optional
+            IAB Tier 2 category for the content.
+        iab_tier_3 : str, optional
+            IAB Tier 3 category for the content.
+        iab_tier_4 : str, optional
+            IAB Tier 4 category for the content.
 
         Returns
         -------
@@ -413,6 +448,17 @@ class Result:
         ...     result = Result(url="https://example.com", title="Example Domain")  # doctest: +SKIP
         ...     similar_results = result.similar(client=nos)  # doctest: +SKIP
         """
+        if "include_languages" in kwargs:
+            warnings.warn(
+                "The 'include_languages' parameter is deprecated and will be removed in a future release. "
+                "Please use the parameter 'language' instead.",
+            )
+        if "exclude_languages" in kwargs:
+            warnings.warn(
+                "The 'exclude_languages' parameter is deprecated and will be removed in a future release. "
+                "Please use the parameter 'language' instead.",
+            )
+
         if client is None:
             raise ValueError("A Nosible client instance must be provided as 'client'.")
         if not self.url:
@@ -436,12 +482,23 @@ class Result:
                 visited_start=visited_start,
                 visited_end=visited_end,
                 certain=certain,
-                include_languages=include_languages,
-                exclude_languages=exclude_languages,
                 include_companies=include_companies,
                 exclude_companies=exclude_companies,
                 include_docs=include_docs,
                 exclude_docs=exclude_docs,
+                brand_safety=brand_safety,
+                language=language,
+                continent=continent,
+                region=region,
+                country=country,
+                sector=sector,
+                industry_group=industry_group,
+                industry=industry,
+                sub_industry=sub_industry,
+                iab_tier_1=iab_tier_1,
+                iab_tier_2=iab_tier_2,
+                iab_tier_3=iab_tier_3,
+                iab_tier_4=iab_tier_4,
             )
             return client.search(search=s)
         except Exception as e:
