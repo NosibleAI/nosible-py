@@ -257,6 +257,7 @@ Use the ``Search`` class to encapsulate parameters:
            n_results=3,
            publish_start="2025-01-15",
            publish_end="2025-06-20",
+           language="en",
            include_netlocs=["arxiv.org", "bbc.com"],
            certain=True
        )
