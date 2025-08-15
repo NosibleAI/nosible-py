@@ -74,13 +74,13 @@ class Search:
     country : str, optional
         Country the results must come from.
     sector : str, optional
-        Sector the results must relate to (e.g., "Energy", "Information Technology").
+        GICS Sector the results must relate to (e.g., "Energy", "Information Technology").
     industry_group : str, optional
-        Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance").
+        GICS Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance").
     industry : str, optional
-        Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
+        GICS Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
     sub_industry : str, optional
-        Sub-industry classification of the content's subject.
+        GICS Sub-industry classification of the content's subject.
     iab_tier_1 : str, optional
         IAB Tier 1 category for the content.
     iab_tier_2 : str, optional
@@ -161,13 +161,13 @@ class Search:
     country: str | None = None
     """Country the results must come from."""
     sector: str | None = None
-    """Sector the results must relate to (e.g., "Energy", "Information Technology")."""
+    """GICS Sector the results must relate to (e.g., "Energy", "Information Technology")."""
     industry_group: str | None = None
-    """Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance")."""
+    """GICS Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance")."""
     industry: str | None = None
-    """Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines")."""
+    """GICS Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines")."""
     sub_industry: str | None = None
-    """Sub-industry classification of the content's subject."""
+    """GICS Sub-industry classification of the content's subject."""
     iab_tier_1: str | None = None
     """IAB Tier 1 category for the content."""
     iab_tier_2: str | None = None
