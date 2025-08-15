@@ -815,10 +815,6 @@ class Nosible:
         must_include = must_include if must_include is not None else []
         must_exclude = must_exclude if must_exclude is not None else []
         min_similarity = min_similarity if min_similarity is not None else 0
-        brand_safety = brand_safety if brand_safety is not None else "Unsafe"
-        language = language if language is not None else "en"
-        continent = continent if continent is not None else "Worldwide"
-        country = country if country is not None else "Worldwide"
 
         if not (0.0 <= min_similarity <= 1.0):
             raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
@@ -1187,7 +1183,6 @@ class Nosible:
         must_include = must_include if must_include is not None else []
         must_exclude = must_exclude if must_exclude is not None else []
         min_similarity = min_similarity if min_similarity is not None else 0
-        brand_safety = brand_safety if brand_safety is not None else "Unsafe"
 
         if not (0.0 <= min_similarity <= 1.0):
             raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
