@@ -637,7 +637,7 @@ class Nosible:
         ...         Search(question="How have the Trump tariffs impacted the US economy?", n_results=5),
         ...     ]
         ... )
-        >>> with Nosible() as nos:
+        >>> with Nosible(nosible_api_key="bus+|dfq3UxoZ2Cem5g6uYBa9KUeRV-DiSrrRFnLYjl03") as nos:
         ...     results_list = list(nos.searches(searches=queries))
         >>> print(len(results_list))
         2
@@ -645,7 +645,7 @@ class Nosible:
         ...     print(isinstance(r, ResultSet), bool(r))
         True True
         True True
-        >>> with Nosible() as nos:
+        >>> with Nosible(nosible_api_key="bus+|dfq3UxoZ2Cem5g6uYBa9KUeRV-DiSrrRFnLYjl03") as nos:
         ...     results_list_str = list(
         ...         nos.searches(
         ...             questions=[
@@ -815,6 +815,10 @@ class Nosible:
         must_include = must_include if must_include is not None else []
         must_exclude = must_exclude if must_exclude is not None else []
         min_similarity = min_similarity if min_similarity is not None else 0
+        brand_safety = brand_safety if brand_safety is not None else "Unsafe"
+        language = language if language is not None else "en"
+        continent = continent if continent is not None else "Worldwide"
+        country = country if country is not None else "Worldwide"
 
         if not (0.0 <= min_similarity <= 1.0):
             raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
@@ -858,6 +862,8 @@ class Nosible:
             "min_similarity": min_similarity,
             "must_include": must_include,
             "must_exclude": must_exclude,
+        }
+        optional = {
             "brand_safety":brand_safety,
             "language": language,
             "continent": continent,
@@ -872,6 +878,9 @@ class Nosible:
             "iab_tier_3": iab_tier_3,
             "iab_tier_4": iab_tier_4,
         }
+        for key, val in optional.items():
+            if val is not None:
+                payload[key] = val
 
         resp = self._post(url="https://www.nosible.ai/search/v1/fast-search", payload=payload)
         resp.raise_for_status()
@@ -1178,6 +1187,7 @@ class Nosible:
         must_include = must_include if must_include is not None else []
         must_exclude = must_exclude if must_exclude is not None else []
         min_similarity = min_similarity if min_similarity is not None else 0
+        brand_safety = brand_safety if brand_safety is not None else "Unsafe"
 
         if not (0.0 <= min_similarity <= 1.0):
             raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
@@ -1227,7 +1237,9 @@ class Nosible:
                 "min_similarity": min_similarity,
                 "must_include": must_include,
                 "must_exclude": must_exclude,
-                "brand_safety":brand_safety,
+            }
+            optional = {
+                "brand_safety": brand_safety,
                 "language": language,
                 "continent": continent,
                 "region": region,
@@ -1241,6 +1253,10 @@ class Nosible:
                 "iab_tier_3": iab_tier_3,
                 "iab_tier_4": iab_tier_4,
             }
+            for key, val in optional.items():
+                if val is not None:
+                    payload[key] = val
+
             resp = self._post(url="https://www.nosible.ai/search/v1/slow-search", payload=payload)
             try:
                 resp.raise_for_status()
