@@ -134,12 +134,10 @@ with Nosible(
         n_results=20,
         publish_start="2020-06-01",
         publish_end="2025-06-30",
-        include_netlocs=["nytimes.com", "techcrunch.com"],
-        exclude_netlocs=["example.com"],
         visited_start="2023-06-01",
         visited_end="2025-06-29",
-        include_languages=["en", "fr"],
-        exclude_languages=["de"],
+        include_netlocs=["nytimes.com", "techcrunch.com"],
+        exclude_netlocs=["example.com"],
         include_companies=["/m/04sv4"],  # Microsoft's GKID
         exclude_companies=["/m/045c7b"]  # Google GKID
     )
@@ -206,7 +204,7 @@ Bulk search enables you to retrieve a large number of results in a single reques
 
 - Use the `bulk_search` method when you need more than 1,000 results for a single query.
 - You can request between **1,000 and 10,000** results per query.
-- All parameters available in the standard `search` method—such as `expansions`, `include_companies`, `include_languages`, and more—are also supported in `bulk_search`.
+- All parameters available in the standard `search` method—such as `expansions`, `include_companies`, and more—are also supported in `bulk_search`.
 - A bulk search for 10,000 results typically completes in about 30 seconds or less.
 
 ```python
