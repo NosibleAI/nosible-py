@@ -323,7 +323,7 @@ class ResultSet(Iterator[Result]):
         >>> from nosible import Nosible
         >>> from nosible import ResultSet
         >>> with Nosible() as nos:
-        ...     results: ResultSet = nos.search(question="Aircraft Manufacturing", n_results=10)
+        ...     results: ResultSet = nos.fast_search(question="Aircraft Manufacturing", n_results=10)
         ...     inner = results.find_in_search_results("embraer", top_k=5)
         >>> print(f"Top {len(inner)} hits for “embraer” within the initial results:")
         Top 5 hits for “embraer” within the initial results:
@@ -371,7 +371,7 @@ class ResultSet(Iterator[Result]):
         tantivy_query = index.parse_query(query, ["content"])
 
         # Map Tantivy hits back to original indices
-        hits = searcher.search(tantivy_query, top_k).hits
+        hits = searcher.fast_search(tantivy_query, top_k).hits
         matched_idxs = [searcher.doc(addr).get_first("doc_id") for (_score, addr) in hits]
         top_results = [self.results[i] for i in matched_idxs]
 
@@ -422,7 +422,7 @@ class ResultSet(Iterator[Result]):
         >>> from nosible import Nosible
         >>> from nosible import Result, ResultSet
         >>> with Nosible() as nos:
-        ...     results: ResultSet = nos.search(question="Aircraft Manufacturing", n_results=100)
+        ...     results: ResultSet = nos.fast_search(question="Aircraft Manufacturing", n_results=100)
         ...     summary = results.analyze(by="language")
         ...     print(summary)
         {'en': 100}
