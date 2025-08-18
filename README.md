@@ -89,11 +89,11 @@ os.environ["LLM_API_KEY"] = "sk-..."
 
 ### 🎯 Core Workflows
 
-| I need                          | Method        | Use case                |
-|---------------------------------|---------------|-------------------------|
-| Single query, up to 100 results | `search`      | Interactive lookups     |
-| Multiple queries in parallel    | `searches`    | Dashboards, comparisons |
-| Thousands of results (100–10k)  | `bulk_search` | Analytics, offline jobs |
+| I need                          | Method          | Use case                |
+|---------------------------------|-----------------|-------------------------|
+| Single query, up to 100 results | `fast-search`   | Interactive lookups     |
+| Multiple queries in parallel    | `fast-searches` | Dashboards, comparisons |
+| Thousands of results (100–10k)  | `bulk_search`   | Analytics, offline jobs |
 
 
 ### 🚀 Examples
