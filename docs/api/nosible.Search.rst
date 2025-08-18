@@ -4,7 +4,7 @@
 .. currentmodule:: nosible
 
 .. autoclass:: Search
-   :exclude-members: question, expansions, sql_filter, n_results, n_probes, n_contextify, algorithm, autogenerate_expansions, publish_start, publish_end, visited_start, visited_end, certain, include_netlocs, exclude_netlocs, include_languages, exclude_languages, include_companies, exclude_companies, include_docs, exclude_docs
+   :exclude-members: instruction question expansions sql_filter n_results n_probes n_contextify algorithm min_similarity must_include must_exclude autogenerate_expansions publish_start publish_end visited_start visited_end certain include_netlocs exclude_netlocs include_companies exclude_companies include_docs exclude_docs brand_safety language continent region country sector industry_group industry sub_industry iab_tier_1 iab_tier_2 iab_tier_3 iab_tier_4
    
    
    
