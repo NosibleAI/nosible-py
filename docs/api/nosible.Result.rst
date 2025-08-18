@@ -4,7 +4,7 @@
 .. currentmodule:: nosible
 
 .. autoclass:: Result
-   :exclude-members: author, content, description, language, netloc, published, similarity, title, url, url_hash, visited
+   :exclude-members: author, content, description, language, netloc, published, similarity, title, url, url_hash, visited, brand_safety, language, continent, region, country, sector, industry_group, industry, sub_industry, iab_tier_1, iab_tier_2, iab_tier_3, iab_tier_4
    
    .. rubric:: Attributes
 

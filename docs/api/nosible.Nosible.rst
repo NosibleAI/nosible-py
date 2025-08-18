@@ -17,8 +17,8 @@
       ~Nosible.get_rate_limits
       ~Nosible.indexed
       ~Nosible.preflight
-      ~Nosible.search
-      ~Nosible.searches
+      ~Nosible.fast_search
+      ~Nosible.fast_searches
       ~Nosible.version
       ~Nosible.visit
    

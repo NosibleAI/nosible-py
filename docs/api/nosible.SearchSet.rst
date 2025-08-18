@@ -4,14 +4,14 @@
 .. currentmodule:: nosible
 
 .. autoclass:: SearchSet
-   :exclude-members: searches
+   :exclude-members: searches_list
 
    
    .. rubric:: Attributes
 
    .. autosummary::
 
-      ~SearchSet.searches
+      ~SearchSet.searches_list
    
    .. rubric:: Methods
 

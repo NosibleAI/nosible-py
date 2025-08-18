@@ -108,6 +108,8 @@ class Nosible:
         IAB Tier 3 category for the content.
     iab_tier_4 : str, optional
         IAB Tier 4 category for the content.
+    instruction : str, optional
+        Instruction to use with the search query.
 
     Notes
     -----
@@ -159,6 +161,7 @@ class Nosible:
         iab_tier_2: str = None,
         iab_tier_3: str = None,
         iab_tier_4: str = None,
+        instruction: str = None,
         *args, **kwargs
     ) -> None:
 
@@ -256,6 +259,7 @@ class Nosible:
         self.iab_tier_2 = iab_tier_2
         self.iab_tier_3 = iab_tier_3
         self.iab_tier_4 = iab_tier_4
+        self.instruction = instruction
 
     def fast_search(
         self,
@@ -295,6 +299,7 @@ class Nosible:
         iab_tier_2: str = None,
         iab_tier_3: str = None,
         iab_tier_4: str = None,
+        instruction: str = None,
         *args, **kwargs
     ) -> ResultSet:
         """
@@ -377,6 +382,8 @@ class Nosible:
             IAB Tier 3 category for the content.
         iab_tier_4 : str, optional
             IAB Tier 4 category for the content.
+        instruction : str, optional
+            Instruction to use with the search query.
 
         Returns
         -------
@@ -477,6 +484,7 @@ class Nosible:
             iab_tier_2=iab_tier_2,
             iab_tier_3=iab_tier_3,
             iab_tier_4=iab_tier_4,
+            instruction=instruction,
         )
 
         future = self._executor.submit(self._search_single, search_obj)
@@ -528,6 +536,7 @@ class Nosible:
         iab_tier_2: str = None,
         iab_tier_3: str = None,
         iab_tier_4: str = None,
+        instruction: str = None,
         **kwargs
     ) -> Iterator[ResultSet]:
         """
@@ -608,6 +617,8 @@ class Nosible:
             IAB Tier 3 category for the content.
         iab_tier_4 : str, optional
             IAB Tier 4 category for the content.
+        instruction : str, optional
+            Instruction to use with the search query.
 
         Returns
         ------
@@ -720,6 +731,7 @@ class Nosible:
                 iab_tier_2=iab_tier_2,
                 iab_tier_3=iab_tier_3,
                 iab_tier_4=iab_tier_4,
+                instruction=instruction,
             )
 
             futures = [self._executor.submit(self._search_single, s) for s in searches_list]
@@ -811,6 +823,7 @@ class Nosible:
         iab_tier_2 = search_obj.iab_tier_2 if search_obj.iab_tier_2 is not None else self.iab_tier_2
         iab_tier_3 = search_obj.iab_tier_3 if search_obj.iab_tier_3 is not None else self.iab_tier_3
         iab_tier_4 = search_obj.iab_tier_4 if search_obj.iab_tier_4 is not None else self.iab_tier_4
+        instruction = search_obj.instruction if search_obj.instruction is not None else self.instruction
 
         must_include = must_include if must_include is not None else []
         must_exclude = must_exclude if must_exclude is not None else []
@@ -860,6 +873,7 @@ class Nosible:
             "must_exclude": must_exclude,
         }
         optional = {
+            "instruction": instruction,
             "brand_safety":brand_safety,
             "language": language,
             "continent": continent,
@@ -964,6 +978,7 @@ class Nosible:
         iab_tier_2: str = None,
         iab_tier_3: str = None,
         iab_tier_4: str = None,
+        instruction: str = None,
         verbose: bool = False,
         **kwargs,
     ) -> ResultSet:
@@ -1044,6 +1059,8 @@ class Nosible:
             IAB Tier 3 category for the content.
         iab_tier_4 : str, optional
             IAB Tier 4 category for the content.
+        instruction : str, optional
+            Instruction to use with the search query.
         verbose : bool, optional
             Show verbose output, Bulk search will print more information.
 
@@ -1173,6 +1190,7 @@ class Nosible:
             iab_tier_2 = search.iab_tier_2 if search.iab_tier_2 is not None else self.iab_tier_2
             iab_tier_3 = search.iab_tier_3 if search.iab_tier_3 is not None else self.iab_tier_3
             iab_tier_4 = search.iab_tier_4 if search.iab_tier_4 is not None else self.iab_tier_4
+            instruction = search.instruction if search.instruction is not None else self.instruction
 
         # Default expansions and filters
         if expansions is None:
@@ -1234,6 +1252,7 @@ class Nosible:
                 "must_exclude": must_exclude,
             }
             optional = {
+                "instruction": instruction,
                 "brand_safety": brand_safety,
                 "language": language,
                 "continent": continent,
