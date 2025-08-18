@@ -408,6 +408,7 @@ class Result:
         iab_tier_2: str = None,
         iab_tier_3: str = None,
         iab_tier_4: str = None,
+        instruction: str = None,
         *args, **kwargs
     ) -> ResultSet:
         """
@@ -478,6 +479,8 @@ class Result:
             IAB Tier 3 category for the content.
         iab_tier_4 : str, optional
             IAB Tier 4 category for the content.
+        instruction : str, optional
+            Instruction to use with the search query.
 
         Returns
         -------
@@ -549,6 +552,7 @@ class Result:
                 iab_tier_2=iab_tier_2,
                 iab_tier_3=iab_tier_3,
                 iab_tier_4=iab_tier_4,
+                instruction=instruction,
             )
             return client.fast_search(search=s)
         except Exception as e:

@@ -305,6 +305,14 @@ The tier 4 IAB category you would like your search results to be refined to.
     - **Default**: None
     - **Example**: ``"Auto Rentals"``
 
+instruction
+~~~~~~~~~~~
+
+Instrucion to use with the search query.
+    - **Type**: ``str``
+    - **Default**: None
+    - **Example**: ``"Retrieve semantically similar text."``
+
 .. _search_algorithms:
 
 🤖 Search Algorithms

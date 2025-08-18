@@ -89,6 +89,8 @@ class Search:
         IAB Tier 3 category for the content.
     iab_tier_4 : str, optional
         IAB Tier 4 category for the content.
+    instruction : str, optional
+        Instruction to use with the search query.
 
     Examples
     --------
@@ -176,6 +178,8 @@ class Search:
     """IAB Tier 3 category for the content."""
     iab_tier_4: str | None = None
     """IAB Tier 4 category for the content."""
+    instruction: str | None = None
+    """Instruction to use with the search query."""    
 
     _FIELDS = [
         "question",
@@ -213,6 +217,7 @@ class Search:
         "iab_tier_2",
         "iab_tier_3",
         "iab_tier_4",
+        "instruction",
     ]
 
     def __str__(self) -> str:
