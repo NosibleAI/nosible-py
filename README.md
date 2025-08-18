@@ -129,17 +129,16 @@ with Nosible(
     llm_api_key="sk-...",
     openai_base_url="https://api.openrouter.ai/v1"
 ) as client:
-    results = client.search(
+    results = client.fast_search(
         question="What are the terms of the partnership between Microsoft and OpenAI?",
         n_results=20,
+        language="en",
         publish_start="2020-06-01",
         publish_end="2025-06-30",
-        include_netlocs=["nytimes.com", "techcrunch.com"],
-        exclude_netlocs=["example.com"],
         visited_start="2023-06-01",
         visited_end="2025-06-29",
-        include_languages=["en", "fr"],
-        exclude_languages=["de"],
+        include_netlocs=["nytimes.com", "techcrunch.com"],
+        exclude_netlocs=["example.com"],
         include_companies=["/m/04sv4"],  # Microsoft's GKID
         exclude_companies=["/m/045c7b"]  # Google GKID
     )
@@ -160,7 +159,7 @@ with Nosible(
 ```python
 # Example of using your own expansions
 with Nosible() as nos:
-    results = nos.search(
+    results = nos.fast_search(
         question="How have the Trump tariffs impacted the US economy?",
         expansions=[
             "What are the consequences of Trump's 2018 steel and aluminum tariffs on American manufacturers?",
@@ -189,7 +188,7 @@ Allows you to run multiple searches concurrently and `yields` the results as the
 from nosible import Nosible
 
 with Nosible(nosible_api_key="basic|abcd1234...", llm_api_key="sk-...") as client:
-    for batch in client.searches(
+    for batch in client.fast_searches(
         questions=[
             "What are the terms of the partnership between Microsoft and OpenAI?",
             "What exclusivity or non-compete clauses are included in their partnership?"
@@ -206,7 +205,7 @@ Bulk search enables you to retrieve a large number of results in a single reques
 
 - Use the `bulk_search` method when you need more than 1,000 results for a single query.
 - You can request between **1,000 and 10,000** results per query.
-- All parameters available in the standard `search` method—such as `expansions`, `include_companies`, `include_languages`, and more—are also supported in `bulk_search`.
+- All parameters available in the standard `search` method—such as `expansions`, `include_companies`, and more—are also supported in `bulk_search`.
 - A bulk search for 10,000 results typically completes in about 30 seconds or less.
 
 ```python
@@ -229,11 +228,11 @@ Add two ResultSets together:
 from nosible import Nosible
 
 with Nosible(nosible_api_key="basic|abcd1234...") as client:
-    r1 = client.search(
+    r1 = client.fast_search(
         question="What are the terms of the partnership between Microsoft and OpenAI?",
         n_results=5
     )
-    r2 = client.search(
+    r2 = client.fast_search(
         question="How is research governance and decision-making structured between Google and DeepMind?",
         n_results=5
     )
@@ -257,7 +256,7 @@ with Nosible(nosible_api_key="basic|abcd1234...") as client:
         include_netlocs=["arxiv.org", "bbc.com"],
         certain=True
     )
-    results = client.search(search=search)
+    results = client.fast_search(search=search)
     print([r for r in results])
 ```
 
@@ -274,7 +273,7 @@ This fetches a sentiment score for each search result.
 from nosible import Nosible
 
 with Nosible(nosible_api_key="basic|abcd1234...", llm_api_key="sk-...") as client:
-    results = client.search(
+    results = client.fast_search(
         question="What are the terms of the partnership between Microsoft and OpenAI?",
         n_results=1
     )
@@ -290,29 +289,29 @@ Supported formats for saving and loading:
 from nosible import Nosible, ResultSet
 
 with Nosible(nosible_api_key="basic|abcd1234...") as client:
-    combined = client.search(
-        question="What are the terms of the partnership between Microsoft and OpenAI?",
-        n_results=5
-    ) + client.search(
-        question="How is research governance and decision-making structured between Google and DeepMind?",
-        n_results=5
-    )
+  combined = client.fast_search(
+    question="What are the terms of the partnership between Microsoft and OpenAI?",
+    n_results=5
+  ) + client.fast_search(
+    question="How is research governance and decision-making structured between Google and DeepMind?",
+    n_results=5
+  )
 
-    # Save
-    combined.to_csv("all_news.csv")
-    combined.to_json("all_news.json")
-    combined.to_parquet("all_news.parquet")
-    combined.to_arrow("all_news.arrow")
-    combined.to_duckdb("all_news.duckdb", table_name="news")
-    combined.to_ndjson("all_news.ndjson")
+  # Save
+  combined.write_csv("all_news.csv")
+  combined.write_json("all_news.json")
+  combined.write_parquet("all_news.parquet")
+  combined.write_ipc("all_news.arrow")
+  combined.write_duckdb("all_news.duckdb", table_name="news")
+  combined.write_ndjson("all_news.ndjson")
 
-    # Load
-    rs_csv    = ResultSet.from_csv("all_news.csv")
-    rs_json   = ResultSet.from_json("all_news.json")
-    rs_parq   = ResultSet.from_parquet("all_news.parquet")
-    rs_arrow  = ResultSet.from_arrow("all_news.arrow")
-    rs_duckdb = ResultSet.from_duckdb("all_news.duckdb")
-    rs_ndjson = ResultSet.from_ndjson("all_news.ndjson")
+  # Load
+  rs_csv = ResultSet.read_csv("all_news.csv")
+  rs_json = ResultSet.read_json("all_news.json")
+  rs_parq = ResultSet.read_parquet("all_news.parquet")
+  rs_arrow = ResultSet.read_ipc("all_news.arrow")
+  rs_duckdb = ResultSet.read_duckdb("all_news.duckdb")
+  rs_ndjson = ResultSet.read_ndjson("all_news.ndjson")
 ```
 
 #### More Examples

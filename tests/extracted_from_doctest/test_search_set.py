@@ -17,13 +17,13 @@ def test_searchset_basic_operations(tmp_path):
     ss.add(s3)
     assert len(ss) == 3 and ss[2].question == "What is AI?"
     ss.remove(1)
-    assert [s.question for s in ss.searches] == ["What is Python?", "What is AI?"]
+    assert [s.question for s in ss.searches_list] == ["What is Python?", "What is AI?"]
 
-    # to_dicts/to_json round-trip
+    # to_dicts/write_json round-trip
     dicts = ss.to_dicts()
     assert isinstance(dicts, list) and dicts[0]["question"] == "What is Python?"
-    js = ss.to_json()
+    js = ss.write_json()
     assert isinstance(js, str)
-    ss.to_json(tmp_path / "searches.json")
-    loaded = SearchSet.from_json(tmp_path / "searches.json")
-    assert [s.question for s in loaded.searches] == [s.question for s in ss.searches]
+    ss.write_json(tmp_path / "searches.json")
+    loaded = SearchSet.read_json(tmp_path / "searches.json")
+    assert [s.question for s in loaded.searches_list] == [s.question for s in ss.searches_list]

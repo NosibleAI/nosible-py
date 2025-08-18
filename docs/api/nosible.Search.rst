@@ -20,6 +20,9 @@
       ~Search.n_probes
       ~Search.n_contextify
       ~Search.algorithm
+      ~Search.min_similarity
+      ~Search.must_include
+      ~Search.must_exclude
       ~Search.autogenerate_expansions
       ~Search.publish_start
       ~Search.publish_end
@@ -28,20 +31,32 @@
       ~Search.certain
       ~Search.include_netlocs
       ~Search.exclude_netlocs
-      ~Search.include_languages
-      ~Search.exclude_languages
       ~Search.include_companies
       ~Search.exclude_companies
       ~Search.include_docs
       ~Search.exclude_docs
+      ~Search.brand_safety
+      ~Search.language
+      ~Search.continent
+      ~Search.region
+      ~Search.country
+      ~Search.sector
+      ~Search.industry_group
+      ~Search.industry
+      ~Search.sub_industry
+      ~Search.iab_tier_1
+      ~Search.iab_tier_2
+      ~Search.iab_tier_3
+      ~Search.iab_tier_4
+
    
    .. rubric:: Methods
 
    .. autosummary::
    
       ~Search.from_dict
-      ~Search.load
-      ~Search.save
+      ~Search.read_json
+      ~Search.write_json
       ~Search.to_dict
 
    

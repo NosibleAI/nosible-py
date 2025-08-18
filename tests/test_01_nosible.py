@@ -18,15 +18,15 @@ def test_search_success(search_data):
 def test_search_type_errors():
     nos = Nosible(nosible_api_key="test|xyz")
     with pytest.raises(TypeError):
-        nos.search()
+        nos.fast_search()
     with pytest.raises(TypeError):
-        nos.search(question="foo", search=Search(question="foo"))
+        nos.fast_search(question="foo", search=Search(question="foo"))
 
 
 def test_search_n_results_limit():
     nos = Nosible(nosible_api_key="test|xyz")
     with pytest.raises(ValueError):
-        nos.search(question="foo", n_results=101)
+        nos.fast_search(question="foo", n_results=101)
 
 
 def test_searches_success(searches_data):
@@ -39,9 +39,9 @@ def test_searches_success(searches_data):
 def test_searches_type_errors():
     nos = Nosible(nosible_api_key="test|xyz")
     with pytest.raises(TypeError):
-        nos.searches()
+        nos.fast_searches()
     with pytest.raises(TypeError):
-        nos.searches(questions=["A"], searches=SearchSet(searches=["A"]))
+        nos.fast_searches(questions=["A"], searches=SearchSet(searches=["A"]))
 
 
 def test_bulk_search_errors_and_success(bulk_search_data):
@@ -147,18 +147,18 @@ def test_visit_full_attributes(visit_data):
 def test_visit_save_load(tmp_path, visit_data):
     # save to JSON and reload
     path = tmp_path / "visit_data.json"
-    visit_data.save(path)
-    loaded = WebPageData.load(path)
+    visit_data.write_json(path)
+    loaded = WebPageData.read_json(path)
     assert isinstance(loaded, WebPageData)
     assert loaded == visit_data
     assert isinstance(loaded.snippets, SnippetSet)
 
 
-def test_visit_to_json_roundtrip(visit_data):
-    # to_json / from_json
-    s = visit_data.to_json()
+def test_visit_write_json_roundtrip(tmp_path, visit_data):
+    # write_json / read_json
+    s = visit_data.write_json(tmp_path / "visit_data.json")
     assert isinstance(s, str)
-    rehydrated = WebPageData.from_json(s)
+    rehydrated = WebPageData.read_json(tmp_path / "visit_data.json")
     assert isinstance(rehydrated, WebPageData)
     assert isinstance(rehydrated.snippets, SnippetSet)
 
@@ -206,7 +206,7 @@ def test_search_min_similarity(search_data):
     q = "Hedge funds seek to expand into private credit"
 
     with Nosible(concurrency=1) as nos:
-        filtered = nos.search(question=q, n_results=10, min_similarity=0.9)
+        filtered = nos.fast_search(question=q, n_results=10, min_similarity=0.9)
 
     assert len(filtered) <= base_count
     assert all(r.similarity >= 0.9 for r in filtered)
@@ -221,7 +221,7 @@ def test_search_must_include(search_data):
     term = "credit"
 
     with Nosible(concurrency=1) as nos:
-        inc = nos.search(question=q, n_results=10, must_include=[term])
+        inc = nos.fast_search(question=q, n_results=10, must_include=[term])
 
     assert len(inc) <= base_count
     # At least one hit remains
@@ -237,7 +237,7 @@ def test_search_must_exclude(search_data):
     term = "funds"
 
     with Nosible(concurrency=1) as nos:
-        exc = nos.search(question=q, n_results=10, must_exclude=[term])
+        exc = nos.fast_search(question=q, n_results=10, must_exclude=[term])
 
     assert len(exc) <= base_count
     # Ensure exclusion really happened
