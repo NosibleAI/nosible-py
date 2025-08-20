@@ -1897,7 +1897,7 @@ class Nosible:
         prefix = (self.nosible_api_key or "").split("|", 1)[0]
 
         # Map prefixes -> plan names
-        plans = {"test", "basic", "pro", "pro+", "bus", "bus+", "ent", "chat"}
+        plans = {"test", "basic", "pro", "pro+", "bus", "bus+", "ent", "chat", "cons", "stup", "busn"}
 
         if prefix not in plans:
             raise ValueError(f"Your API key is not valid: {prefix} is not a valid plan prefix.")
