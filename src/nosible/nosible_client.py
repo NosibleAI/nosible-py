@@ -1745,7 +1745,7 @@ class Nosible:
         cpm_counter = 4.0
 
         # Preserve the order you care about:
-        for plan in ["test", "basic", "pro", "pro+", "bus", "bus+", "ent"]:
+        for plan in ["test", "basic", "pro", "pro+", "bus", "bus+", "ent", "cons", "stup", "busn"]:
             name = display.get(plan, plan)
             if plan == user_plan:
                 current_plan = " (Your current plan)"
