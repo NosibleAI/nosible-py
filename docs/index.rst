@@ -1,15 +1,12 @@
-.. image:: _static/sticker.png
-   :align: right
-   :width: 190px
+.. image:: _static/readme.png
    :alt: Nosible logo
-   :class: rounded-image
+   :class: top-logo
 
-Getting Started
-===============
+NOSIBLE Search Client
+======================
 
-A high-level Python client for the `NOSIBLE Search
-API <https://www.nosible.ai/search/v1/docs/swagger#/>`__. Easily
-integrate the Nosible Search API into your Python projects.
+Welcome to the NOSIBLE Client package! This documentation will give you an in-depth overview of the NOSIBLE
+Search API, and show you how to harness the power of the NOSIBLE Search Engine.
 
 📦 Installation
 ~~~~~~~~~~~~~~~
@@ -43,7 +40,7 @@ integrate the Nosible Search API into your Python projects.
 🔑 Authentication
 ~~~~~~~~~~~~~~~~~
 
-1. Sign in to NOSIBLE.AI and grab your free API key.
+1. Sign in to `NOSIBLE <https://www.nosible.ai/search-api>`_ and grab your free API key.
 2. Set it as an environment variable or pass directly:
 
 On Windows
@@ -87,6 +84,7 @@ Or in code:
 ~~~~~~~~~~~~~~~~~~~~
 
 .. code:: python
+
     from nosible import Nosible
 
     with Nosible(nosible_api_key="YOUR API KEY") as client:

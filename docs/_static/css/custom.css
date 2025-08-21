@@ -388,3 +388,29 @@ a.icon-nosible {
     margin-top: 0.25em;
     margin-bottom: 0.25em;
 }
+
+
+/*
+Make code highlights purple
+*/
+.rst-content code.literal,
+.rst-content tt.literal {
+  color: #C586C0 !important; /* light purple */
+}
+
+.rst-content a code.literal,
+.rst-content a tt.literal {
+  color: #C586C0 !important;
+}
+
+.rst-content code,
+.rst-content tt {
+  color: #C586C0 !important;
+}
+
+
+/* Add spacing below logo at top of page */
+.rst-content img.top-logo {
+  margin-bottom: 2rem;
+}
+
