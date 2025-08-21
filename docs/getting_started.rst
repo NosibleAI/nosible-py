@@ -17,6 +17,7 @@ integrate the Nosible Search API into your Python projects.
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: bash
+
     uv pip install nosible
 
 
