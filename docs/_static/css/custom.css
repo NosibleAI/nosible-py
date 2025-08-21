@@ -414,3 +414,17 @@ Make code highlights purple
   margin-bottom: 2rem;
 }
 
+/* Cards for the demos and examples */
+.sd-card.sd-bg-nosible {
+  background-color: #212121 !important;
+  color: #ffffff !important;
+}
+.sd-card {
+  border-radius: 16px !important;
+  margin-bottom: 2rem !important;
+}
+.sd-card .sd-card-title {
+  font-size: 1.4rem !important;
+  font-weight: 600;
+  color: #2FCF6E;
+}

@@ -429,7 +429,6 @@ class ResultSet(Iterator[Result]):
         >>> import polars as pl
         >>> from nosible.classes.result_set import Result, ResultSet
 
-        # -- date grouping (published) --------------------------------------------
         >>> data = [
         ...     {"published": "2021-01-15", "netloc": "a.com", "author": "", "language": "en", "similarity": 0.5},
         ...     {"published": "2021-02-20", "netloc": "a.com", "author": "", "language": "en", "similarity": 0.8},
@@ -439,23 +438,18 @@ class ResultSet(Iterator[Result]):
         >>> results.analyze(by="published")  # doctest: +NORMALIZE_WHITESPACE
         {'2021-01': 1, '2021-02': 2}
 
-        # -- numeric stats (similarity) ------------------------------------------
         >>> stats = results.analyze(by="similarity")
         >>> set(stats) == {"count", "null_count", "mean", "std", "min", "25%", "50%", "75%", "max"}
         True
         >>> round(stats["mean"], 2)
         0.5
 
-        # -- categorical counts (language) --------------------------------------
         >>> results.analyze(by="language")
         {'en': 2, 'fr': 1}
 
-        # -- author special case ------------------------------------------------
-        # empty author strings get mapped to "Author Unknown"
         >>> results.analyze(by="author")
         {'Author Unknown': 3}
 
-        # -- invalid field -------------------------------------------------------
         >>> results.analyze(by="foobar")  # doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         ValueError: Cannot analyze by 'foobar' - not a valid field.
