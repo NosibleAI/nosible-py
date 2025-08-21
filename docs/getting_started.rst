@@ -181,17 +181,17 @@ Expansions
     with Nosible() as nos:
         results = nos.fast_search(
             question="How have the Trump tariffs impacted the US economy?",
-            expansions=[
-                "What are the consequences of Trump's 2018 steel and aluminum tariffs on American manufacturers?",
-                "How did Donald Trump's tariffs on Chinese imports influence US import prices and inflation?",
-                "What impact did the Section 232 tariffs under President Trump have on US agricultural exports?",
-                "In what ways have Trump's trade duties affected employment levels in the US automotive sector?",
-                "How have the tariffs imposed by the Trump administration altered American consumer goods pricing nationwide?",
-                "What economic outcomes resulted from President Trump's protective tariffs for the United States economy?",
-                "How did Trump's solar panel tariffs change investment trends in the US energy market?",
-                "What have been the financial effects of Trump's Section 301 tariffs on Chinese electronics imports?",
-                "How did Trump's trade barriers influence GDP growth and trade deficits in the United States?",
-                "In what manner did Donald Trump's import taxes reshape competitiveness of US steel producers globally?",
+            expansions = [
+                "What are the effects of Trump's 2018 steel and aluminum tariffs on US manufacturers?",
+                "How did Trump's tariffs on Chinese imports affect US import prices and inflation?",
+                "What impact did the Section 232 tariffs under Trump have on US farm exports?",
+                "How have Trump's trade duties influenced US automotive sector employment?",
+                "How have Trump’s tariffs changed consumer goods prices in the United States?",
+                "What economic outcomes came from Trump’s protective tariffs on the US economy?",
+                "How did Trump’s solar panel tariffs shift US energy investment trends?",
+                "What have been the effects of Trump’s Section 301 tariffs on Chinese electronics?",
+                "How did Trump’s trade barriers affect GDP growth and trade deficits in the US?",
+                "How did Trump’s import taxes reshape competitiveness of US steel producers globally?",
             ],
             n_results=10,
         )
@@ -215,7 +215,7 @@ Bulk search enables you to retrieve a large number of results in a single reques
 
    with Nosible(nosible_api_key="basic|abcd1234...") as client:
        bulk = client.bulk_search(
-           question="What chip-development responsibilities has Intel committed to under its deal with Apple?",
+           question="What chip-development duties has Intel committed to under its deal with Apple?",
            n_results=2000
        )
        print(len(bulk))
@@ -236,7 +236,7 @@ Add two ResultSets together:
            n_results=5
        )
        r2 = client.fast_search(
-           question="How is research governance and decision-making structured between Google and DeepMind?",
+           question="How are research governance and decisions structured between Google and DeepMind?",
            n_results=5
        )
        combined = r1 + r2
@@ -303,7 +303,7 @@ Supported formats for saving and loading:
            question="What are the terms of the partnership between Microsoft and OpenAI?",
            n_results=5
        ) + client.fast_search(
-           question="How is research governance and decision-making structured between Google and DeepMind?",
+           question="How are research governance and decisions structured between Google and DeepMind?",
            n_results=5
        )
 
@@ -337,7 +337,9 @@ This allows you to search within the results of a search using BM25 scoring.
     # Simple search with just date.
     with Nosible() as nos:
         results = nos.fast_search(
-            question="Hedge funds seek to expand into private credit", n_results=100, publish_start="2024-06-01"
+            question="Hedge funds seek to expand into private credit", 
+            n_results=100, 
+            publish_start="2024-06-01"
         )
 
     for idx, result in enumerate(results):
