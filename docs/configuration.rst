@@ -51,7 +51,7 @@ Maximum number of results to return.
 n_probes
 ~~~~~~~~
 
-Number of index shards to probe in parallel—trades off speed vs. recall.
+The number of index shards to probe. More shards will mean better recall, but slower query speeds.
     - **Type**: ``int``
     - **Default**: ``300``
     - **Maximum**:
@@ -71,7 +71,7 @@ Number of context tokens to include per result.
 algorithm
 ~~~~~~~~~
 
-Which `scoring algorithms <search_algorithms_>`_ to use (e.g., “hybrid-1”, “string”, “verbatim”, etc.).
+This parameter allows us to control the type of search algorithm used when scoring and ordering search results.
     - **Type**: ``str``
     - **Default**: ``hybrid-3``
     - **Example**: ``hybrid-2``
@@ -213,6 +213,8 @@ Whether it is safe, sensitive, or unsafe to advertise on this content.
 
 language
 ~~~~~~~~
+
+Allows you to pass in a language that all search results must be written in. We support over 75 languages including the difficult ones such as Japanese Mandarin and Arabic.
     - **Type**: ``str``
     - **Default**: None
     - **Example**: ``"en"``

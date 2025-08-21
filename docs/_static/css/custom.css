@@ -388,3 +388,43 @@ a.icon-nosible {
     margin-top: 0.25em;
     margin-bottom: 0.25em;
 }
+
+
+/*
+Make code highlights purple
+*/
+.rst-content code.literal,
+.rst-content tt.literal {
+  color: #d6a9d2 !important; /* light purple */
+}
+
+.rst-content a code.literal,
+.rst-content a tt.literal {
+  color: #d6a9d2 !important;
+}
+
+.rst-content code,
+.rst-content tt {
+  color: #d6a9d2 !important;
+}
+
+
+/* Add spacing below logo at top of page */
+.rst-content img.top-logo {
+  margin-bottom: 2rem;
+}
+
+/* Cards for the demos and examples */
+.sd-card.sd-bg-nosible {
+  background-color: #212121 !important;
+  color: #ffffff !important;
+}
+.sd-card {
+  border-radius: 16px !important;
+  margin-bottom: 2rem !important;
+}
+.sd-card .sd-card-title {
+  font-size: 1.4rem !important;
+  font-weight: 600;
+  color: #2FCF6E;
+}
