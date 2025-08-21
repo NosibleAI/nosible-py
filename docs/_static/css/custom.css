@@ -395,17 +395,17 @@ Make code highlights purple
 */
 .rst-content code.literal,
 .rst-content tt.literal {
-  color: #C586C0 !important; /* light purple */
+  color: #d6a9d2 !important; /* light purple */
 }
 
 .rst-content a code.literal,
 .rst-content a tt.literal {
-  color: #C586C0 !important;
+  color: #d6a9d2 !important;
 }
 
 .rst-content code,
 .rst-content tt {
-  color: #C586C0 !important;
+  color: #d6a9d2 !important;
 }
 
 

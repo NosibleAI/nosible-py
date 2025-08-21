@@ -5,29 +5,27 @@ Examples & Demos
 
 .. grid:: 2
 
-    .. grid-item-card:: World Domination
+    .. grid-item-card:: Using the NOSIBLE client package
         :img-top: _static/demo_1.png
         :img-alt:
-        :link: https://www.nosible.ai/
+        :link: https://colab.research.google.com/drive/1RVccoIexZ5jub0pk3gkmCtFgIj0eTHQZ?usp=sharing
         :class-card: sd-bg-nosible
 
         This demo will walk you through what you can achieve with the package using hands-on examples,
         and how to get the most out of the NOSIBLE search engine.
 
-    .. grid-item-card:: Building an automatic ESG report agent
+    .. grid-item-card:: [Coming soon]
         :img-top: _static/demo_2.png
         :img-alt:
         :link: https://www.nosible.ai/
         :class-card: sd-bg-nosible
 
-        This demo will walk you through what you can achieve with the package using hands-on examples,
-        and how to get the most out of the NOSIBLE search engine.
+        [Coming soon]
 
-    .. grid-item-card:: Using the NOSIBLE client package
+    .. grid-item-card:: [Coming soon]
         :img-top: _static/demo_3.png
         :img-alt:
         :link: https://www.nosible.ai/
         :class-card: sd-bg-nosible
 
-        This demo will walk you through what you can achieve with the package using hands-on examples,
-        and how to get the most out of the NOSIBLE search engine.
+        [Coming soon]

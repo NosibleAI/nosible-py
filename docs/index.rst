@@ -97,6 +97,12 @@ Or in code:
 
 --------------
 
+⚒️ Examples and Demos
+~~~~~~~~~~~~~~~~~~~~~
+
+To easily view examples of how to use the client package, or demos to see what can be achieved with the NOSIBLE
+search engine, view our `examples and demos page <https://nosible-py.readthedocs.io/en/latest/examples.html>`__.
+
 📡 Swagger Docs
 ~~~~~~~~~~~~~~~
 
