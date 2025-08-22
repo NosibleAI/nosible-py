@@ -44,11 +44,15 @@ h1 {
 }
 
 h2 {
-    color: #2FCF6E;
+    color: #ffffff;
+    margin-top: 40px;
 }
 
 h3 {
-    color: #2FCF6E;
+    color: #ffffff;
+    font-family: monospace;
+    margin-top: 40px;
+    margin-bottom: 10px !important;
 }
 
 pre {
@@ -69,7 +73,7 @@ blockquote {
 }
 
 strong {
-  color: #2FCF6E !important;
+  color: #b8b8b8 !important;
 }
 
 /* HIGHLIGHT ELEMENTS */
@@ -292,7 +296,9 @@ span.sig-name {
 }
 
 dt {
-    color: white;
+    color: #e5e5e5;
+    font-weight: 500 !important;
+    font-style: italic;
 }
 
 .sig-param {
