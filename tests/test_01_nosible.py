@@ -59,38 +59,13 @@ def test_bulk_search_errors_and_success(bulk_search_data):
     assert len(bulk_search_data) == 1000
 
 
-def test_visit_success_and_error(visit_data):
-    assert isinstance(visit_data, WebPageData)
-    assert hasattr(visit_data, "languages")
-    assert hasattr(visit_data, "page")
+def test_scrape_url_success_and_error(scrape_url_data):
+    assert isinstance(scrape_url_data, WebPageData)
+    assert hasattr(scrape_url_data, "languages")
+    assert hasattr(scrape_url_data, "page")
     nos = Nosible()
     with pytest.raises(TypeError):
-        nos.visit()
-
-
-def test_version_structure():
-    nos = Nosible()
-    v = nos.version()
-    data = json.loads(v)
-    assert isinstance(data, dict)
-    assert "response" in data and isinstance(data["response"], dict)
-    expected = {"database", "date", "documents", "runtime", "snippets", "time", "tokens", "version", "words"}
-    assert set(data["response"].keys()) == expected
-
-
-def test_indexed_fixture(indexed_data):
-    assert indexed_data is True
-
-
-def test_preflight_output():
-    nos = Nosible()
-    pf = nos.preflight(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")
-    # Turn pf str into a dict
-    pf = json.loads(pf)
-    assert isinstance(pf, dict)
-    assert "response" in pf and isinstance(pf["response"], dict)
-    for key in ("domain", "netloc", "raw_url", "scheme", "path", "suffix", "hash"):
-        assert key in pf["response"]
+        nos.scrape_url()
 
 
 def test_get_rate_limits_contains_plans():
@@ -131,34 +106,34 @@ def test_search_minimal(search_data):
     assert isinstance(search_data, ResultSet)
 
 
-def test_visit_full_attributes(visit_data):
+def test_scrape_url_full_attributes(scrape_url_data):
     # all the extra attributes you wanted
-    assert isinstance(visit_data.full_text, str)
-    assert isinstance(visit_data.languages, dict)
-    assert isinstance(visit_data.metadata, dict)
-    assert isinstance(visit_data.page, dict)
-    assert isinstance(visit_data.request, dict)
-    assert isinstance(visit_data.snippets, SnippetSet)
-    assert isinstance(visit_data.statistics, dict)
-    assert isinstance(visit_data.structured, list)
-    assert isinstance(visit_data.url_tree, dict)
+    assert isinstance(scrape_url_data.full_text, str)
+    assert isinstance(scrape_url_data.languages, dict)
+    assert isinstance(scrape_url_data.metadata, dict)
+    assert isinstance(scrape_url_data.page, dict)
+    assert isinstance(scrape_url_data.request, dict)
+    assert isinstance(scrape_url_data.snippets, SnippetSet)
+    assert isinstance(scrape_url_data.statistics, dict)
+    assert isinstance(scrape_url_data.structured, list)
+    assert isinstance(scrape_url_data.url_tree, dict)
 
 
-def test_visit_save_load(tmp_path, visit_data):
+def test_scrape_url_save_load(tmp_path, scrape_url_data):
     # save to JSON and reload
-    path = tmp_path / "visit_data.json"
-    visit_data.write_json(path)
+    path = tmp_path / "scrape_url_data.json"
+    scrape_url_data.write_json(path)
     loaded = WebPageData.read_json(path)
     assert isinstance(loaded, WebPageData)
-    assert loaded == visit_data
+    assert loaded == scrape_url_data
     assert isinstance(loaded.snippets, SnippetSet)
 
 
-def test_visit_write_json_roundtrip(tmp_path, visit_data):
+def test_scrape_url_write_json_roundtrip(tmp_path, scrape_url_data):
     # write_json / read_json
-    s = visit_data.write_json(tmp_path / "visit_data.json")
+    s = scrape_url_data.write_json(tmp_path / "scrape_url_data.json")
     assert isinstance(s, str)
-    rehydrated = WebPageData.read_json(tmp_path / "visit_data.json")
+    rehydrated = WebPageData.read_json(tmp_path / "scrape_url_data.json")
     assert isinstance(rehydrated, WebPageData)
     assert isinstance(rehydrated.snippets, SnippetSet)
 

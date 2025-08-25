@@ -47,7 +47,7 @@ jobs:
           exclude_lines =
               ^\s*def __.*__\(.*\):
               ^\s*def get_rate_limits\(.*\):
-              ^\s*def visit\(.*\):
+              ^\s*def scrape_url\(.*\):
               ^\s*def sentiment\(.*\):
               ^\s*def similar\(.*\):
           EOF

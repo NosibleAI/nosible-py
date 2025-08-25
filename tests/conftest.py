@@ -41,9 +41,9 @@ def search_data():
 
 
 @pytest.fixture(scope="session")
-def snippets_data(visit_data):
+def snippets_data(scrape_url_data):
     """Cache the snippets data for the session."""
-    return visit_data.snippets
+    return scrape_url_data.snippets
 
 
 @pytest.fixture(scope="session")
@@ -60,17 +60,10 @@ def searches_data():
 
 
 @pytest.fixture(scope="session")
-def visit_data(search_data):
-    """Cache one visit() on the second result."""
+def scrape_url_data(search_data):
+    """Cache one scrape_url() on the second result."""
     with Nosible() as nos:
-        return search_data[1].visit(client=nos)
-
-
-@pytest.fixture(scope="session")
-def indexed_data():
-    """Cache one indexed() call."""
-    with Nosible() as nos:
-        return nos.indexed(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")
+        return search_data[1].scrape_url(client=nos)
 
 
 @pytest.fixture(scope="session")

@@ -236,7 +236,7 @@ class Result:
 
         return ResultSet([self, other])
 
-    def visit(self, client) -> WebPageData:
+    def scrape_url(self, client) -> WebPageData:
         """
         Visit the URL associated with this Result and retrieve its content.
 
@@ -265,16 +265,16 @@ class Result:
         >>> from nosible import Nosible, Result
         >>> with Nosible() as nos:
         ...     result = Result(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")
-        ...     page = result.visit(client=nos)
+        ...     page = result.scrape_url(client=nos)
         ...     isinstance(page, WebPageData)
         True
         """
         if not self.url:
-            raise ValueError("Cannot visit Result without a URL.")
+            raise ValueError("Cannot scrape Result without a URL.")
         try:
-            return client.visit(url=self.url)
+            return client.scrape_url(url=self.url)
         except Exception as e:
-            raise RuntimeError(f"Failed to visit URL '{self.url}': {e}") from e
+            raise RuntimeError(f"Failed to scrape URL '{self.url}': {e}") from e
 
     def sentiment(self, client) -> float:
         """
@@ -303,7 +303,7 @@ class Result:
         >>> class DummyClient:
         ...     llm_api_key = "dummy"
         ...
-        ...     def visit(self, url):
+        ...     def scrape_url(self, url):
         ...         return "web page"
         >>> result = Result(url="https://example.com", content="This is great!")
         >>> import types

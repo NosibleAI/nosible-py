@@ -12,7 +12,7 @@ throttling. Below are the throttling rules by plan, to upgrade your plan, visit 
 
 
 +----------------+---------------+---------------+------------+--------------+---------------+
-| Plan           | Fast Searches | Bulk Searches | URL Visits | Subscription | Effective CPM |
+| Plan           | Fast Searches | Bulk Searches | URL Scrapes| Subscription | Effective CPM |
 +================+===============+===============+============+==============+===============+
 | **Free**       | 3000          | 300           | 300        | $-           | $1.50         |
 +----------------+---------------+---------------+------------+--------------+---------------+

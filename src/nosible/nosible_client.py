@@ -1233,7 +1233,7 @@ class Nosible:
 
         # Enforce Minimums
         filter_responses = n_results
-        # Slow search must ask for at least 1 000
+        # Bulk search must ask for at least 1 000
         n_results = max(n_results, 1000)
 
         self.logger.info(f"Performing bulk search for {question!r}...")
@@ -1271,7 +1271,7 @@ class Nosible:
                 if val is not None:
                     payload[key] = val
 
-            resp = self._post(url="https://www.nosible.ai/search/v2/slow-search", payload=payload)
+            resp = self._post(url="https://www.nosible.ai/search/v2/bulk-search", payload=payload)
             try:
                 resp.raise_for_status()
             except httpx.HTTPStatusError as e:
@@ -1279,7 +1279,7 @@ class Nosible:
 
             data = resp.json()
 
-            # Slow search: download & decrypt
+            # Bulk search: download & decrypt
             download_from = data.get("download_from")
             if ".zstd." in download_from:
                 download_from = download_from.replace(".zstd.", ".gzip.", 1)
@@ -1463,7 +1463,7 @@ class Nosible:
         if url is None:
             raise TypeError("URL must be provided")
         response = self._post(
-            url="https://www.nosible.ai/search/v2/visit",
+            url="https://www.nosible.ai/search/v2/scrape-url",
             payload={"html": html, "recrawl": recrawl, "render": render, "url": url},
         )
         try:
@@ -1542,7 +1542,7 @@ class Nosible:
             payload["sql_filter"] = "SELECT loc, published FROM engine"
 
         # Send the POST to the /trend endpoint
-        response = self._post(url="https://www.nosible.ai/search/v2/trend", payload=payload)
+        response = self._post(url="https://www.nosible.ai/search/v2/topic-trend", payload=payload)
         # Will raise ValueError on rate-limit or auth errors
         response.raise_for_status()
         payload = response.json().get("response", {})
