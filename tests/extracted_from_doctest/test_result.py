@@ -56,11 +56,11 @@ def test_result_to_dict_and_str_and_indexing_and_addition():
     from nosible import ResultSet
     assert isinstance(combined, ResultSet)
 
-def test_sentiment_monkeypatch_and_visit():
-    # visit via injected client
+def test_sentiment_monkeypatch_and_scrape_url():
+    # Scrape url via injected client
     class DummyClient:
         llm_api_key = "dummy"
-        def visit(self, url):
+        def scrape_url(self, url):
             return "webpage"
 
     r = Result(url="u", content="c")

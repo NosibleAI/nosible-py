@@ -261,6 +261,67 @@ class Nosible:
         self.iab_tier_4 = iab_tier_4
         self.instruction = instruction
 
+    @_rate_limited("fast")
+    def search(
+        self,
+        prompt: str = None,
+        recursions: int = 3,
+        agent: str = "cybernaut-1",
+    ) -> ResultSet:
+        """
+        Gives you access to Cybernaut-1, an AI agent with unrestricted access to everything in
+        NOSIBLE including every shard, algorithm, selector, reranker, and signal.
+        It knows what these things are and can tune them on the fly to find better results.
+
+        Parameters
+        ----------
+        prompt: str
+            The information you are looking for.
+        recursions: int
+            Maximum chain-of-search length.
+        agent: str
+            The search agent you want to use.
+
+        Returns
+        -------
+        ResultSet
+            The results of the search.
+
+        Raises
+        ------
+        ValueError
+            If `recursions` is not [3,10].
+
+        Examples
+        --------
+        >>> from nosible import Nosible
+        >>> with Nosible() as nos:
+        ...     results = nos.search("Interesting news from AI startups last week.")
+        ...     print(isinstance(results, ResultSet))
+        True
+        >>> with Nosible() as nos:
+        ...     results = nos.search(
+        ...         prompt="Interesting news from AI startups last week.",
+        ...         recursions=20
+        ...     )  # doctest: +ELLIPSIS
+        Traceback (most recent call last):
+        ...
+        ValueError: Recursions must be [3,10].
+        """
+        if recursions < 3 or recursions > 10:
+            raise ValueError("Recursions must be [3,10].")
+
+        payload = {
+            "prompt": prompt,
+            "recursions": recursions,
+            "agent": agent,
+        }
+
+        resp = self._post(url="https://www.nosible.ai/search/v2/search", payload=payload)
+        resp.raise_for_status()
+        items = resp.json().get("response", [])
+        return ResultSet.from_dicts(items)
+
     def fast_search(
         self,
         search: Search = None,
@@ -892,7 +953,7 @@ class Nosible:
             if val is not None:
                 payload[key] = val
 
-        resp = self._post(url="https://www.nosible.ai/search/v1/fast-search", payload=payload)
+        resp = self._post(url="https://www.nosible.ai/search/v2/fast-search", payload=payload)
         resp.raise_for_status()
         items = resp.json().get("response", [])[:filter_responses]
         return ResultSet.from_dicts(items)
@@ -938,7 +999,7 @@ class Nosible:
 
         raise TypeError("`question` must be str, Search, SearchSet, or a list thereof")
 
-    @_rate_limited("slow")
+    @_rate_limited("bulk")
     def bulk_search(
         self,
         *,
@@ -1233,7 +1294,7 @@ class Nosible:
 
         # Enforce Minimums
         filter_responses = n_results
-        # Slow search must ask for at least 1 000
+        # Bulk search must ask for at least 1 000
         n_results = max(n_results, 1000)
 
         self.logger.info(f"Performing bulk search for {question!r}...")
@@ -1271,7 +1332,7 @@ class Nosible:
                 if val is not None:
                     payload[key] = val
 
-            resp = self._post(url="https://www.nosible.ai/search/v1/slow-search", payload=payload)
+            resp = self._post(url="https://www.nosible.ai/search/v2/bulk-search", payload=payload)
             try:
                 resp.raise_for_status()
             except httpx.HTTPStatusError as e:
@@ -1279,7 +1340,7 @@ class Nosible:
 
             data = resp.json()
 
-            # Slow search: download & decrypt
+            # Bulk search: download & decrypt
             download_from = data.get("download_from")
             if ".zstd." in download_from:
                 download_from = download_from.replace(".zstd.", ".gzip.", 1)
@@ -1408,10 +1469,10 @@ class Nosible:
         # Return the generated text
         return "Answer:\n" + response.choices[0].message.content.strip()
 
-    @_rate_limited("visit")
-    def visit(self, html: str = "", recrawl: bool = False, render: bool = False, url: str = None) -> WebPageData:
+    @_rate_limited("scrape-url")
+    def scrape_url(self, html: str = "", recrawl: bool = False, render: bool = False, url: str = None) -> WebPageData:
         """
-        Visit a given URL and return a structured WebPageData object for the page.
+        Scrape a given URL and return a structured WebPageData object for the page.
 
         Parameters
         ----------
@@ -1444,7 +1505,7 @@ class Nosible:
         --------
         >>> from nosible import Nosible
         >>> with Nosible() as nos:
-        ...     out = nos.visit(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")
+        ...     out = nos.scrape_url(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")
         ...     print(isinstance(out, WebPageData))
         ...     print(hasattr(out, "languages"))
         ...     print(hasattr(out, "page"))
@@ -1452,7 +1513,7 @@ class Nosible:
         True
         True
         >>> with Nosible() as nos:
-        ...     out = nos.visit()
+        ...     out = nos.scrape_url()
         ...     print(isinstance(out, type(WebPageData)))
         ...     print(hasattr(out, "languages"))
         ...     print(hasattr(out, "page"))  # doctest: +ELLIPSIS
@@ -1463,7 +1524,7 @@ class Nosible:
         if url is None:
             raise TypeError("URL must be provided")
         response = self._post(
-            url="https://www.nosible.ai/search/v1/visit",
+            url="https://www.nosible.ai/search/v2/scrape-url",
             payload={"html": html, "recrawl": recrawl, "render": render, "url": url},
         )
         try:
@@ -1494,7 +1555,7 @@ class Nosible:
         )
 
     @_rate_limited("fast")
-    def trend(
+    def topic_trend(
         self,
         query: str,
         start_date: Optional[str] = None,
@@ -1502,7 +1563,7 @@ class Nosible:
         sql_filter: Optional[str] = None,
     ) -> dict:
         """
-        Extract a trend showing the volume of news surrounding your query.
+        Extract a topic's trend showing the volume of news surrounding your query.
 
         Parameters
         ----------
@@ -1518,14 +1579,14 @@ class Nosible:
         Returns
         -------
         dict
-            The JSON-decoded trend data returned by the server.
+            The JSON-decoded topic trend data returned by the server.
 
         Examples
         --------
         >>> from nosible import Nosible
         >>> with Nosible() as nos:
-        ...     trends_data = nos.trend("Christmas Shopping", start_date="2005-01-01", end_date="2020-12-31")
-        ...     print(trends_data)  # doctest: +ELLIPSIS
+        ...     topic_trends_data = nos.topic_trend("Christmas Shopping", start_date="2005-01-01", end_date="2020-12-31")
+        ...     print(topic_trends_data)  # doctest: +ELLIPSIS
         {'2005-01-31': ...'2020-12-31': ...}
         """
         # Validate dates
@@ -1541,8 +1602,8 @@ class Nosible:
         else:
             payload["sql_filter"] = "SELECT loc, published FROM engine"
 
-        # Send the POST to the /trend endpoint
-        response = self._post(url="https://www.nosible.ai/search/v1/trend", payload=payload)
+        # Send the POST to the /topic-trend endpoint
+        response = self._post(url="https://www.nosible.ai/search/v2/topic-trend", payload=payload)
         # Will raise ValueError on rate-limit or auth errors
         response.raise_for_status()
         payload = response.json().get("response", {})
@@ -1562,212 +1623,6 @@ class Nosible:
 
         return filtered
 
-    def version(self) -> str:
-        """
-        Retrieve the current version information for the Nosible API.
-
-        Returns
-        -------
-        str
-            JSON-formatted string containing API version details.
-
-        Examples
-        --------
-        >>> import json
-        >>> from nosible import Nosible
-        >>> with Nosible() as nos:
-        ...     v = nos.version()
-        ...     data = json.loads(v)
-        ...     # top‐level object must be a dict
-        ...     print(isinstance(data, dict))
-        ...     # must have a "response" key mapping to another dict
-        ...     print("response" in data and isinstance(data["response"], dict))
-        ...     # that inner dict must have exactly the expected sub-keys
-        ...     expected = {
-        ...         "database",
-        ...         "date",
-        ...         "documents",
-        ...         "runtime",
-        ...         "snippets",
-        ...         "time",
-        ...         "tokens",
-        ...         "version",
-        ...         "words",
-        ...     }
-        ...     print(set(data["response"].keys()) == expected)
-        True
-        True
-        True
-        """
-        response = self._post(url="https://www.nosible.ai/search/v1/version", payload={})
-
-        return json.dumps(response.json(), indent=2, sort_keys=True)
-
-    def indexed(self, url: str = None) -> bool:
-        """
-        This function checks if a URL has been indexed by Nosible.
-
-        Parameters
-        ----------
-        url : str, optional
-            The full URL to verify.
-
-        Returns
-        -------
-        bool
-            True if the URL is in the index.
-            False if the URL is not in the index.
-
-        Raises
-        ------
-
-        Examples
-        --------
-        >>> from nosible import Nosible
-        >>> with Nosible() as nos:
-        ...     print(nos.indexed(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/"))
-        True
-        """
-        response = self._post(url="https://www.nosible.ai/search/v1/indexed", payload={"url": url})
-
-        try:
-            response.raise_for_status()
-            data = response.json()
-            msg = data.get("message")
-            if msg == "The URL is in the system.":
-                return True
-            if msg == "The URL is nowhere to be found.":
-                return False
-            if msg == "The URL could not be retrieved.":
-                return False
-            # If we reach here, the response is unexpected
-            return False
-        except httpx.HTTPError:
-            return False
-        except:
-            return False
-
-    def preflight(self, url: str = None) -> str:
-        """
-        Run a preflight check for crawling/preprocessing on a URL.
-
-        Parameters
-        ----------
-        url : str, optional
-            The URL to validate or prepare for indexing.
-
-        Returns
-        -------
-        str
-            JSON-formatted string with errors, warnings, or recommendations.
-
-        Examples
-        --------
-        >>> from nosible import Nosible
-        >>> with Nosible() as nos:
-        ...     pf = nos.preflight(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")
-        ...     print(pf)
-        {
-          "response": {
-            "domain": "dailynewsegypt",
-            "fragment": "",
-            "geo": "US",
-            "hash": "ENNmqkF1mGNhVhvhmbUEs4U2",
-            "netloc": "www.dailynewsegypt.com",
-            "path": "/2023/09/08/g20-and-its-summits/",
-            "prefix": "www",
-            "proxy": "US",
-            "query": "",
-            "query_allowed": {},
-            "query_blocked": {},
-            "raw_url": "https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/",
-            "scheme": "https",
-            "suffix": "com",
-            "url": "https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits"
-          }
-        }
-        """
-        response = self._post(url="https://www.nosible.ai/search/v1/preflight", payload={"url": url})
-
-        return json.dumps(response.json(), indent=2, sort_keys=True)
-
-    def get_rate_limits(self) -> str:
-        """
-        Generate a plaintext summary of rate limits for every subscription plan.
-
-        Returns
-        -------
-        str
-            A multi-line string containing rate limits for each plan.
-
-        Examples
-        --------
-        >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> print(nos.get_rate_limits())  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-        Below are the rate limits for all NOSIBLE plans.
-        To upgrade your package, visit https://www.nosible.ai/products.
-        <BLANKLINE>
-        Unless otherwise indicated, bulk searches are limited to one-at-a-time per API key.
-        <BLANKLINE>
-        Free: (Your current plan)
-        | Endpoint    | Per Month | Per Minute | Effective CPM |
-        | ----------- | --------- | ---------- | ------------- |
-        | Search      |      3000 |         60 |         $4.00 |
-        | URL Visits  |       300 |         60 |         $4.00 |
-        | Bulk Search |       300 |         60 |         $4.00 |
-        <BLANKLINE>
-        Basic ($49p/m):
-        | Endpoint    | Per Month | Per Minute | Effective CPM |
-        ...
-        """
-        # Human-friendly plan names
-        display = {
-            "test": "Free",
-            "basic": "Basic ($49p/m)",
-            "pro": "Pro ($199p/m)",
-            "pro+": "Pro+ ($799p/m)",
-            "bus": "Business ($3999p/m)",
-            "bus+": "Business+ ($7499p/m)",
-            "ent": "Enterprise ($14999p/m)",
-        }
-
-        # Human-friendly endpoint names
-        endpoint_name = {"fast": "Search", "visit": "URL Visits", "slow": "Bulk Search"}
-
-        out = [
-            "Below are the rate limits for all NOSIBLE plans.",
-            "To upgrade your package, visit https://www.nosible.ai/products.\n",
-            "Unless otherwise indicated, bulk searches are limited to one-at-a-time per API key.\n",
-        ]
-
-        user_plan = self._get_user_plan()
-        current_plan = ""
-        cpm_counter = 4.0
-
-        # Preserve the order you care about:
-        for plan in ["test", "basic", "pro", "pro+", "bus", "bus+", "ent", "cons", "stup", "busn"]:
-            name = display.get(plan, plan)
-            if plan == user_plan:
-                current_plan = " (Your current plan)"
-
-            out.append(f"{name}:{current_plan}")
-            out.append("| Endpoint    | Per Month | Per Minute | Effective CPM |")
-            out.append("| ----------- | --------- | ---------- | ------------- |")
-
-            for ep in ["fast", "visit", "slow"]:
-                buckets = PLAN_RATE_LIMITS[plan][ep]
-                # Find minute & day
-                minute = next(limit for limit, i in buckets if i == 60)
-                month = next(limit for limit, i in buckets if i == 24 * 3600 * 30)
-                cpm = f"${cpm_counter:.2f}"
-
-                out.append(f"| {endpoint_name[ep]:<11} | {month:>9} | {minute:>10} | {cpm:>13} |")
-
-            cpm_counter = cpm_counter - 0.5
-            out.append("")  # Blank line
-            current_plan = ""
-
-        return "\n".join(out)
 
     def close(self):
         """

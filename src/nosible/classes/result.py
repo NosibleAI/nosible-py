@@ -236,9 +236,9 @@ class Result:
 
         return ResultSet([self, other])
 
-    def visit(self, client) -> WebPageData:
+    def scrape_url(self, client) -> WebPageData:
         """
-        Visit the URL associated with this Result and retrieve its content.
+        Scrape the URL associated with this Result and retrieve its content.
 
         This method uses the provided Nosible client to fetch the web page content for the given URL.
         The result is returned as a WebPageData object containing the page's content and metadata.
@@ -265,16 +265,16 @@ class Result:
         >>> from nosible import Nosible, Result
         >>> with Nosible() as nos:
         ...     result = Result(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")
-        ...     page = result.visit(client=nos)
+        ...     page = result.scrape_url(client=nos)
         ...     isinstance(page, WebPageData)
         True
         """
         if not self.url:
-            raise ValueError("Cannot visit Result without a URL.")
+            raise ValueError("Cannot scrape Result without a URL.")
         try:
-            return client.visit(url=self.url)
+            return client.scrape_url(url=self.url)
         except Exception as e:
-            raise RuntimeError(f"Failed to visit URL '{self.url}': {e}") from e
+            raise RuntimeError(f"Failed to scrape URL '{self.url}': {e}") from e
 
     def sentiment(self, client) -> float:
         """
@@ -303,7 +303,7 @@ class Result:
         >>> class DummyClient:
         ...     llm_api_key = "dummy"
         ...
-        ...     def visit(self, url):
+        ...     def scrape_url(self, url):
         ...         return "web page"
         >>> result = Result(url="https://example.com", content="This is great!")
         >>> import types
@@ -356,7 +356,7 @@ class Result:
             The response must be a float in [-1.0, 1.0]. No other text must be returned.
         """
         from openai import OpenAI
-        llm_client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=client.llm_api_key)
+        llm_client = OpenAI(base_url="https://openrouter.ai/api/v2", api_key=client.llm_api_key)
 
         # Call the chat completions endpoint.
         resp = llm_client.chat.completions.create(

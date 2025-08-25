@@ -107,7 +107,7 @@ search engine, view our `examples and demos page <https://nosible-py.readthedocs
 ~~~~~~~~~~~~~~~
 
 You can find online endpoints to the NOSIBLE Search API Swagger Docs
-`here <https://www.nosible.ai/search/v1/docs/swagger#/>`__.
+`here <https://www.nosible.ai/search/v2/docs/#/>`__.
 
 --------------
 
@@ -116,6 +116,7 @@ You can find online endpoints to the NOSIBLE Search API Swagger Docs
    :caption: User Guide
    :hidden:
 
+   Getting Started <self>
    configuration
    examples
    rate_limits

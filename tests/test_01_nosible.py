@@ -59,44 +59,13 @@ def test_bulk_search_errors_and_success(bulk_search_data):
     assert len(bulk_search_data) == 1000
 
 
-def test_visit_success_and_error(visit_data):
-    assert isinstance(visit_data, WebPageData)
-    assert hasattr(visit_data, "languages")
-    assert hasattr(visit_data, "page")
+def test_scrape_url_success_and_error(scrape_url_data):
+    assert isinstance(scrape_url_data, WebPageData)
+    assert hasattr(scrape_url_data, "languages")
+    assert hasattr(scrape_url_data, "page")
     nos = Nosible()
     with pytest.raises(TypeError):
-        nos.visit()
-
-
-def test_version_structure():
-    nos = Nosible()
-    v = nos.version()
-    data = json.loads(v)
-    assert isinstance(data, dict)
-    assert "response" in data and isinstance(data["response"], dict)
-    expected = {"database", "date", "documents", "runtime", "snippets", "time", "tokens", "version", "words"}
-    assert set(data["response"].keys()) == expected
-
-
-def test_indexed_fixture(indexed_data):
-    assert indexed_data is True
-
-
-def test_preflight_output():
-    nos = Nosible()
-    pf = nos.preflight(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")
-    # Turn pf str into a dict
-    pf = json.loads(pf)
-    assert isinstance(pf, dict)
-    assert "response" in pf and isinstance(pf["response"], dict)
-    for key in ("domain", "netloc", "raw_url", "scheme", "path", "suffix", "hash"):
-        assert key in pf["response"]
-
-
-def test_get_rate_limits_contains_plans():
-    nos = Nosible(nosible_api_key="test|xyz")
-    rl = nos.get_rate_limits()
-    assert "Free:" in rl and "Basic ($49p/m):" in rl
+        nos.scrape_url()
 
 
 def test_close_idempotent():
@@ -131,70 +100,70 @@ def test_search_minimal(search_data):
     assert isinstance(search_data, ResultSet)
 
 
-def test_visit_full_attributes(visit_data):
+def test_scrape_url_full_attributes(scrape_url_data):
     # all the extra attributes you wanted
-    assert isinstance(visit_data.full_text, str)
-    assert isinstance(visit_data.languages, dict)
-    assert isinstance(visit_data.metadata, dict)
-    assert isinstance(visit_data.page, dict)
-    assert isinstance(visit_data.request, dict)
-    assert isinstance(visit_data.snippets, SnippetSet)
-    assert isinstance(visit_data.statistics, dict)
-    assert isinstance(visit_data.structured, list)
-    assert isinstance(visit_data.url_tree, dict)
+    assert isinstance(scrape_url_data.full_text, str)
+    assert isinstance(scrape_url_data.languages, dict)
+    assert isinstance(scrape_url_data.metadata, dict)
+    assert isinstance(scrape_url_data.page, dict)
+    assert isinstance(scrape_url_data.request, dict)
+    assert isinstance(scrape_url_data.snippets, SnippetSet)
+    assert isinstance(scrape_url_data.statistics, dict)
+    assert isinstance(scrape_url_data.structured, list)
+    assert isinstance(scrape_url_data.url_tree, dict)
 
 
-def test_visit_save_load(tmp_path, visit_data):
+def test_scrape_url_save_load(tmp_path, scrape_url_data):
     # save to JSON and reload
-    path = tmp_path / "visit_data.json"
-    visit_data.write_json(path)
+    path = tmp_path / "scrape_url_data.json"
+    scrape_url_data.write_json(path)
     loaded = WebPageData.read_json(path)
     assert isinstance(loaded, WebPageData)
-    assert loaded == visit_data
+    assert loaded == scrape_url_data
     assert isinstance(loaded.snippets, SnippetSet)
 
 
-def test_visit_write_json_roundtrip(tmp_path, visit_data):
+def test_scrape_url_write_json_roundtrip(tmp_path, scrape_url_data):
     # write_json / read_json
-    s = visit_data.write_json(tmp_path / "visit_data.json")
+    s = scrape_url_data.write_json(tmp_path / "scrape_url_data.json")
     assert isinstance(s, str)
-    rehydrated = WebPageData.read_json(tmp_path / "visit_data.json")
+    rehydrated = WebPageData.read_json(tmp_path / "scrape_url_data.json")
     assert isinstance(rehydrated, WebPageData)
     assert isinstance(rehydrated.snippets, SnippetSet)
 
 
-def test_trend_success(trend_data):
-    # trend_data fixture should give the full payload as a dict
-    assert isinstance(trend_data, dict)
-    assert trend_data  # non‐empty
+def test_topic_trend_success(topic_trend_data):
+    # topic_trend_data fixture should give the full payload as a dict
+    assert isinstance(topic_trend_data, dict)
+    assert topic_trend_data  # non‐empty
     # keys should look like ISO dates, values numeric
-    for date_str, count in trend_data.items():
+    for date_str, count in topic_trend_data.items():
         assert re.match(r"^\d{4}-\d{2}-\d{2}$", date_str)
         assert isinstance(count, (int, float))
 
 
-def test_trend_date_window(trend_data):
+def test_topic_trend_date_window(topic_trend_data):
     """
     When start_date/end_date exactly cover the full range,
-    trend() should return the same set of dates (keys), regardless of values.
+    topic_trend() should return the same set of dates (keys), regardless of values.
     """
-    dates = sorted(trend_data.keys())
+    dates = sorted(topic_trend_data.keys())
     start, end = dates[0], dates[-1]
 
     with Nosible() as nos:
-        windowed = nos.trend(query="any query", start_date=start, end_date=end)
+        windowed = nos.topic_trend(query="any query", start_date=start, end_date=end)
         # Compare only the dates (keys), not the counts
-        assert set(windowed.keys()) == set(trend_data.keys())
+        assert set(windowed.keys()) == set(topic_trend_data.keys())
         # And in the same order if you care about ordering
         assert sorted(windowed.keys()) == dates
 
 
-def test_trend_invalid_date_format():
+def test_topic_trend_invalid_date_format():
     with Nosible() as nos:
         with pytest.raises(ValueError):
-            nos.trend(query="q", start_date="20210101")    # Missing hyphens
+            nos.topic_trend(query="q", start_date="20210101")    # Missing hyphens
         with pytest.raises(ValueError):
-            nos.trend(query="q", end_date="2021/01/01")    # Wrong separator
+            nos.topic_trend(query="q", end_date="2021/01/01")    # Wrong separator
 
 
 def test_search_min_similarity(search_data):

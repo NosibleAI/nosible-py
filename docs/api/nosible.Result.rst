@@ -31,7 +31,7 @@
       ~Result.sentiment
       ~Result.similar
       ~Result.to_dict
-      ~Result.visit
+      ~Result.scrape_url
    
    
 

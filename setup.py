@@ -12,7 +12,7 @@ setup(
     description="Python client for the NOSIBLE Search API",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/NosibleAI/nosible",
+    url="https://github.com/NosibleAI/nosible-py",
     classifiers=[
         # Development
         "Development Status :: 4 - Beta",
