@@ -14,6 +14,7 @@ from typing import Optional, Union
 import warnings
 
 import httpx
+from dns.dnssecalgs import algorithms
 from tenacity import (
     before_sleep_log,
     retry,
@@ -260,6 +261,67 @@ class Nosible:
         self.iab_tier_3 = iab_tier_3
         self.iab_tier_4 = iab_tier_4
         self.instruction = instruction
+
+    @_rate_limited("fast")
+    def search(
+        self,
+        prompt: str = None,
+        recursions: int = 3,
+        agent: str = "cybernaut-1",
+    ) -> ResultSet:
+        """
+        Gives you access to Cybernaut-1, an AI agent with unrestricted access to everything in
+        NOSIBLE including every shard, algorithm, selector, reranker, and signal.
+        It knows what these things are and can tune them on the fly to find better results.
+
+        Parameters
+        ----------
+        prompt: str
+            The information you are looking for.
+        recursions: int
+            Maximum chain-of-search length.
+        agent: str
+            The search agent you want to use.
+
+        Returns
+        -------
+        ResultSet
+            The results of the search.
+
+        Raises
+        ------
+        ValueError
+            If `recursions` is not [3,10].
+
+        Examples
+        --------
+        >>> from nosible import Nosible
+        >>> with Nosible() as nos:
+        ...     results = nos.search("Interesting news from AI startups last week.")
+        ...     print(isinstance(results, ResultSet))
+        True
+        >>> with Nosible() as nos:
+        ...     results = nos.search(
+        ...         prompt="Interesting news from AI startups last week.",
+        ...         recursions=20
+        ...     )  # doctest: +ELLIPSIS
+        Traceback (most recent call last):
+        ...
+        ValueError: Recursions must be [3,10].
+        """
+        if recursions < 3 or recursions > 10:
+            raise ValueError("Recursions must be [3,10].")
+
+        payload = {
+            "prompt": prompt,
+            "recursions": recursions,
+            "agent": agent,
+        }
+
+        resp = self._post(url="https://www.nosible.ai/search/v2/search", payload=payload)
+        resp.raise_for_status()
+        items = resp.json().get("response", [])
+        return ResultSet.from_dicts(items)
 
     def fast_search(
         self,
