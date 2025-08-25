@@ -23,5 +23,4 @@ throttling. Below are the throttling rules by plan, to upgrade your plan, visit 
 | **Business**   | 3 000 000     | 300 000       | 300 000    | $1,500.00    | $0.50         |
 +----------------+---------------+---------------+------------+--------------+---------------+
 
-
-All endpoints are automatically throttled. Call ``.get_ratelimits()`` at runtime to inspect your allowances.
+---
