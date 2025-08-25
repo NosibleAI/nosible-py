@@ -14,7 +14,6 @@
    
       ~Nosible.bulk_search
       ~Nosible.close
-      ~Nosible.get_rate_limits
       ~Nosible.fast_search
       ~Nosible.fast_searches
       ~Nosible.scrape_url

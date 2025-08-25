@@ -68,12 +68,6 @@ def test_scrape_url_success_and_error(scrape_url_data):
         nos.scrape_url()
 
 
-def test_get_rate_limits_contains_plans():
-    nos = Nosible(nosible_api_key="test|xyz")
-    rl = nos.get_rate_limits()
-    assert "Free:" in rl and "Basic ($49p/m):" in rl
-
-
 def test_close_idempotent():
     nos = Nosible()
     assert nos.close() is None

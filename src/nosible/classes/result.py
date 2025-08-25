@@ -238,7 +238,7 @@ class Result:
 
     def scrape_url(self, client) -> WebPageData:
         """
-        Visit the URL associated with this Result and retrieve its content.
+        Scrape the URL associated with this Result and retrieve its content.
 
         This method uses the provided Nosible client to fetch the web page content for the given URL.
         The result is returned as a WebPageData object containing the page's content and metadata.

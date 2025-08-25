@@ -46,7 +46,6 @@ jobs:
           # Exclude any lines inside methods named __something__
           exclude_lines =
               ^\s*def __.*__\(.*\):
-              ^\s*def get_rate_limits\(.*\):
               ^\s*def scrape_url\(.*\):
               ^\s*def sentiment\(.*\):
               ^\s*def similar\(.*\):

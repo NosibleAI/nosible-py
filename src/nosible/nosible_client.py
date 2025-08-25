@@ -1408,10 +1408,10 @@ class Nosible:
         # Return the generated text
         return "Answer:\n" + response.choices[0].message.content.strip()
 
-    @_rate_limited("visit")
-    def visit(self, html: str = "", recrawl: bool = False, render: bool = False, url: str = None) -> WebPageData:
+    @_rate_limited("scrape-url")
+    def scrape_url(self, html: str = "", recrawl: bool = False, render: bool = False, url: str = None) -> WebPageData:
         """
-        Visit a given URL and return a structured WebPageData object for the page.
+        Scrape a given URL and return a structured WebPageData object for the page.
 
         Parameters
         ----------
@@ -1444,7 +1444,7 @@ class Nosible:
         --------
         >>> from nosible import Nosible
         >>> with Nosible() as nos:
-        ...     out = nos.visit(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")
+        ...     out = nos.scrape_url(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")
         ...     print(isinstance(out, WebPageData))
         ...     print(hasattr(out, "languages"))
         ...     print(hasattr(out, "page"))
@@ -1452,7 +1452,7 @@ class Nosible:
         True
         True
         >>> with Nosible() as nos:
-        ...     out = nos.visit()
+        ...     out = nos.scrape_url()
         ...     print(isinstance(out, type(WebPageData)))
         ...     print(hasattr(out, "languages"))
         ...     print(hasattr(out, "page"))  # doctest: +ELLIPSIS
@@ -1562,84 +1562,6 @@ class Nosible:
 
         return filtered
 
-
-    def get_rate_limits(self) -> str:
-        """
-        Generate a plaintext summary of rate limits for every subscription plan.
-
-        Returns
-        -------
-        str
-            A multi-line string containing rate limits for each plan.
-
-        Examples
-        --------
-        >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> print(nos.get_rate_limits())  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-        Below are the rate limits for all NOSIBLE plans.
-        To upgrade your package, visit https://www.nosible.ai/products.
-        <BLANKLINE>
-        Unless otherwise indicated, bulk searches are limited to one-at-a-time per API key.
-        <BLANKLINE>
-        Free: (Your current plan)
-        | Endpoint    | Per Month | Per Minute | Effective CPM |
-        | ----------- | --------- | ---------- | ------------- |
-        | Search      |      3000 |         60 |         $4.00 |
-        | URL Visits  |       300 |         60 |         $4.00 |
-        | Bulk Search |       300 |         60 |         $4.00 |
-        <BLANKLINE>
-        Basic ($49p/m):
-        | Endpoint    | Per Month | Per Minute | Effective CPM |
-        ...
-        """
-        # Human-friendly plan names
-        display = {
-            "test": "Free",
-            "basic": "Basic ($49p/m)",
-            "pro": "Pro ($199p/m)",
-            "pro+": "Pro+ ($799p/m)",
-            "bus": "Business ($3999p/m)",
-            "bus+": "Business+ ($7499p/m)",
-            "ent": "Enterprise ($14999p/m)",
-        }
-
-        # Human-friendly endpoint names
-        endpoint_name = {"fast": "Search", "visit": "URL Visits", "slow": "Bulk Search"}
-
-        out = [
-            "Below are the rate limits for all NOSIBLE plans.",
-            "To upgrade your package, visit https://www.nosible.ai/products.\n",
-            "Unless otherwise indicated, bulk searches are limited to one-at-a-time per API key.\n",
-        ]
-
-        user_plan = self._get_user_plan()
-        current_plan = ""
-        cpm_counter = 4.0
-
-        # Preserve the order you care about:
-        for plan in ["test", "basic", "pro", "pro+", "bus", "bus+", "ent", "cons", "stup", "busn"]:
-            name = display.get(plan, plan)
-            if plan == user_plan:
-                current_plan = " (Your current plan)"
-
-            out.append(f"{name}:{current_plan}")
-            out.append("| Endpoint    | Per Month | Per Minute | Effective CPM |")
-            out.append("| ----------- | --------- | ---------- | ------------- |")
-
-            for ep in ["fast", "visit", "slow"]:
-                buckets = PLAN_RATE_LIMITS[plan][ep]
-                # Find minute & day
-                minute = next(limit for limit, i in buckets if i == 60)
-                month = next(limit for limit, i in buckets if i == 24 * 3600 * 30)
-                cpm = f"${cpm_counter:.2f}"
-
-                out.append(f"| {endpoint_name[ep]:<11} | {month:>9} | {minute:>10} | {cpm:>13} |")
-
-            cpm_counter = cpm_counter - 0.5
-            out.append("")  # Blank line
-            current_plan = ""
-
-        return "\n".join(out)
 
     def close(self):
         """
