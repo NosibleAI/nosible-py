@@ -36,11 +36,11 @@ jobs:
 
       - name: Run tests in record mode
         run: |
-          uv run pytest || true
+          uv run pytest -n auto || true
           
       - name: Run tests in second pass to cache new results
         run: |
-          uv run pytest || true
+          uv run pytest -n auto || true
 
       - name: Save cache of HTTP results (per-run)
         if: always()
