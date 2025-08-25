@@ -138,38 +138,38 @@ def test_scrape_url_write_json_roundtrip(tmp_path, scrape_url_data):
     assert isinstance(rehydrated.snippets, SnippetSet)
 
 
-def test_trend_success(trend_data):
-    # trend_data fixture should give the full payload as a dict
-    assert isinstance(trend_data, dict)
-    assert trend_data  # non‐empty
+def test_topic_trend_success(topic_trend_data):
+    # topic_trend_data fixture should give the full payload as a dict
+    assert isinstance(topic_trend_data, dict)
+    assert topic_trend_data  # non‐empty
     # keys should look like ISO dates, values numeric
-    for date_str, count in trend_data.items():
+    for date_str, count in topic_trend_data.items():
         assert re.match(r"^\d{4}-\d{2}-\d{2}$", date_str)
         assert isinstance(count, (int, float))
 
 
-def test_trend_date_window(trend_data):
+def test_topic_trend_date_window(topic_trend_data):
     """
     When start_date/end_date exactly cover the full range,
-    trend() should return the same set of dates (keys), regardless of values.
+    topic_trend() should return the same set of dates (keys), regardless of values.
     """
-    dates = sorted(trend_data.keys())
+    dates = sorted(topic_trend_data.keys())
     start, end = dates[0], dates[-1]
 
     with Nosible() as nos:
-        windowed = nos.trend(query="any query", start_date=start, end_date=end)
+        windowed = nos.topic_trend(query="any query", start_date=start, end_date=end)
         # Compare only the dates (keys), not the counts
-        assert set(windowed.keys()) == set(trend_data.keys())
+        assert set(windowed.keys()) == set(topic_trend_data.keys())
         # And in the same order if you care about ordering
         assert sorted(windowed.keys()) == dates
 
 
-def test_trend_invalid_date_format():
+def test_topic_trend_invalid_date_format():
     with Nosible() as nos:
         with pytest.raises(ValueError):
-            nos.trend(query="q", start_date="20210101")    # Missing hyphens
+            nos.topic_trend(query="q", start_date="20210101")    # Missing hyphens
         with pytest.raises(ValueError):
-            nos.trend(query="q", end_date="2021/01/01")    # Wrong separator
+            nos.topic_trend(query="q", end_date="2021/01/01")    # Wrong separator
 
 
 def test_search_min_similarity(search_data):

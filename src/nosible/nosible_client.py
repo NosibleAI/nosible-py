@@ -1494,7 +1494,7 @@ class Nosible:
         )
 
     @_rate_limited("fast")
-    def trend(
+    def topic_trend(
         self,
         query: str,
         start_date: Optional[str] = None,
@@ -1502,7 +1502,7 @@ class Nosible:
         sql_filter: Optional[str] = None,
     ) -> dict:
         """
-        Extract a trend showing the volume of news surrounding your query.
+        Extract a topic's trend showing the volume of news surrounding your query.
 
         Parameters
         ----------
@@ -1518,14 +1518,14 @@ class Nosible:
         Returns
         -------
         dict
-            The JSON-decoded trend data returned by the server.
+            The JSON-decoded topic trend data returned by the server.
 
         Examples
         --------
         >>> from nosible import Nosible
         >>> with Nosible() as nos:
-        ...     trends_data = nos.trend("Christmas Shopping", start_date="2005-01-01", end_date="2020-12-31")
-        ...     print(trends_data)  # doctest: +ELLIPSIS
+        ...     topic_trends_data = nos.topic_trend("Christmas Shopping", start_date="2005-01-01", end_date="2020-12-31")
+        ...     print(topic_trends_data)  # doctest: +ELLIPSIS
         {'2005-01-31': ...'2020-12-31': ...}
         """
         # Validate dates
@@ -1541,7 +1541,7 @@ class Nosible:
         else:
             payload["sql_filter"] = "SELECT loc, published FROM engine"
 
-        # Send the POST to the /trend endpoint
+        # Send the POST to the /topic-trend endpoint
         response = self._post(url="https://www.nosible.ai/search/v2/topic-trend", payload=payload)
         # Will raise ValueError on rate-limit or auth errors
         response.raise_for_status()

@@ -75,7 +75,7 @@ def bulk_search_data():
 
 
 @pytest.fixture(scope="session")
-def trend_data():
-    """Cache a single trend() invocation."""
+def topic_trend_data():
+    """Cache a single topic_trend() invocation."""
     with Nosible() as nos:
-        return nos.trend(query="Christmas shopping")
+        return nos.topic_trend(query="Christmas shopping")
