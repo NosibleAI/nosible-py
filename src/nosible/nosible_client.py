@@ -938,7 +938,7 @@ class Nosible:
 
         raise TypeError("`question` must be str, Search, SearchSet, or a list thereof")
 
-    @_rate_limited("slow")
+    @_rate_limited("bulk")
     def bulk_search(
         self,
         *,
