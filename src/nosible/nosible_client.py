@@ -892,7 +892,7 @@ class Nosible:
             if val is not None:
                 payload[key] = val
 
-        resp = self._post(url="https://www.nosible.ai/search/v1/fast-search", payload=payload)
+        resp = self._post(url="https://www.nosible.ai/search/v2/fast-search", payload=payload)
         resp.raise_for_status()
         items = resp.json().get("response", [])[:filter_responses]
         return ResultSet.from_dicts(items)
@@ -1271,7 +1271,7 @@ class Nosible:
                 if val is not None:
                     payload[key] = val
 
-            resp = self._post(url="https://www.nosible.ai/search/v1/slow-search", payload=payload)
+            resp = self._post(url="https://www.nosible.ai/search/v2/slow-search", payload=payload)
             try:
                 resp.raise_for_status()
             except httpx.HTTPStatusError as e:
@@ -1463,7 +1463,7 @@ class Nosible:
         if url is None:
             raise TypeError("URL must be provided")
         response = self._post(
-            url="https://www.nosible.ai/search/v1/visit",
+            url="https://www.nosible.ai/search/v2/visit",
             payload={"html": html, "recrawl": recrawl, "render": render, "url": url},
         )
         try:
@@ -1542,7 +1542,7 @@ class Nosible:
             payload["sql_filter"] = "SELECT loc, published FROM engine"
 
         # Send the POST to the /trend endpoint
-        response = self._post(url="https://www.nosible.ai/search/v1/trend", payload=payload)
+        response = self._post(url="https://www.nosible.ai/search/v2/trend", payload=payload)
         # Will raise ValueError on rate-limit or auth errors
         response.raise_for_status()
         payload = response.json().get("response", {})
@@ -1562,134 +1562,6 @@ class Nosible:
 
         return filtered
 
-    def version(self) -> str:
-        """
-        Retrieve the current version information for the Nosible API.
-
-        Returns
-        -------
-        str
-            JSON-formatted string containing API version details.
-
-        Examples
-        --------
-        >>> import json
-        >>> from nosible import Nosible
-        >>> with Nosible() as nos:
-        ...     v = nos.version()
-        ...     data = json.loads(v)
-        ...     # top‐level object must be a dict
-        ...     print(isinstance(data, dict))
-        ...     # must have a "response" key mapping to another dict
-        ...     print("response" in data and isinstance(data["response"], dict))
-        ...     # that inner dict must have exactly the expected sub-keys
-        ...     expected = {
-        ...         "database",
-        ...         "date",
-        ...         "documents",
-        ...         "runtime",
-        ...         "snippets",
-        ...         "time",
-        ...         "tokens",
-        ...         "version",
-        ...         "words",
-        ...     }
-        ...     print(set(data["response"].keys()) == expected)
-        True
-        True
-        True
-        """
-        response = self._post(url="https://www.nosible.ai/search/v1/version", payload={})
-
-        return json.dumps(response.json(), indent=2, sort_keys=True)
-
-    def indexed(self, url: str = None) -> bool:
-        """
-        This function checks if a URL has been indexed by Nosible.
-
-        Parameters
-        ----------
-        url : str, optional
-            The full URL to verify.
-
-        Returns
-        -------
-        bool
-            True if the URL is in the index.
-            False if the URL is not in the index.
-
-        Raises
-        ------
-
-        Examples
-        --------
-        >>> from nosible import Nosible
-        >>> with Nosible() as nos:
-        ...     print(nos.indexed(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/"))
-        True
-        """
-        response = self._post(url="https://www.nosible.ai/search/v1/indexed", payload={"url": url})
-
-        try:
-            response.raise_for_status()
-            data = response.json()
-            msg = data.get("message")
-            if msg == "The URL is in the system.":
-                return True
-            if msg == "The URL is nowhere to be found.":
-                return False
-            if msg == "The URL could not be retrieved.":
-                return False
-            # If we reach here, the response is unexpected
-            return False
-        except httpx.HTTPError:
-            return False
-        except:
-            return False
-
-    def preflight(self, url: str = None) -> str:
-        """
-        Run a preflight check for crawling/preprocessing on a URL.
-
-        Parameters
-        ----------
-        url : str, optional
-            The URL to validate or prepare for indexing.
-
-        Returns
-        -------
-        str
-            JSON-formatted string with errors, warnings, or recommendations.
-
-        Examples
-        --------
-        >>> from nosible import Nosible
-        >>> with Nosible() as nos:
-        ...     pf = nos.preflight(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")
-        ...     print(pf)
-        {
-          "response": {
-            "domain": "dailynewsegypt",
-            "fragment": "",
-            "geo": "US",
-            "hash": "ENNmqkF1mGNhVhvhmbUEs4U2",
-            "netloc": "www.dailynewsegypt.com",
-            "path": "/2023/09/08/g20-and-its-summits/",
-            "prefix": "www",
-            "proxy": "US",
-            "query": "",
-            "query_allowed": {},
-            "query_blocked": {},
-            "raw_url": "https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/",
-            "scheme": "https",
-            "suffix": "com",
-            "url": "https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits"
-          }
-        }
-        """
-        response = self._post(url="https://www.nosible.ai/search/v1/preflight", payload={"url": url})
-
-        return json.dumps(response.json(), indent=2, sort_keys=True)
 
     def get_rate_limits(self) -> str:
         """

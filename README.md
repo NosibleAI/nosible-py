@@ -13,7 +13,7 @@
 
 # NOSIBLE Search Client
 
-A high-level Python client for the [NOSIBLE Search API](https://www.nosible.ai/search/v1/docs/swagger#/).
+A high-level Python client for the [NOSIBLE Search API](https://www.nosible.ai/search/v2/docs/#/).
 Easily integrate the Nosible Search API into your Python projects.
 
 ### 📄 Documentation
@@ -111,7 +111,7 @@ You can find the full NOSIBLE Search Client documentation
 ### 📡 Swagger Docs
 
 You can find online endpoints to the NOSIBLE Search API Swagger Docs
-[here](https://www.nosible.ai/search/v1/docs/swagger#/).
+[here](https://www.nosible.ai/search/v2/docs/#/).
 
 
 ---

@@ -356,7 +356,7 @@ class Result:
             The response must be a float in [-1.0, 1.0]. No other text must be returned.
         """
         from openai import OpenAI
-        llm_client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=client.llm_api_key)
+        llm_client = OpenAI(base_url="https://openrouter.ai/api/v2", api_key=client.llm_api_key)
 
         # Call the chat completions endpoint.
         resp = llm_client.chat.completions.create(
