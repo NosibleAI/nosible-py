@@ -14,7 +14,6 @@ from typing import Optional, Union
 import warnings
 
 import httpx
-from dns.dnssecalgs import algorithms
 from tenacity import (
     before_sleep_log,
     retry,
