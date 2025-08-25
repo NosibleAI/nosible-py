@@ -45,7 +45,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/NosibleAI/nosible"
+Homepage = "https://github.com/NosibleAI/nosible-py"
 Documentation = "https://nosible-py.readthedocs.io/en/latest/"
 
 [build-system]
