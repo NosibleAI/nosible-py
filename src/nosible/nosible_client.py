@@ -211,7 +211,7 @@ class Nosible:
         self._post = retry(
             reraise=True,
             stop=stop_after_attempt(self.retries) | stop_after_delay(self.timeout),
-            wait=wait_exponential(multiplier=1, min=1, max=10),
+            wait=wait_exponential(multiplier=1, min=1, max=20),
             retry=retry_if_exception_type(httpx.RequestError),
             before_sleep=before_sleep_log(self.logger, logging.WARNING),
         )(self._post)
@@ -220,7 +220,7 @@ class Nosible:
         self._generate_expansions = retry(
             reraise=True,
             stop=stop_after_attempt(self.retries) | stop_after_delay(self.timeout),
-            wait=wait_exponential(multiplier=1, min=1, max=10),
+            wait=wait_exponential(multiplier=1, min=1, max=20),
             retry=retry_if_exception_type(httpx.RequestError),
             before_sleep=before_sleep_log(self.logger, logging.WARNING),
         )(self._generate_expansions)
@@ -2047,14 +2047,14 @@ class Nosible:
 
         # Include / exclude companies
         if include_companies:
-            company_list = ", ".join(f"'{c}'" for c in include_companies)
+            company_list = " OR ".join(f"ARRAY_CONTAINS(companies, '{c}')" for c in include_companies)
             clauses.append(
-                f"(company_1 IN ({company_list}) OR company_2 IN ({company_list}) OR company_3 IN ({company_list}))"
+                f"(companies IS NOT NULL AND ({company_list}))"
             )
         if exclude_companies:
-            company_list = ", ".join(f"'{c}'" for c in exclude_companies)
+            company_list = " OR ".join(f"ARRAY_CONTAINS(companies, '{c}')" for c in exclude_companies)
             clauses.append(
-                f"(company_1 NOT IN ({company_list}) AND company_2 NOT IN ({company_list}) AND company_3 NOT IN ({company_list}))"
+                f"(companies IS NULL OR NOT ({company_list}))"
             )
 
         if include_docs:
@@ -2111,9 +2111,7 @@ class Nosible:
             "certain",
             "netloc",
             "language",
-            "company_1",
-            "company_2",
-            "company_3",
+            "companies"
             "doc_hash",
         ]
         import polars as pl  # Lazy import

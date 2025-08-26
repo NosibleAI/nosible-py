@@ -356,7 +356,7 @@ class Result:
             The response must be a float in [-1.0, 1.0]. No other text must be returned.
         """
         from openai import OpenAI
-        llm_client = OpenAI(base_url="https://openrouter.ai/api/v2", api_key=client.llm_api_key)
+        llm_client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=client.llm_api_key)
 
         # Call the chat completions endpoint.
         resp = llm_client.chat.completions.create(
@@ -519,7 +519,6 @@ class Result:
         try:
             from nosible import Search
 
-            exclude_companies = [self.url_hash] if not exclude_companies else exclude_companies.append(self.url_hash)
             s = Search(
                 question=self.title,
                 expansions=[],
@@ -554,7 +553,8 @@ class Result:
                 iab_tier_4=iab_tier_4,
                 instruction=instruction,
             )
-            return client.fast_search(search=s)
+            results = client.fast_search(search=s)
+            return results
         except Exception as e:
             raise RuntimeError(f"Failed to find similar results for title '{self.title}': {e}") from e
 
