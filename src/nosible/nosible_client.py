@@ -2111,9 +2111,7 @@ class Nosible:
             "certain",
             "netloc",
             "language",
-            "company_1",
-            "company_2",
-            "company_3",
+            "companies"
             "doc_hash",
         ]
         import polars as pl  # Lazy import

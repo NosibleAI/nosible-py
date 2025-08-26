@@ -556,7 +556,10 @@ class Result:
                 iab_tier_4=iab_tier_4,
                 instruction=instruction,
             )
-            return client.fast_search(search=s)
+            results = client.fast_search(search=s)
+            print(results)
+
+            return results
         except Exception as e:
             raise RuntimeError(f"Failed to find similar results for title '{self.title}': {e}") from e
 
