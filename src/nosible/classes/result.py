@@ -519,8 +519,18 @@ class Result:
         try:
             from nosible import Search
 
+            base_exclude_docs = list(exclude_docs) if exclude_docs else []
             if self.url_hash:
-                exclude_docs = (exclude_docs or []) + [self.url_hash]
+                base_exclude_docs.append(self.url_hash)
+
+            seen = set()
+            exclude_docs_clean = []
+            for h in base_exclude_docs:
+                if h and h not in seen:
+                    seen.add(h)
+                    exclude_docs_clean.append(h)
+
+            exclude_docs = exclude_docs_clean or None
 
             s = Search(
                 question=self.title,
