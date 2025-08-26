@@ -2047,14 +2047,14 @@ class Nosible:
 
         # Include / exclude companies
         if include_companies:
-            company_list = ", ".join(f"'{c}'" for c in include_companies)
+            company_list = " OR ".join(f"ARRAY_CONTAINS(companies, '{c}')" for c in include_companies)
             clauses.append(
-                f"(company_1 IN ({company_list}) OR company_2 IN ({company_list}) OR company_3 IN ({company_list}))"
+                f"(companies IS NOT NULL AND ({company_list}))"
             )
         if exclude_companies:
-            company_list = ", ".join(f"'{c}'" for c in exclude_companies)
+            company_list = " OR ".join(f"ARRAY_CONTAINS(companies, '{c}')" for c in exclude_companies)
             clauses.append(
-                f"(company_1 NOT IN ({company_list}) AND company_2 NOT IN ({company_list}) AND company_3 NOT IN ({company_list}))"
+                f"(companies IS NULL OR NOT ({company_list}))"
             )
 
         if include_docs:
