@@ -211,7 +211,7 @@ class Nosible:
         self._post = retry(
             reraise=True,
             stop=stop_after_attempt(self.retries) | stop_after_delay(self.timeout),
-            wait=wait_exponential(multiplier=1, min=1, max=10),
+            wait=wait_exponential(multiplier=1, min=1, max=20),
             retry=retry_if_exception_type(httpx.RequestError),
             before_sleep=before_sleep_log(self.logger, logging.WARNING),
         )(self._post)
@@ -220,7 +220,7 @@ class Nosible:
         self._generate_expansions = retry(
             reraise=True,
             stop=stop_after_attempt(self.retries) | stop_after_delay(self.timeout),
-            wait=wait_exponential(multiplier=1, min=1, max=10),
+            wait=wait_exponential(multiplier=1, min=1, max=20),
             retry=retry_if_exception_type(httpx.RequestError),
             before_sleep=before_sleep_log(self.logger, logging.WARNING),
         )(self._generate_expansions)
