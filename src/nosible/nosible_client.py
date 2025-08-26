@@ -265,7 +265,6 @@ class Nosible:
     def search(
         self,
         prompt: str = None,
-        recursions: int = 3,
         agent: str = "cybernaut-1",
     ) -> ResultSet:
         """
@@ -277,8 +276,6 @@ class Nosible:
         ----------
         prompt: str
             The information you are looking for.
-        recursions: int
-            Maximum chain-of-search length.
         agent: str
             The search agent you want to use.
 
@@ -287,11 +284,6 @@ class Nosible:
         ResultSet
             The results of the search.
 
-        Raises
-        ------
-        ValueError
-            If `recursions` is not [3,10].
-
         Examples
         --------
         >>> from nosible import Nosible
@@ -299,21 +291,9 @@ class Nosible:
         ...     results = nos.search("Interesting news from AI startups last week.")
         ...     print(isinstance(results, ResultSet))
         True
-        >>> with Nosible() as nos:
-        ...     results = nos.search(
-        ...         prompt="Interesting news from AI startups last week.",
-        ...         recursions=20
-        ...     )  # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ...
-        ValueError: Recursions must be [3,10].
         """
-        if recursions < 3 or recursions > 10:
-            raise ValueError("Recursions must be [3,10].")
-
         payload = {
             "prompt": prompt,
-            "recursions": recursions,
             "agent": agent,
         }
 
