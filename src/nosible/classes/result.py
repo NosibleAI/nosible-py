@@ -521,6 +521,7 @@ class Result:
 
             if self.url_hash:
                 exclude_docs = (exclude_docs or []) + [self.url_hash]
+
             s = Search(
                 question=self.title,
                 expansions=[],
