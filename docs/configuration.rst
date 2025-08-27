@@ -27,14 +27,6 @@ Up to 10 semantically/lexically related queries to boost recall - only counts as
     - **Maximum**: 10
     - **Example**: ``["What drives Blackstone’s decision to boost exposure to private credit asset classes?", ...]``
 
-autogenerate_expansions
-~~~~~~~~~~~~~~~~~~~~~~~
-
-Do you want the expansions to be automatically created by an LLM. Note that you will need to provide an LLM API key.
-    - **Type**: ``bool``
-    - **Default**: ``False``
-    - **Example**: ``True``
-
 n_results
 ~~~~~~~~~
 
@@ -100,11 +92,10 @@ Any result mentioning these strings will be excluded.
     - **Default**: ``None``
     - **Example**: ``["String 1", "String 2"]``
 
-
 autogenerate_expansions
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Do you want to generate expansions automatically using a LLM?
+Do you want to generate expansions automatically using an LLM? Note that you will need to provide an LLM API key.
     - **Type**: ``bool``
     - **Default**: ``False``
     - **Example**: ``True``
