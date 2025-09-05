@@ -120,6 +120,7 @@ You can find online endpoints to the NOSIBLE Search API Swagger Docs
    configuration
    examples
    rate_limits
+   mcp_server
 
 API reference
 -------------
