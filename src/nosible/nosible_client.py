@@ -356,7 +356,7 @@ class Nosible:
         search : Search
             Search object to search with.
         expansions : list of str, optional
-            List of LLM‐generated expansions.
+            Up to 10 semantically/lexically related queries to boost recall.
         sql_filter : list of str, optional
             SQL‐style filter clauses.
         n_results : int
@@ -1732,7 +1732,7 @@ class Nosible:
         prefix = (self.nosible_api_key or "").split("|", 1)[0]
 
         # Map prefixes -> plan names
-        plans = {"test", "self", "basic", "pro", "pro+", "bus", "bus+", "ent", "chat", "cons", "stup", "busn"}
+        plans = {"test", "self", "basic", "pro", "pro+", "bus", "bus+", "ent", "chat", "cons", "stup", "busn", "prod"}
 
         if prefix not in plans:
             raise ValueError(f"Your API key is not valid: {prefix} is not a valid plan prefix.")
