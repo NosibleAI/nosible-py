@@ -103,6 +103,24 @@ with Nosible(nosible_api_key="YOUR API KEY") as client:
     print(results)
 ```
 
+### 🤖 Cybernaut 1
+
+An AI agent with unrestricted access to everything in NOSIBLE including every shard, algorithm, selector, 
+reranker, and signal. It knows what these things are and can tune them on the fly to find better results.
+
+```python
+from nosible import Nosible
+
+with Nosible(nosible_api_key="YOUR API KEY") as client:
+
+    results = client.search(
+        # search() gives you access to Cybernaut 1
+        question="Find me interesting technical blogs about Monte Carlo Tree Search."
+    )
+
+    print(results)
+```
+
 ### 📄 Documentation
 
 You can find the full NOSIBLE Search Client documentation 
