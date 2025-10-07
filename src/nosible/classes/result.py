@@ -36,6 +36,8 @@ class Result:
         The author of the content.
     content : str, optional
         The main content or body of the search result.
+    best_chunk : str, optional
+        The best snippet of text that matches your question from the search result.
     language : str, optional
         The language code of the content (e.g., 'en' for English).
     similarity : float, optional
@@ -105,6 +107,8 @@ class Result:
     """The author of the content."""
     content: str | None = None
     """The main content or body of the search result."""
+    best_chunk: str | None = None
+    """The best snippet of text that matches your question from the search result."""
     language: str | None = None
     """The language code of the content (e.g., 'en' for English)."""
     similarity: float | None = None
@@ -161,6 +165,7 @@ class Result:
             "visited": null,
             "author": null,
             "content": null,
+            "best_chunk": null,"
             "language": null,
             "similarity": null,
             "url_hash": null

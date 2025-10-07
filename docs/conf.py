@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.abspath('../src'))
 project = 'Nosible Client'
 copyright = '2025, Nosible'
 author = 'Richard Taylor'
-release = '0.3.6'
+release = '0.3.7'
 
 extensions = [
     'sphinx.ext.autodoc',
