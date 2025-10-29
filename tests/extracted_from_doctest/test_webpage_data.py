@@ -18,7 +18,7 @@ def test_to_dict_and_write_json_roundtrip(tmp_path, scrape_url_data):
     wpd = scrape_url_data
     d = wpd.to_dict()
     expected_keys = {
-        "companies","full_text","languages","metadata",
+        "full_text","languages","metadata",
         "page","request","snippets","statistics","structured","url_tree"
     }
     assert expected_keys.issubset(d.keys())

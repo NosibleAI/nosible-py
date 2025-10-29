@@ -40,8 +40,6 @@ class WebPageData:
     {'description': 'Example'}
     """
 
-    companies: list = None
-    """A list of companies mentioned in the webpage, if applicable. (GKIDS)"""
     full_text: str = None
     """The full text content of the webpage."""
     languages: dict = None
