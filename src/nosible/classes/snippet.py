@@ -30,9 +30,6 @@ class Snippet:
         The words in the snippet.
     links : list or None
         List of links associated with the snippet.
-    companies : list or None
-        List of companies mentioned in the snippet.
-
 
     Examples
     --------
@@ -62,8 +59,6 @@ class Snippet:
     """The words in the snippet."""
     links: list = field(default=None, repr=False, compare=False)
     """List of links associated with the snippet."""
-    companies: list = field(default=None, repr=False, compare=False)
-    """List of companies mentioned in the snippet."""
 
     def __str__(self):
         """
