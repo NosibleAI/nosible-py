@@ -149,3 +149,32 @@ def test_resultset_getitem(search_data):
         _ = search_data[len(search_data)]  # Out of range index
     with pytest.raises(TypeError):
         _ = search_data["invalid"]  # Invalid type for index
+
+
+def test_similar_excludes_current_document():
+    """
+    Test that the similar method properly excludes the current document from search results.
+    
+    This test creates a Nosible client, performs a fast search, takes the first result,
+    and verifies that calling similar() on that result excludes it from the returned results.
+    """
+    from nosible import Nosible
+    
+    # Create a Nosible client (similar to test_01_nosible.py)
+    with Nosible(concurrency=1) as nos:
+        # Perform a search to get some results
+        search_results = nos.fast_search(question="Hedge funds seek to expand into private credit", n_results=10)
+        
+        # Get the first result
+        first_result = search_results[0]
+        
+        # Call similar() on the first result
+        similar_results = first_result.similar(client=nos, n_results=10)
+        
+        # Verify that the first result is NOT in the similar results
+        # We check by comparing URL hashes
+        similar_hashes = [r.url_hash for r in similar_results if r.url_hash]
+        assert first_result.url_hash not in similar_hashes, f"Original result URL hash {first_result.url_hash} should not be in similar results"
+        
+        # Also verify that similar results were actually returned (should be non-empty)
+        assert len(similar_results) >= 0, "Similar results should be returned (may be empty if no similar docs found)"

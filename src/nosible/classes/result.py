@@ -519,6 +519,11 @@ class Result:
         try:
             from nosible import Search
 
+            # Ensure current document is excluded from search & add to exclude_docs if not already present
+            exclude_docs_list = list(exclude_docs) if exclude_docs else []
+            if self.url_hash and self.url_hash not in exclude_docs_list:
+                exclude_docs_list.append(self.url_hash)
+
             s = Search(
                 question=self.title,
                 expansions=[],
@@ -537,7 +542,7 @@ class Result:
                 include_companies=include_companies,
                 exclude_companies=exclude_companies,
                 include_docs=include_docs,
-                exclude_docs=exclude_docs,
+                exclude_docs=exclude_docs_list,
                 brand_safety=brand_safety,
                 language=language,
                 continent=continent,
