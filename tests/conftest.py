@@ -1,7 +1,6 @@
 import logging
 import sqlite3
 import os
-import threading  # <--- Added
 from functools import partial
 
 import httpx
@@ -27,55 +26,50 @@ class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
     """
     A subclass of SyncSqliteStorage that:
     1. Disables thread checking (for compatibility with Nosible's concurrency).
-    2. Manually defines the schema to ensure compatibility.
-    3. Uses a thread lock to prevent race conditions during DB initialization.
+    2. Manually defines the full schema (entries + streams) required by Hishel 1.0+.
     """
 
     def __init__(self, database_path, **kwargs):
         self.db_path = database_path
-        self._lock = threading.Lock()  # <--- Initialize Lock
         super().__init__(database_path=database_path, **kwargs)
 
     def _ensure_connection(self):
-        # Double-checked locking pattern not strictly necessary for this scale,
-        # but a simple lock around the check ensures safety.
-        with self._lock:
-            if self.connection is None:
-                self.connection = sqlite3.connect(
-                    self.db_path,
-                    check_same_thread=False
-                )
-                self.connection.execute("PRAGMA journal_mode=WAL;")
+        if self.connection is None:
+            self.connection = sqlite3.connect(
+                self.db_path,
+                check_same_thread=False
+            )
+            self.connection.execute("PRAGMA journal_mode=WAL;")
 
-                # 1. Create 'entries' table (Metadata)
-                self.connection.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS entries (
-                        id BLOB PRIMARY KEY,
-                        cache_key TEXT NOT NULL,
-                        data BLOB,
-                        created_at REAL,
-                        deleted_at REAL
-                    )
-                    """
+            # 1. Create 'entries' table (Metadata)
+            self.connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS entries (
+                    id BLOB PRIMARY KEY,
+                    cache_key TEXT NOT NULL,
+                    data BLOB,
+                    created_at REAL,
+                    deleted_at REAL
                 )
-                self.connection.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_cache_key ON entries(cache_key)"
-                )
+                """
+            )
+            self.connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_cache_key ON entries(cache_key)"
+            )
 
-                # 2. Create 'streams' table (Response Body)
-                self.connection.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS streams (
-                        entry_id BLOB NOT NULL,
-                        chunk_number INTEGER NOT NULL,
-                        chunk_data BLOB NOT NULL,
-                        FOREIGN KEY(entry_id) REFERENCES entries(id)
-                    )
-                    """
+            # 2. Create 'streams' table (Response Body)
+            self.connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS streams (
+                    entry_id BLOB NOT NULL,
+                    chunk_number INTEGER NOT NULL,
+                    chunk_data BLOB NOT NULL,
+                    FOREIGN KEY(entry_id) REFERENCES entries(id)
                 )
+                """
+            )
 
-                self.connection.commit()
+            self.connection.commit()
 
         return self.connection
 
@@ -85,13 +79,14 @@ def install_httpx_cache():
     """
     Setup caching for all httpx requests (both sync and async) during tests.
     """
-    # Setup clean environment
+    # Force cleanup of old DB to prevent schema conflicts from previous runs
     if os.path.exists(CACHE_DB_PATH):
         try:
             os.remove(CACHE_DB_PATH)
         except OSError:
             pass
 
+    # Define Shared Policy
     options = CacheOptions(
         allow_stale=True,
         supported_methods=["GET", "POST"]
@@ -141,7 +136,6 @@ def install_httpx_cache():
             pass
 
 
-# ... (Rest of fixtures remain the same) ...
 @pytest.fixture(scope="session")
 def search_data():
     """Cache the search results for the session."""
