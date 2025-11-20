@@ -24,24 +24,37 @@ CACHE_DB_PATH = "httpx_cache.sqlite"
 
 class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
     """
-    A subclass of SyncSqliteStorage that disables thread checking.
+    A subclass of SyncSqliteStorage that disables thread checking
+    and explicitly creates the required cache tables.
     """
 
     def __init__(self, database_path, **kwargs):
-        # 1. Store the path explicitly
         self.db_path = database_path
-        # 2. Initialize the parent
         super().__init__(database_path=database_path, **kwargs)
 
     def _ensure_connection(self):
         if self.connection is None:
-            # 3. Connect with check_same_thread=False
+            # 1. Connect with check_same_thread=False
             self.connection = sqlite3.connect(
                 self.db_path,
                 check_same_thread=False
             )
-            # 4. Initialize the database schema using the correct method name
-            self._create_tables()
+
+            # 2. Optimizations (Standard Hishel behavior)
+            self.connection.execute("PRAGMA journal_mode=WAL;")
+
+            # 3. MANUALLY CREATE THE TABLE
+            # Since we overrode the parent method, we must run this SQL ourselves.
+            self.connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS entries (
+                    cache_key TEXT PRIMARY KEY,
+                    data BLOB,
+                    date_created REAL
+                )
+                """
+            )
+            self.connection.commit()
 
         return self.connection
 
