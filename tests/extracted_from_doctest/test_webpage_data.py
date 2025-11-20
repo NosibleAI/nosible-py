@@ -1,8 +1,8 @@
-import os
 import json
-import pytest
-from nosible.classes.web_page import WebPageData
+import os
+
 from nosible.classes.snippet_set import SnippetSet
+from nosible.classes.web_page import WebPageData
 
 
 def test_scrape_url_data_fixture_is_webpage_data(scrape_url_data):

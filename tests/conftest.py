@@ -10,7 +10,6 @@ from nosible.classes.search_set import SearchSet
 
 logging.getLogger("requests_cache").setLevel(logging.DEBUG)
 
-
 CACHE_DIR = "httpx_tests_cache"
 
 

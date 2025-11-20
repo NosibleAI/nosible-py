@@ -1,8 +1,7 @@
-import json
-import os
 import pytest
 
 from nosible import Result
+
 
 def test_result_to_dict_and_str_and_indexing_and_addition():
     result = Result(

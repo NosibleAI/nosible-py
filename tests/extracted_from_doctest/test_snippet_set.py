@@ -3,7 +3,6 @@ import json
 from nosible.classes.snippet_set import SnippetSet
 
 
-
 def test_snippetset_len_getitem_index_error(snippets_data):
     ss = snippets_data
     assert len(ss) == ss.__len__()
@@ -11,6 +10,7 @@ def test_snippetset_len_getitem_index_error(snippets_data):
         assert isinstance(ss[0], type(ss[0]))
     with pytest.raises(IndexError):
         _ = ss[len(ss)]
+
 
 def test_snippetset_iteration_and_str_reset(snippets_data):
     ss = snippets_data
@@ -22,6 +22,7 @@ def test_snippetset_iteration_and_str_reset(snippets_data):
         for _ in range(len(ss) + 1):
             result.append(next(itr))
     assert len(result) == len(contents)
+
 
 def test_snippetset_to_dict_and_json_roundtrip(snippets_data):
     ss = snippets_data

@@ -1,6 +1,6 @@
-import pytest
 from nosible.classes.search import Search
 from nosible.classes.search_set import SearchSet
+
 
 def test_searchset_basic_operations(tmp_path):
     s1 = Search(question="What is Python?", n_results=3)

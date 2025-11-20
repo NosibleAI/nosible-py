@@ -1,5 +1,4 @@
-from nosible import Snippet, SnippetSet, WebPageData
-import pytest
+from nosible import Snippet, SnippetSet
 
 
 def test_snippet_initialization(snippets_data):

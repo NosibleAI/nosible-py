@@ -1,8 +1,5 @@
-import tempfile
-
 import polars as pl
 import pytest
-from polars.dependencies import pandas as pd
 
 from nosible import Result, ResultSet
 

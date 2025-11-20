@@ -1,4 +1,3 @@
-import pytest
 from nosible.classes.search import Search
 
 def test_search_initialization():

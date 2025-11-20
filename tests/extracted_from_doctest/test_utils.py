@@ -1,11 +1,9 @@
 import json
-import threading
 import time
 
 import pytest
 
 import nosible.utils.json_tools as jt
-import nosible.utils.rate_limiter as rl_mod
 from nosible.utils.rate_limiter import RateLimiter, _rate_limited
 
 
