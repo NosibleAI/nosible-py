@@ -19,14 +19,14 @@ from nosible.classes.search_set import SearchSet
 logging.getLogger("requests_cache").setLevel(logging.DEBUG)
 
 CACHE_DIR = "httpx_tests_cache"
-
 CACHE_DB_PATH = "httpx_cache.sqlite"
 
 
 class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
     """
-    A subclass of SyncSqliteStorage that disables thread checking
-    and manually defines the schema to ensure compatibility.
+    A subclass of SyncSqliteStorage that:
+    1. Disables thread checking (for compatibility with Nosible's concurrency).
+    2. Manually defines the full schema (entries + streams) required by Hishel 1.0+.
     """
 
     def __init__(self, database_path, **kwargs):
@@ -41,8 +41,7 @@ class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
             )
             self.connection.execute("PRAGMA journal_mode=WAL;")
 
-            # 1. CORRECT SCHEMA for Hishel 1.0+
-            # Columns must match exactly: id, cache_key, data, created_at, deleted_at
+            # 1. Create 'entries' table (Metadata)
             self.connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS entries (
@@ -54,10 +53,22 @@ class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
                 )
                 """
             )
-            # 2. Create index for performance
             self.connection.execute(
                 "CREATE INDEX IF NOT EXISTS idx_cache_key ON entries(cache_key)"
             )
+
+            # 2. Create 'streams' table (Response Body)
+            self.connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS streams (
+                    entry_id BLOB NOT NULL,
+                    chunk_number INTEGER NOT NULL,
+                    chunk_data BLOB NOT NULL,
+                    FOREIGN KEY(entry_id) REFERENCES entries(id)
+                )
+                """
+            )
+
             self.connection.commit()
 
         return self.connection
@@ -68,7 +79,7 @@ def install_httpx_cache():
     """
     Setup caching for all httpx requests (both sync and async) during tests.
     """
-    # Force cleanup of old DB to prevent schema conflicts
+    # Force cleanup of old DB to prevent schema conflicts from previous runs
     if os.path.exists(CACHE_DB_PATH):
         try:
             os.remove(CACHE_DB_PATH)
