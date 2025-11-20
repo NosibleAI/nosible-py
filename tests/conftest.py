@@ -3,7 +3,13 @@ from functools import partial
 
 import httpx
 import pytest
-from hishel import CacheTransport, Controller, FileStorage
+from hishel import (
+    Controller,
+    SyncCacheTransport,
+    AsyncCacheTransport,
+    SyncFileStorage,
+    AsyncFileStorage
+)
 
 from nosible import Nosible, Search
 from nosible.classes.search_set import SearchSet
@@ -18,15 +24,28 @@ def install_httpx_cache():
     """
     Setup caching for all httpx requests (both sync and async) during tests.
     """
-
-    storage = FileStorage(base_path=CACHE_DIR, ttl=60 * 30)
-    # ensure POSTs are cacheable
+    # Shared controller logic.
     controller = Controller(force_cache=True, cacheable_methods=["GET", "POST"])
-    transport = CacheTransport(transport=httpx.HTTPTransport(), storage=storage, controller=controller)
 
-    # patch both sync and async clients
-    httpx.Client = partial(httpx.Client, transport=transport, follow_redirects=True)
-    httpx.AsyncClient = partial(httpx.AsyncClient, transport=transport, follow_redirects=True)
+    # Sync Setup.
+    sync_storage = SyncFileStorage(base_path=CACHE_DIR, ttl=60 * 30)
+    sync_transport = SyncCacheTransport(
+        transport=httpx.HTTPTransport(),
+        storage=sync_storage,
+        controller=controller
+    )
+
+    # Async Setup (Must use AsyncHTTPTransport and AsyncFileStorage).
+    async_storage = AsyncFileStorage(base_path=CACHE_DIR, ttl=60 * 30)
+    async_transport = AsyncCacheTransport(
+        transport=httpx.AsyncHTTPTransport(),
+        storage=async_storage,
+        controller=controller
+    )
+
+    # Patch both clients.
+    httpx.Client = partial(httpx.Client, transport=sync_transport, follow_redirects=True)
+    httpx.AsyncClient = partial(httpx.AsyncClient, transport=async_transport, follow_redirects=True)
 
     yield
 
