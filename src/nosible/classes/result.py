@@ -156,20 +156,7 @@ class Result:
           0.99 | Example Domain
         >>> result = Result(title=None, similarity=None)
         >>> print(str(result))
-        {
-            "url": null,
-            "title": null,
-            "description": null,
-            "netloc": null,
-            "published": null,
-            "visited": null,
-            "author": null,
-            "content": null,
-            "best_chunk": null,"
-            "language": null,
-            "similarity": null,
-            "url_hash": null
-        }
+        {}
         """
         # Get the full dictionary
         data = self.to_dict()
