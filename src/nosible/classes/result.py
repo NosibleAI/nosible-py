@@ -171,7 +171,13 @@ class Result:
             "url_hash": null
         }
         """
-        return print_dict(self.to_dict())
+        # Get the full dictionary
+        data = self.to_dict()
+
+        # Create a new dictionary excluding keys where the value is None
+        clean_data = {k: v for k, v in data.items() if v is not None}
+
+        return print_dict(clean_data)
 
     def __getitem__(self, key: str) -> str | float | bool | None:
         """
