@@ -6,8 +6,8 @@ import pytest
 from hishel import (
     CacheOptions,
     SpecificationPolicy,
-    FileStorage,
-    AsyncFileStorage
+    SyncSqliteStorage,
+    AsyncSqliteStorage
 )
 from hishel.httpx import SyncCacheTransport, AsyncCacheTransport
 
@@ -17,6 +17,9 @@ from nosible.classes.search_set import SearchSet
 logging.getLogger("requests_cache").setLevel(logging.DEBUG)
 
 CACHE_DIR = "httpx_tests_cache"
+
+# Define a file name for the DB instead of a directory
+CACHE_DB_PATH = "httpx_cache.sqlite"
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -31,17 +34,24 @@ def install_httpx_cache():
     )
     policy = SpecificationPolicy(cache_options=options)
 
-    # 2. Setup Synchronous Storage (FileStorage) & Transport
-    # NOTE: 'ttl' is renamed to 'default_ttl' in Hishel 1.0+
-    sync_storage = FileStorage(base_path=CACHE_DIR, default_ttl=60 * 30)
+    # 2. Setup Synchronous Storage (SQLite)
+    # Use 'database_path' and 'default_ttl'
+    sync_storage = SyncSqliteStorage(
+        database_path=CACHE_DB_PATH,
+        default_ttl=60 * 30
+    )
     sync_transport = SyncCacheTransport(
         transport=httpx.HTTPTransport(),
         storage=sync_storage,
         policy=policy
     )
 
-    # 3. Setup Asynchronous Storage (AsyncFileStorage) & Transport
-    async_storage = AsyncFileStorage(base_path=CACHE_DIR, default_ttl=60 * 30)
+    # 3. Setup Asynchronous Storage (SQLite)
+    # Point to the same DB file
+    async_storage = AsyncSqliteStorage(
+        database_path=CACHE_DB_PATH,
+        default_ttl=60 * 30
+    )
     async_transport = AsyncCacheTransport(
         transport=httpx.AsyncHTTPTransport(),
         storage=async_storage,
@@ -53,6 +63,11 @@ def install_httpx_cache():
     httpx.AsyncClient = partial(httpx.AsyncClient, transport=async_transport, follow_redirects=True)
 
     yield
+
+    # Optional: You might want to close the storage connections explicitly if tests hang,
+    # but usually the fixture teardown handles this fine for sessions.
+    sync_storage.close()
+    # Async close is trickier in a sync fixture, but typically acceptable to skip for simple test caches.
 
 
 @pytest.fixture(scope="session")
