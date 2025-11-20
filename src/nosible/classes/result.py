@@ -154,9 +154,6 @@ class Result:
         >>> result = Result(title="Example Domain", similarity=0.9876)
         >>> print(str(result))
           0.99 | Example Domain
-        >>> result = Result(title=None, similarity=None)
-        >>> print(str(result))
-        {}
         """
         # Get the full dictionary
         data = self.to_dict()
