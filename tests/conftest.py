@@ -41,18 +41,20 @@ class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
             )
             self.connection.execute("PRAGMA journal_mode=WAL;")
 
-            # CORRECT SCHEMA: Includes 'id' column required by Hishel
+            # 1. CORRECT SCHEMA for Hishel 1.0+
+            # Columns must match exactly: id, cache_key, data, created_at, deleted_at
             self.connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS entries (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id BLOB PRIMARY KEY,
                     cache_key TEXT NOT NULL,
                     data BLOB,
-                    date_created REAL
+                    created_at REAL,
+                    deleted_at REAL
                 )
                 """
             )
-            # Create index for performance (standard practice)
+            # 2. Create index for performance
             self.connection.execute(
                 "CREATE INDEX IF NOT EXISTS idx_cache_key ON entries(cache_key)"
             )
@@ -66,18 +68,21 @@ def install_httpx_cache():
     """
     Setup caching for all httpx requests (both sync and async) during tests.
     """
-    # 1. FORCE CLEANUP: Remove the old DB file if it exists to prevent schema conflicts
+    # Force cleanup of old DB to prevent schema conflicts
     if os.path.exists(CACHE_DB_PATH):
-        os.remove(CACHE_DB_PATH)
+        try:
+            os.remove(CACHE_DB_PATH)
+        except OSError:
+            pass
 
-    # 2. Define Shared Policy
+    # Define Shared Policy
     options = CacheOptions(
         allow_stale=True,
         supported_methods=["GET", "POST"]
     )
     policy = SpecificationPolicy(cache_options=options)
 
-    # 3. Setup Synchronous Storage (Use our Custom Class)
+    # Setup Synchronous Storage (Use our Custom Class)
     sync_storage = ThreadSafeSyncSqliteStorage(
         database_path=CACHE_DB_PATH,
         default_ttl=60 * 30
@@ -89,7 +94,7 @@ def install_httpx_cache():
         policy=policy
     )
 
-    # 4. Setup Asynchronous Storage
+    # Setup Asynchronous Storage
     async_storage = AsyncSqliteStorage(
         database_path=CACHE_DB_PATH,
         default_ttl=60 * 30
@@ -101,17 +106,23 @@ def install_httpx_cache():
         policy=policy
     )
 
-    # 5. Patch clients
+    # Patch clients
     httpx.Client = partial(httpx.Client, transport=sync_transport, follow_redirects=True)
     httpx.AsyncClient = partial(httpx.AsyncClient, transport=async_transport, follow_redirects=True)
 
     yield
 
     # Cleanup
-    sync_storage.close()
-    # Optional: clean up file after tests
+    try:
+        sync_storage.close()
+    except Exception:
+        pass
+
     if os.path.exists(CACHE_DB_PATH):
-        os.remove(CACHE_DB_PATH)
+        try:
+            os.remove(CACHE_DB_PATH)
+        except OSError:
+            pass
 
 
 @pytest.fixture(scope="session")
