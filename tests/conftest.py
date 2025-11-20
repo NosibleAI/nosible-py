@@ -39,7 +39,6 @@ def install_httpx_cache():
         default_ttl=60 * 30
     )
     sync_transport = SyncCacheTransport(
-        transport=httpx.HTTPTransport(),
         storage=sync_storage,
         policy=policy
     )
@@ -51,7 +50,6 @@ def install_httpx_cache():
         default_ttl=60 * 30
     )
     async_transport = AsyncCacheTransport(
-        transport=httpx.AsyncHTTPTransport(),
         storage=async_storage,
         policy=policy
     )
