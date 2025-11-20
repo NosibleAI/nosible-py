@@ -28,7 +28,6 @@ def install_httpx_cache():
     """
     # Define Shared Policy.
     options = CacheOptions(
-        always_cache=True,
         supported_methods=["GET", "POST"]
     )
     policy = SpecificationPolicy(cache_options=options)
