@@ -6,7 +6,7 @@ import pytest
 from hishel import (
     CacheOptions,
     SpecificationPolicy,
-    SyncFileStorage,
+    FileStorage,
     AsyncFileStorage
 )
 from hishel.httpx import SyncCacheTransport, AsyncCacheTransport
@@ -24,30 +24,31 @@ def install_httpx_cache():
     """
     Setup caching for all httpx requests (both sync and async) during tests.
     """
-    # Define shared Cache Options (replaces old Controller logic)
+    # 1. Define Shared Policy
     options = CacheOptions(
         always_cache=True,
         supported_methods=["GET", "POST"]
     )
     policy = SpecificationPolicy(cache_options=options)
 
-    # Setup Synchronous Storage and Transport
-    sync_storage = SyncFileStorage(base_path=CACHE_DIR, ttl=60 * 30)
+    # 2. Setup Synchronous Storage (FileStorage) & Transport
+    # NOTE: 'ttl' is renamed to 'default_ttl' in Hishel 1.0+
+    sync_storage = FileStorage(base_path=CACHE_DIR, default_ttl=60 * 30)
     sync_transport = SyncCacheTransport(
         transport=httpx.HTTPTransport(),
         storage=sync_storage,
         policy=policy
     )
 
-    # Setup Asynchronous Storage and Transport
-    async_storage = AsyncFileStorage(base_path=CACHE_DIR, ttl=60 * 30)
+    # 3. Setup Asynchronous Storage (AsyncFileStorage) & Transport
+    async_storage = AsyncFileStorage(base_path=CACHE_DIR, default_ttl=60 * 30)
     async_transport = AsyncCacheTransport(
         transport=httpx.AsyncHTTPTransport(),
         storage=async_storage,
         policy=policy
     )
 
-    # Patch both clients
+    # 4. Patch clients
     httpx.Client = partial(httpx.Client, transport=sync_transport, follow_redirects=True)
     httpx.AsyncClient = partial(httpx.AsyncClient, transport=async_transport, follow_redirects=True)
 
