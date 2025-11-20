@@ -1522,7 +1522,6 @@ class Nosible:
 
         response_data = data["response"]
         return WebPageData(
-            companies=response_data.get("companies"),
             full_text=response_data.get("full_text"),
             languages=response_data.get("languages"),
             metadata=response_data.get("metadata"),

@@ -30,18 +30,13 @@ class Snippet:
         The words in the snippet.
     links : list or None
         List of links associated with the snippet.
-    companies : list or None
-        List of companies mentioned in the snippet.
-
 
     Examples
     --------
     >>> snippet = Snippet(content="Example snippet", language="en")
     >>> print(snippet.content)
     Example snippet
-
     """
-
     content: str = field(default=None, repr=True, compare=True)
     """The text content of the snippet."""
     images: list = field(default=None, repr=True, compare=False)
@@ -62,8 +57,6 @@ class Snippet:
     """The words in the snippet."""
     links: list = field(default=None, repr=False, compare=False)
     """List of links associated with the snippet."""
-    companies: list = field(default=None, repr=False, compare=False)
-    """List of companies mentioned in the snippet."""
 
     def __str__(self):
         """

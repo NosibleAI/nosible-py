@@ -133,7 +133,7 @@ class RateLimiter:
 
         # Build our bucket
         bucket = InMemoryBucket([Rate(max_calls, period_ms)])
-        self._limiter = Limiter(bucket)
+        self._limiter = Limiter(bucket, max_delay=1000)
 
     def acquire(self) -> None:
         """
