@@ -36,7 +36,8 @@ def install_httpx_cache():
     # Use 'database_path' and 'default_ttl'.
     sync_storage = SyncSqliteStorage(
         database_path=CACHE_DB_PATH,
-        default_ttl=60 * 30
+        default_ttl=60 * 30,
+        connection_kwargs={"check_same_thread": False}
     )
     sync_transport = SyncCacheTransport(
         httpx.HTTPTransport(),
