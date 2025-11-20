@@ -40,8 +40,8 @@ class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
                 self.db_path,
                 check_same_thread=False
             )
-            # 4. CRITICAL: Initialize the database schema (create tables)
-            self._setup()
+            # 4. Initialize the database schema using the correct method name
+            self._create_tables()
 
         return self.connection
 
