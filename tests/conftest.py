@@ -1,6 +1,7 @@
 import logging
 import sqlite3
 import os
+import threading
 from functools import partial
 
 import httpx
@@ -25,51 +26,56 @@ CACHE_DB_PATH = "httpx_cache.sqlite"
 class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
     """
     A subclass of SyncSqliteStorage that:
-     - Disables thread checking (for compatibility with Nosible's concurrency).
-     - Manually defines the full schema (entries + streams) required by Hishel 1.0+.
+    1. Uses a thread lock to prevent race conditions.
+    2. Manually defines the schema.
+    3. Sets a timeout to handle file locking better.
     """
 
     def __init__(self, database_path, **kwargs):
         self.db_path = database_path
+        self._lock = threading.Lock()
         super().__init__(database_path=database_path, **kwargs)
 
     def _ensure_connection(self):
-        if self.connection is None:
-            self.connection = sqlite3.connect(
-                self.db_path,
-                check_same_thread=False
-            )
-            self.connection.execute("PRAGMA journal_mode=WAL;")
-
-            # Create 'entries' table (Metadata).
-            self.connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS entries (
-                    id BLOB PRIMARY KEY,
-                    cache_key TEXT NOT NULL,
-                    data BLOB,
-                    created_at REAL,
-                    deleted_at REAL
+        with self._lock:
+            if self.connection is None:
+                # Added timeout=10 to handle macOS file locking latency
+                self.connection = sqlite3.connect(
+                    self.db_path,
+                    check_same_thread=False,
+                    timeout=10.0
                 )
-                """
-            )
-            self.connection.execute(
-                "CREATE INDEX IF NOT EXISTS idx_cache_key ON entries(cache_key)"
-            )
+                self.connection.execute("PRAGMA journal_mode=WAL;")
 
-            # Create 'streams' table (Response Body).
-            self.connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS streams (
-                    entry_id BLOB NOT NULL,
-                    chunk_number INTEGER NOT NULL,
-                    chunk_data BLOB NOT NULL,
-                    FOREIGN KEY(entry_id) REFERENCES entries(id)
+                # 1. Create 'entries' table
+                self.connection.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS entries (
+                        id BLOB PRIMARY KEY,
+                        cache_key TEXT NOT NULL,
+                        data BLOB,
+                        created_at REAL,
+                        deleted_at REAL
+                    )
+                    """
                 )
-                """
-            )
+                self.connection.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_cache_key ON entries(cache_key)"
+                )
 
-            self.connection.commit()
+                # 2. Create 'streams' table
+                self.connection.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS streams (
+                        entry_id BLOB NOT NULL,
+                        chunk_number INTEGER NOT NULL,
+                        chunk_data BLOB NOT NULL,
+                        FOREIGN KEY(entry_id) REFERENCES entries(id)
+                    )
+                    """
+                )
+
+                self.connection.commit()
 
         return self.connection
 
@@ -79,25 +85,28 @@ def install_httpx_cache():
     """
     Setup caching for all httpx requests (both sync and async) during tests.
     """
-    # Force cleanup of old DB to prevent schema conflicts from previous runs.
+    # Cleanup old DB
     if os.path.exists(CACHE_DB_PATH):
         try:
             os.remove(CACHE_DB_PATH)
         except OSError:
             pass
 
-    # Define Shared Policy.
     options = CacheOptions(
         allow_stale=True,
         supported_methods=["GET", "POST"]
     )
     policy = SpecificationPolicy(cache_options=options)
 
-    # Setup Synchronous Storage (Use our Custom Class).
+    # Setup Synchronous Storage
     sync_storage = ThreadSafeSyncSqliteStorage(
         database_path=CACHE_DB_PATH,
         default_ttl=60 * 30
     )
+
+    # [CRITICAL FIX] Pre-initialize the DB in the main thread!
+    # This creates the tables NOW, so worker threads don't race to do it later.
+    sync_storage._ensure_connection()
 
     sync_transport = SyncCacheTransport(
         httpx.HTTPTransport(),
@@ -105,7 +114,7 @@ def install_httpx_cache():
         policy=policy
     )
 
-    # Setup Asynchronous Storage.
+    # Setup Asynchronous Storage
     async_storage = AsyncSqliteStorage(
         database_path=CACHE_DB_PATH,
         default_ttl=60 * 30
@@ -117,13 +126,13 @@ def install_httpx_cache():
         policy=policy
     )
 
-    # Patch clients.
+    # Patch clients
     httpx.Client = partial(httpx.Client, transport=sync_transport, follow_redirects=True)
     httpx.AsyncClient = partial(httpx.AsyncClient, transport=async_transport, follow_redirects=True)
 
     yield
 
-    # Cleanup.
+    # Cleanup
     try:
         sync_storage.close()
     except Exception:
@@ -136,6 +145,7 @@ def install_httpx_cache():
             pass
 
 
+# ... (Rest of your fixtures: search_data, etc. remain exactly the same) ...
 @pytest.fixture(scope="session")
 def search_data():
     """Cache the search results for the session."""
@@ -172,8 +182,9 @@ def scrape_url_data(search_data):
 
 @pytest.fixture(scope="session")
 def bulk_search_data():
-    """Cache a single bulk_search() invocation."""
+    """Cache a single bulk_search() invocation (using a minimal valid size)."""
     with Nosible() as nos:
+        # Use n_results=1000 to satisfy the >=1000 requirement
         return nos.bulk_search(question="Hedge funds seek to expand into private credit", n_results=1000)
 
 
