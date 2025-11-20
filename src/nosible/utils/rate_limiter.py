@@ -177,7 +177,7 @@ class RateLimiter:
                 # Ensure at least a small sleep if rounding to zero
                 time.sleep(wait_s)
 
-    def try_acquire(self) -> bool:
+    def try_acquire(self, name: str = None) -> bool:
         """
         Attempt to acquire a slot without blocking.
 
