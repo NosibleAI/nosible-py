@@ -29,13 +29,14 @@ class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
     connections cannot be shared across threads by default.
     """
     def _ensure_connection(self):
-        if self._connection is None:
+        # Fix: Use 'self.connection' instead of 'self._connection'
+        if self.connection is None:
             # Manually connect with check_same_thread=False
-            self._connection = sqlite3.connect(
+            self.connection = sqlite3.connect(
                 self._database_path,
                 check_same_thread=False
             )
-        return self._connection
+        return self.connection
 
 
 @pytest.fixture(autouse=True, scope="session")
