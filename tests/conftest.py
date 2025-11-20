@@ -25,15 +25,19 @@ CACHE_DB_PATH = "httpx_cache.sqlite"
 class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
     """
     A subclass of SyncSqliteStorage that disables thread checking.
-    Required because Nosible/Tenacity uses threads, and standard SQLite
-    connections cannot be shared across threads by default.
     """
+    def __init__(self, database_path, **kwargs):
+        # 1. Store the path explicitly in our own variable
+        self.db_path = database_path
+        # 2. Initialize the parent class normally
+        super().__init__(database_path=database_path, **kwargs)
+
     def _ensure_connection(self):
-        # Fix: Use 'self.connection' instead of 'self._connection'
+        # 3. Check 'self.connection' (the internal Hishel handle)
         if self.connection is None:
-            # Manually connect with check_same_thread=False
+            # 4. Connect using OUR stored path and disable thread checks
             self.connection = sqlite3.connect(
-                self._database_path,
+                self.db_path,
                 check_same_thread=False
             )
         return self.connection
