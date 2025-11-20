@@ -18,7 +18,6 @@ logging.getLogger("requests_cache").setLevel(logging.DEBUG)
 
 CACHE_DIR = "httpx_tests_cache"
 
-# Define a file name for the DB instead of a directory
 CACHE_DB_PATH = "httpx_cache.sqlite"
 
 
@@ -27,15 +26,15 @@ def install_httpx_cache():
     """
     Setup caching for all httpx requests (both sync and async) during tests.
     """
-    # 1. Define Shared Policy
+    # Define Shared Policy.
     options = CacheOptions(
         always_cache=True,
         supported_methods=["GET", "POST"]
     )
     policy = SpecificationPolicy(cache_options=options)
 
-    # 2. Setup Synchronous Storage (SQLite)
-    # Use 'database_path' and 'default_ttl'
+    # Setup Synchronous Storage (SQLite).
+    # Use 'database_path' and 'default_ttl'.
     sync_storage = SyncSqliteStorage(
         database_path=CACHE_DB_PATH,
         default_ttl=60 * 30
@@ -46,8 +45,8 @@ def install_httpx_cache():
         policy=policy
     )
 
-    # 3. Setup Asynchronous Storage (SQLite)
-    # Point to the same DB file
+    # Setup Asynchronous Storage (SQLite).
+    # Point to the same DB file.
     async_storage = AsyncSqliteStorage(
         database_path=CACHE_DB_PATH,
         default_ttl=60 * 30
@@ -58,16 +57,13 @@ def install_httpx_cache():
         policy=policy
     )
 
-    # 4. Patch clients
+    # Patch clients.
     httpx.Client = partial(httpx.Client, transport=sync_transport, follow_redirects=True)
     httpx.AsyncClient = partial(httpx.AsyncClient, transport=async_transport, follow_redirects=True)
 
     yield
 
-    # Optional: You might want to close the storage connections explicitly if tests hang,
-    # but usually the fixture teardown handles this fine for sessions.
     sync_storage.close()
-    # Async close is trickier in a sync fixture, but typically acceptable to skip for simple test caches.
 
 
 @pytest.fixture(scope="session")
