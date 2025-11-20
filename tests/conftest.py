@@ -39,8 +39,9 @@ def install_httpx_cache():
         default_ttl=60 * 30
     )
     sync_transport = SyncCacheTransport(
+        httpx.HTTPTransport(),
         storage=sync_storage,
-        policy=policy
+        controller=policy
     )
 
     # Setup Asynchronous Storage (SQLite).
@@ -50,8 +51,9 @@ def install_httpx_cache():
         default_ttl=60 * 30
     )
     async_transport = AsyncCacheTransport(
+        httpx.AsyncHTTPTransport(),
         storage=async_storage,
-        policy=policy
+        controller=policy
     )
 
     # Patch clients.
