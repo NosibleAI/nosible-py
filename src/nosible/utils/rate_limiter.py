@@ -4,7 +4,7 @@ import time
 
 from pyrate_limiter import Limiter, Rate
 from pyrate_limiter.buckets.in_memory_bucket import InMemoryBucket
-from pyrate_limiter.exceptions import BucketFullException
+from pyrate_limiter.exceptions import BucketFullException, LimiterDelayException
 
 log = logging.getLogger(__name__)
 
@@ -196,8 +196,11 @@ class RateLimiter:
         >>> rl.try_acquire()
         False
         """
+        key = name if name else self._GLOBAL_KEY
+
         try:
-            self._limiter.try_acquire(self._GLOBAL_KEY)
+            self._limiter.try_acquire(key)
             return True
-        except BucketFullException:
+        except (BucketFullException, LimiterDelayException):
+            # Return False instead of crashing when the limit is hit
             return False
