@@ -1,4 +1,5 @@
 import logging
+import sqlite3
 from functools import partial
 
 import httpx
@@ -21,6 +22,22 @@ CACHE_DIR = "httpx_tests_cache"
 CACHE_DB_PATH = "httpx_cache.sqlite"
 
 
+class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
+    """
+    A subclass of SyncSqliteStorage that disables thread checking.
+    Required because Nosible/Tenacity uses threads, and standard SQLite
+    connections cannot be shared across threads by default.
+    """
+    def _ensure_connection(self):
+        if self._connection is None:
+            # Manually connect with check_same_thread=False
+            self._connection = sqlite3.connect(
+                self._database_path,
+                check_same_thread=False
+            )
+        return self._connection
+
+
 @pytest.fixture(autouse=True, scope="session")
 def install_httpx_cache():
     """
@@ -34,10 +51,9 @@ def install_httpx_cache():
 
     # Setup Synchronous Storage (SQLite).
     # Use 'database_path' and 'default_ttl'.
-    sync_storage = SyncSqliteStorage(
+    sync_storage = ThreadSafeSyncSqliteStorage(
         database_path=CACHE_DB_PATH,
-        default_ttl=60 * 30,
-        connection_kwargs={"check_same_thread": False}
+        default_ttl=60 * 30
     )
     sync_transport = SyncCacheTransport(
         httpx.HTTPTransport(),
