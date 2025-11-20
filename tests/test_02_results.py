@@ -84,8 +84,6 @@ def test_resultset_to_dict(search_data):
         assert "published" in res
         assert "similarity" in res
         assert res["url_hash"] == key
-    # results_copy_from_dict = ResultSet.from_dict(results_dict)
-    # assert results == results_copy_from_dict
 
 
 # to_dicts
