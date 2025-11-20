@@ -25,8 +25,8 @@ CACHE_DB_PATH = "httpx_cache.sqlite"
 class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
     """
     A subclass of SyncSqliteStorage that:
-    1. Disables thread checking (for compatibility with Nosible's concurrency).
-    2. Manually defines the full schema (entries + streams) required by Hishel 1.0+.
+     - Disables thread checking (for compatibility with Nosible's concurrency).
+     - Manually defines the full schema (entries + streams) required by Hishel 1.0+.
     """
 
     def __init__(self, database_path, **kwargs):
@@ -41,7 +41,7 @@ class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
             )
             self.connection.execute("PRAGMA journal_mode=WAL;")
 
-            # 1. Create 'entries' table (Metadata)
+            # Create 'entries' table (Metadata).
             self.connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS entries (
@@ -57,7 +57,7 @@ class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
                 "CREATE INDEX IF NOT EXISTS idx_cache_key ON entries(cache_key)"
             )
 
-            # 2. Create 'streams' table (Response Body)
+            # Create 'streams' table (Response Body).
             self.connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS streams (
@@ -79,21 +79,21 @@ def install_httpx_cache():
     """
     Setup caching for all httpx requests (both sync and async) during tests.
     """
-    # Force cleanup of old DB to prevent schema conflicts from previous runs
+    # Force cleanup of old DB to prevent schema conflicts from previous runs.
     if os.path.exists(CACHE_DB_PATH):
         try:
             os.remove(CACHE_DB_PATH)
         except OSError:
             pass
 
-    # Define Shared Policy
+    # Define Shared Policy.
     options = CacheOptions(
         allow_stale=True,
         supported_methods=["GET", "POST"]
     )
     policy = SpecificationPolicy(cache_options=options)
 
-    # Setup Synchronous Storage (Use our Custom Class)
+    # Setup Synchronous Storage (Use our Custom Class).
     sync_storage = ThreadSafeSyncSqliteStorage(
         database_path=CACHE_DB_PATH,
         default_ttl=60 * 30
@@ -105,7 +105,7 @@ def install_httpx_cache():
         policy=policy
     )
 
-    # Setup Asynchronous Storage
+    # Setup Asynchronous Storage.
     async_storage = AsyncSqliteStorage(
         database_path=CACHE_DB_PATH,
         default_ttl=60 * 30
@@ -117,13 +117,13 @@ def install_httpx_cache():
         policy=policy
     )
 
-    # Patch clients
+    # Patch clients.
     httpx.Client = partial(httpx.Client, transport=sync_transport, follow_redirects=True)
     httpx.AsyncClient = partial(httpx.AsyncClient, transport=async_transport, follow_redirects=True)
 
     yield
 
-    # Cleanup
+    # Cleanup.
     try:
         sync_storage.close()
     except Exception:
@@ -172,9 +172,8 @@ def scrape_url_data(search_data):
 
 @pytest.fixture(scope="session")
 def bulk_search_data():
-    """Cache a single bulk_search() invocation (using a minimal valid size)."""
+    """Cache a single bulk_search() invocation."""
     with Nosible() as nos:
-        # Use n_results=1000 to satisfy the >=1000 requirement
         return nos.bulk_search(question="Hedge funds seek to expand into private credit", n_results=1000)
 
 
