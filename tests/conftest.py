@@ -26,20 +26,23 @@ class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
     """
     A subclass of SyncSqliteStorage that disables thread checking.
     """
+
     def __init__(self, database_path, **kwargs):
-        # 1. Store the path explicitly in our own variable
+        # 1. Store the path explicitly
         self.db_path = database_path
-        # 2. Initialize the parent class normally
+        # 2. Initialize the parent
         super().__init__(database_path=database_path, **kwargs)
 
     def _ensure_connection(self):
-        # 3. Check 'self.connection' (the internal Hishel handle)
         if self.connection is None:
-            # 4. Connect using OUR stored path and disable thread checks
+            # 3. Connect with check_same_thread=False
             self.connection = sqlite3.connect(
                 self.db_path,
                 check_same_thread=False
             )
+            # 4. CRITICAL: Initialize the database schema (create tables)
+            self._setup()
+
         return self.connection
 
 
