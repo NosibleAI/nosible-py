@@ -1,11 +1,9 @@
 import json
-import threading
 import time
 
 import pytest
 
 import nosible.utils.json_tools as jt
-import nosible.utils.rate_limiter as rl_mod
 from nosible.utils.rate_limiter import RateLimiter, _rate_limited
 
 
@@ -134,7 +132,7 @@ def test_print_dict_indent(monkeypatch):
 
 def test_rate_limiter_try_acquire_and_block(monkeypatch):
     # small window so we don't wait too long
-    rl = RateLimiter(max_calls=1, period_s=0.1)
+    rl = RateLimiter(max_calls=1, period_s=1.0)
     # first try_acquire succeeds
     assert rl.try_acquire() is True
     # second immediately fails

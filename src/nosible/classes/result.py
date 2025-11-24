@@ -36,6 +36,8 @@ class Result:
         The author of the content.
     content : str, optional
         The main content or body of the search result.
+    best_chunk : str, optional
+        The best snippet of text that matches your question from the search result.
     language : str, optional
         The language code of the content (e.g., 'en' for English).
     similarity : float, optional
@@ -105,6 +107,8 @@ class Result:
     """The author of the content."""
     content: str | None = None
     """The main content or body of the search result."""
+    best_chunk: str | None = None
+    """The best snippet of text that matches your question from the search result."""
     language: str | None = None
     """The language code of the content (e.g., 'en' for English)."""
     similarity: float | None = None
@@ -150,23 +154,14 @@ class Result:
         >>> result = Result(title="Example Domain", similarity=0.9876)
         >>> print(str(result))
           0.99 | Example Domain
-        >>> result = Result(title=None, similarity=None)
-        >>> print(str(result))
-        {
-            "url": null,
-            "title": null,
-            "description": null,
-            "netloc": null,
-            "published": null,
-            "visited": null,
-            "author": null,
-            "content": null,
-            "language": null,
-            "similarity": null,
-            "url_hash": null
-        }
         """
-        return print_dict(self.to_dict())
+        # Get the full dictionary
+        data = self.to_dict()
+
+        # Create a new dictionary excluding keys where the value is None
+        clean_data = {k: v for k, v in data.items() if v is not None}
+
+        return print_dict(clean_data)
 
     def __getitem__(self, key: str) -> str | float | bool | None:
         """
@@ -519,6 +514,11 @@ class Result:
         try:
             from nosible import Search
 
+            # Exclude the original doc from the new search.
+            exclude_docs_list = list(exclude_docs) if exclude_docs else []
+            if self.url_hash and self.url_hash not in exclude_docs_list:
+                exclude_docs_list.append(self.url_hash)
+
             s = Search(
                 question=self.title,
                 expansions=[],
@@ -537,7 +537,7 @@ class Result:
                 include_companies=include_companies,
                 exclude_companies=exclude_companies,
                 include_docs=include_docs,
-                exclude_docs=exclude_docs,
+                exclude_docs=exclude_docs_list,
                 brand_safety=brand_safety,
                 language=language,
                 continent=continent,

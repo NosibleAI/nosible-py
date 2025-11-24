@@ -1,8 +1,8 @@
-import os
 import json
-import pytest
-from nosible.classes.web_page import WebPageData
+import os
+
 from nosible.classes.snippet_set import SnippetSet
+from nosible.classes.web_page import WebPageData
 
 
 def test_scrape_url_data_fixture_is_webpage_data(scrape_url_data):
@@ -18,7 +18,7 @@ def test_to_dict_and_write_json_roundtrip(tmp_path, scrape_url_data):
     wpd = scrape_url_data
     d = wpd.to_dict()
     expected_keys = {
-        "companies","full_text","languages","metadata",
+        "full_text","languages","metadata",
         "page","request","snippets","statistics","structured","url_tree"
     }
     assert expected_keys.issubset(d.keys())

@@ -1522,7 +1522,6 @@ class Nosible:
 
         response_data = data["response"]
         return WebPageData(
-            companies=response_data.get("companies"),
             full_text=response_data.get("full_text"),
             languages=response_data.get("languages"),
             metadata=response_data.get("metadata"),
@@ -2039,13 +2038,13 @@ class Nosible:
 
         if include_docs:
             # Assume these are URL hashes, e.g. "ENNmqkF1mGNhVhvhmbUEs4U2"
-            doc_hashes = ", ".join(f"'{doc}'" for doc in include_docs)
-            clauses.append(f"doc_hash IN ({doc_hashes})")
+            docs = ", ".join(f"'{doc}'" for doc in include_docs)
+            clauses.append(f"doc IN ({docs})")
 
         if exclude_docs:
             # Assume these are URL hashes, e.g. "ENNmqkF1mGNhVhvhmbUEs4U2"
-            doc_hashes = ", ".join(f"'{doc}'" for doc in exclude_docs)
-            clauses.append(f"doc_hash NOT IN ({doc_hashes})")
+            docs = ", ".join(f"'{doc}'" for doc in exclude_docs)
+            clauses.append(f"doc NOT IN ({docs})")
 
         # Join everything
         if clauses:
@@ -2092,7 +2091,7 @@ class Nosible:
             "netloc",
             "language",
             "companies"
-            "doc_hash",
+            "doc",
         ]
         import polars as pl  # Lazy import
 

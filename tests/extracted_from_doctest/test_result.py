@@ -1,8 +1,7 @@
-import json
-import os
 import pytest
 
 from nosible import Result
+
 
 def test_result_to_dict_and_str_and_indexing_and_addition():
     result = Result(
@@ -40,7 +39,7 @@ def test_result_to_dict_and_str_and_indexing_and_addition():
     s = str(Result(title="T", similarity=0.9876))
     assert "0.9876" in s and "T" in s
     s = str(Result(title=None, similarity=None))
-    assert "null" in s
+    assert "{}" in s
 
     # indexing
     result2 = Result(url=None, title=None, similarity=None)

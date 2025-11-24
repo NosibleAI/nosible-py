@@ -4,12 +4,12 @@ from nosible.classes.snippet import Snippet
 from nosible.classes.snippet_set import SnippetSet
 
 
-
 def test_snippet_initialization_and_attrs(snippets_data):
     assert isinstance(snippets_data, SnippetSet)
     for snippet in snippets_data:
         assert isinstance(snippet, Snippet)
         assert isinstance(snippet.content, str)
+
 
 def test_snippet_getitem_and_str(snippets_data):
     ss = snippets_data
@@ -19,6 +19,7 @@ def test_snippet_getitem_and_str(snippets_data):
     assert snippet["content"] == snippet.content
     with pytest.raises(KeyError):
         _ = snippet["nonexistent_field"]
+
 
 def test_snippet_to_dict_and_json(snippets_data):
     ss = snippets_data

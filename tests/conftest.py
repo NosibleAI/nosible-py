@@ -1,17 +1,83 @@
 import logging
+import sqlite3
+import os
+import threading
 from functools import partial
 
 import httpx
 import pytest
-from hishel import CacheTransport, Controller, FileStorage
+from hishel import (
+    CacheOptions,
+    SpecificationPolicy,
+    SyncSqliteStorage,
+    AsyncSqliteStorage
+)
+from hishel.httpx import SyncCacheTransport, AsyncCacheTransport
 
 from nosible import Nosible, Search
 from nosible.classes.search_set import SearchSet
 
 logging.getLogger("requests_cache").setLevel(logging.DEBUG)
 
-
 CACHE_DIR = "httpx_tests_cache"
+CACHE_DB_PATH = "httpx_cache.sqlite"
+
+
+class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
+    """
+    A subclass of SyncSqliteStorage that:
+    1. Uses a thread lock to prevent race conditions.
+    2. Manually defines the schema.
+    3. Sets a timeout to handle file locking better.
+    """
+
+    def __init__(self, database_path, **kwargs):
+        self.db_path = database_path
+        self._lock = threading.Lock()
+        super().__init__(database_path=database_path, **kwargs)
+
+    def _ensure_connection(self):
+        with self._lock:
+            if self.connection is None:
+                # Added timeout=10 to handle macOS file locking latency
+                self.connection = sqlite3.connect(
+                    self.db_path,
+                    check_same_thread=False,
+                    timeout=10.0
+                )
+                self.connection.execute("PRAGMA journal_mode=WAL;")
+
+                # 1. Create 'entries' table
+                self.connection.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS entries (
+                        id BLOB PRIMARY KEY,
+                        cache_key TEXT NOT NULL,
+                        data BLOB,
+                        created_at REAL,
+                        deleted_at REAL
+                    )
+                    """
+                )
+                self.connection.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_cache_key ON entries(cache_key)"
+                )
+
+                # 2. Create 'streams' table
+                self.connection.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS streams (
+                        entry_id BLOB NOT NULL,
+                        chunk_number INTEGER NOT NULL,
+                        chunk_data BLOB NOT NULL,
+                        FOREIGN KEY(entry_id) REFERENCES entries(id)
+                    )
+                    """
+                )
+
+                self.connection.commit()
+
+        return self.connection
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -19,19 +85,67 @@ def install_httpx_cache():
     """
     Setup caching for all httpx requests (both sync and async) during tests.
     """
+    # Cleanup old DB
+    if os.path.exists(CACHE_DB_PATH):
+        try:
+            os.remove(CACHE_DB_PATH)
+        except OSError:
+            pass
 
-    storage = FileStorage(base_path=CACHE_DIR, ttl=60 * 30)
-    # ensure POSTs are cacheable
-    controller = Controller(force_cache=True, cacheable_methods=["GET", "POST"])
-    transport = CacheTransport(transport=httpx.HTTPTransport(), storage=storage, controller=controller)
+    options = CacheOptions(
+        allow_stale=True,
+        supported_methods=["GET", "POST"]
+    )
+    policy = SpecificationPolicy(cache_options=options)
 
-    # patch both sync and async clients
-    httpx.Client = partial(httpx.Client, transport=transport, follow_redirects=True)
-    httpx.AsyncClient = partial(httpx.AsyncClient, transport=transport, follow_redirects=True)
+    # Setup Synchronous Storage
+    sync_storage = ThreadSafeSyncSqliteStorage(
+        database_path=CACHE_DB_PATH,
+        default_ttl=60 * 30
+    )
+
+    # [CRITICAL FIX] Pre-initialize the DB in the main thread!
+    # This creates the tables NOW, so worker threads don't race to do it later.
+    sync_storage._ensure_connection()
+
+    sync_transport = SyncCacheTransport(
+        httpx.HTTPTransport(),
+        storage=sync_storage,
+        policy=policy
+    )
+
+    # Setup Asynchronous Storage
+    async_storage = AsyncSqliteStorage(
+        database_path=CACHE_DB_PATH,
+        default_ttl=60 * 30
+    )
+
+    async_transport = AsyncCacheTransport(
+        httpx.AsyncHTTPTransport(),
+        storage=async_storage,
+        policy=policy
+    )
+
+    # Patch clients
+    httpx.Client = partial(httpx.Client, transport=sync_transport, follow_redirects=True)
+    httpx.AsyncClient = partial(httpx.AsyncClient, transport=async_transport, follow_redirects=True)
 
     yield
 
+    # Cleanup
+    try:
+        sync_storage.close()
+    except Exception:
+        pass
 
+    if os.path.exists(CACHE_DB_PATH):
+        try:
+            os.remove(CACHE_DB_PATH)
+        except OSError:
+            pass
+
+
+# ... (Rest of your fixtures: search_data, etc. remain exactly the same) ...
 @pytest.fixture(scope="session")
 def search_data():
     """Cache the search results for the session."""

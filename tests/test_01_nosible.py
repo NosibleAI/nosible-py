@@ -1,12 +1,9 @@
-import json
 import pytest
-import os
-import time
 import re
 
-import polars as pl
+import pytest
 
-from nosible import Nosible, Result, ResultSet, Search, Snippet, SnippetSet
+from nosible import Nosible, ResultSet, Search, SnippetSet
 from nosible.classes.search_set import SearchSet
 from nosible.classes.web_page import WebPageData
 
@@ -90,9 +87,6 @@ def test_llm_key_required_for_expansions():
 def test_validate_sql():
     assert Nosible()._validate_sql(sql="SELECT 1")
     assert not Nosible()._validate_sql(sql="SELECT * FROM missing_table")
-
-
-# —— Your additional tests —— #
 
 
 def test_search_minimal(search_data):
