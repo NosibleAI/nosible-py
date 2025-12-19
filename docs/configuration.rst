@@ -53,9 +53,11 @@ n_probes
 
 The number of index shards to probe. More shards will mean better recall, but slower query speeds.
     - **Type**: ``int``
-    - **Default**: ``300``
-    - **Maximum**:
+    - **Default**:
         - Search: ``30``
+        - Bulk Search: ``30``
+    - **Maximum**:
+        - Search: ``50``
         - Bulk search: ``300``
     - **Example**: ``30``
 
