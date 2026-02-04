@@ -161,10 +161,10 @@ def test_rate_limited_decorator_calls_all_limiters():
 
     class API:
         def __init__(self):
-            # two stub limiters for endpoint 'test'
-            self._limiters = {"test": [StubLimiter(), StubLimiter()]}
+            # two stub limiters for endpoint 'fast'
+            self._limiters = {"fast": [StubLimiter(), StubLimiter()]}
 
-        @_rate_limited("test")
+        @_rate_limited("fast")
         def do_something(self, x):
             return x * 2
 

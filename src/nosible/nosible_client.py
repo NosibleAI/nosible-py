@@ -225,7 +225,11 @@ class Nosible:
         self._executor = ThreadPoolExecutor(max_workers=self.concurrency)
 
         # Headers
-        self.headers = {"Accept-Encoding": "gzip", "Content-Type": "application/json", "api-key": self.nosible_api_key}
+        self.headers = {
+            "Accept-Encoding": "gzip",
+            "Content-Type": "application/json",
+            "api-key": self.nosible_api_key
+        }
 
         # Wrap _get_limits with retry.
         self._get_limits = retry(
@@ -236,11 +240,18 @@ class Nosible:
             before_sleep=before_sleep_log(self.logger, logging.WARNING),
         )(self._get_limits)
 
-        # Fetch server-provided limits and build local limiters.
-        limits = self._get_limits()
+        raw_limits = self._get_limits()
+
+        # Map API query_type -> your decorator endpoint keys
+        mapped_limits = {
+            "fast": raw_limits.get("fast", []),
+            "bulk": raw_limits.get("slow", []),
+            "scrape-url": raw_limits.get("visit", []),
+        }
+
         self._limiters = {
             endpoint: [RateLimiter(calls, period) for calls, period in buckets]
-            for endpoint, buckets in limits.items()
+            for endpoint, buckets in mapped_limits.items()
         }
 
         # Filters
@@ -1714,93 +1725,50 @@ class Nosible:
 
     def _get_limits(self) -> dict[str, list[tuple[int, float]]]:
         """
-        Fetch rate limits for this API key from Nosible.
-
-        Expected shapes (any of these are accepted):
-          - {"fast": [[60, 60], [3000, 2592000]], "bulk": [[...]]}
-          - {"fast": [{"calls": 60, "period": 60}, ...], ...}
-          - {"response": { ...same as above... }}
+        TODO
         """
         url = "https://www.nosible.ai/search/v2/limits"
-        response = self._session.get(
+        resp = self._session.get(
             url=url,
             headers=self.headers,
             timeout=self.timeout,
             follow_redirects=True,
         )
 
-        # Mirror the same error mapping style as _post()
-        if response.status_code == 401:
+        if resp.status_code == 401:
             raise ValueError("Your API key is not valid.")
-        if response.status_code == 422:
-            content_type = response.headers.get("Content-Type", "")
-            if content_type.startswith("application/json"):
-                body = response.json()
-                if isinstance(body, list):
-                    body = body[0]
-                if isinstance(body, dict) and body.get("type") == "string_too_short":
-                    raise ValueError("Your API key is not valid: Too Short.")
-            raise ValueError("You made a bad request.")
-        if response.status_code == 429:
+        if resp.status_code == 429:
             raise ValueError("You have hit your rate limit.")
-        if response.status_code == 409:
+        if resp.status_code == 409:
             raise ValueError("Too many concurrent searches.")
-        if response.status_code == 500:
-            raise ValueError("An unexpected error occurred.")
-        if response.status_code == 502:
+        if resp.status_code == 502:
             raise ValueError("NOSIBLE is currently restarting.")
-        if response.status_code == 504:
+        if resp.status_code == 504:
             raise ValueError("NOSIBLE is currently overloaded.")
 
-        response.raise_for_status()
+        resp.raise_for_status()
 
         try:
-            data = response.json()
+            data = resp.json()
         except Exception as e:
             raise ValueError("Invalid JSON response from /limits") from e
 
-        payload = data.get("response", data)
+        limits_list = data.get("limits")
+        if not isinstance(limits_list, list):
+            raise ValueError(f"Invalid /limits response shape: {data!r}")
 
-        if not isinstance(payload, dict):
-            raise ValueError(f"Invalid /limits response shape: {payload!r}")
+        grouped: dict[str, list[tuple[int, float]]] = {}
+        for item in limits_list:
+            query_type = item.get("query_type")
+            duration = item.get("duration_seconds")
+            limit = item.get("limit")
 
-        limits: dict[str, list[tuple[int, float]]] = {}
+            if query_type is None or duration is None or limit is None:
+                raise ValueError(f"Invalid limit entry: {item!r}")
 
-        for endpoint, buckets in payload.items():
-            # Some APIs wrap buckets: {"fast": {"buckets": [...]}}
-            if isinstance(buckets, dict) and "buckets" in buckets:
-                buckets = buckets["buckets"]
+            grouped.setdefault(str(query_type), []).append((int(limit), float(duration)))
 
-            if not isinstance(buckets, list):
-                raise ValueError(f"Invalid buckets for endpoint {endpoint!r}: {buckets!r}")
-
-            norm: list[tuple[int, float]] = []
-            for b in buckets:
-                if isinstance(b, (list, tuple)) and len(b) == 2:
-                    calls, period = b
-                elif isinstance(b, dict):
-                    calls = (
-                            b.get("calls")
-                            or b.get("max_calls")
-                            or b.get("limit")
-                    )
-                    period = (
-                            b.get("period")
-                            or b.get("period_s")
-                            or b.get("window")
-                            or b.get("seconds")
-                    )
-                else:
-                    raise ValueError(f"Invalid bucket entry for {endpoint!r}: {b!r}")
-
-                if calls is None or period is None:
-                    raise ValueError(f"Bucket missing calls/period for {endpoint!r}: {b!r}")
-
-                norm.append((int(calls), float(period)))
-
-            limits[str(endpoint)] = norm
-
-        return limits
+        return grouped
 
     def _generate_expansions(self, question: Union[str, Search]) -> list:
         """
