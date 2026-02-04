@@ -74,7 +74,7 @@ def test_close_idempotent():
 
 def test_invalid_api_key():
     with pytest.raises(ValueError):
-        Nosible(nosible_api_key="test+|xyz")
+        Nosible(nosible_api_key="x")
 
 
 def test_llm_key_required_for_expansions():
