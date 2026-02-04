@@ -1725,74 +1725,22 @@ class Nosible:
 
     def _get_limits(self) -> dict[str, list[tuple[int, float]]]:
         """
-        Fetch rate limits for this API key from Nosible and return them grouped
-        by query_type, as (limit, duration_seconds) tuples.
-
-        The /limits response shape is:
-          {
-            "api_key_id": "...",
-            "subscription_id": "...",
-            "limits": [
-              {
-                "name": "fast_minute",
-                "query_type": "fast",
-                "duration_seconds": 60,
-                "limit": 60,
-                ...
-              },
-              ...
-            ]
-          }
-
-        Returns
-        -------
-        dict[str, list[tuple[int, float]]]
-            Example:
-              {
-                "fast": [(60, 60.0), (3000, 2419200.0)],
-                "slow": [(60, 60.0), (300, 2419200.0)],
-                "visit": [(60, 60.0), (300, 2419200.0)],
-              }
-
-        Raises
-        ------
-        ValueError
-            For auth/rate/overload errors or malformed JSON/shape.
+        TODO
         """
         url = "https://www.nosible.ai/search/v2/limits"
-
-        headers = dict(self.headers)
-        headers["Cache-Control"] = "no-store, max-age=0"
-
         resp = self._session.get(
             url=url,
-            headers=headers,
+            headers=self.headers,
             timeout=self.timeout,
             follow_redirects=True,
-            # Hishel reads this; plain httpx ignores it safely.
-            extensions={"cache_disabled": True},
         )
 
         if resp.status_code == 401:
             raise ValueError("Your API key is not valid.")
-        if resp.status_code == 422:
-            content_type = resp.headers.get("Content-Type", "")
-            if content_type.startswith("application/json"):
-                try:
-                    body = resp.json()
-                except Exception:
-                    raise ValueError("You made a bad request.")
-                if isinstance(body, list):
-                    body = body[0] if body else {}
-                if isinstance(body, dict) and body.get("type") == "string_too_short":
-                    raise ValueError("Your API key is not valid: Too Short.")
-            raise ValueError("You made a bad request.")
         if resp.status_code == 429:
             raise ValueError("You have hit your rate limit.")
         if resp.status_code == 409:
             raise ValueError("Too many concurrent searches.")
-        if resp.status_code == 500:
-            raise ValueError("An unexpected error occurred.")
         if resp.status_code == 502:
             raise ValueError("NOSIBLE is currently restarting.")
         if resp.status_code == 504:
@@ -1811,9 +1759,6 @@ class Nosible:
 
         grouped: dict[str, list[tuple[int, float]]] = {}
         for item in limits_list:
-            if not isinstance(item, dict):
-                raise ValueError(f"Invalid limit entry: {item!r}")
-
             query_type = item.get("query_type")
             duration = item.get("duration_seconds")
             limit = item.get("limit")
