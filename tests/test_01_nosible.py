@@ -72,11 +72,6 @@ def test_close_idempotent():
     nos.close()
 
 
-def test_invalid_api_key():
-    with pytest.raises(ValueError):
-        Nosible(nosible_api_key="test+|xyz")
-
-
 def test_llm_key_required_for_expansions():
     nos = Nosible(llm_api_key=None)
     nos.llm_api_key = None

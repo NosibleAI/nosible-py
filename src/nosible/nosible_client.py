@@ -29,7 +29,7 @@ from nosible.classes.search_set import SearchSet
 from nosible.classes.snippet_set import SnippetSet
 from nosible.classes.web_page import WebPageData
 from nosible.utils.json_tools import json_loads
-from nosible.utils.rate_limiter import PLAN_RATE_LIMITS, RateLimiter, _rate_limited
+from nosible.utils.rate_limiter import RateLimiter, _rate_limited
 
 # Set up a module‐level logger.
 logger = logging.getLogger(__name__)
@@ -202,11 +202,6 @@ class Nosible:
         logging.getLogger("httpx").setLevel(logging.WARNING)
         logging.getLogger("httpcore").setLevel(logging.WARNING)
 
-        self._limiters = {
-            endpoint: [RateLimiter(calls, period) for calls, period in buckets]
-            for endpoint, buckets in PLAN_RATE_LIMITS[self._get_user_plan()].items()
-        }
-
         # Define retry decorator
         self._post = retry(
             reraise=True,
@@ -230,7 +225,34 @@ class Nosible:
         self._executor = ThreadPoolExecutor(max_workers=self.concurrency)
 
         # Headers
-        self.headers = {"Accept-Encoding": "gzip", "Content-Type": "application/json", "api-key": self.nosible_api_key}
+        self.headers = {
+            "Accept-Encoding": "gzip",
+            "Content-Type": "application/json",
+            "api-key": self.nosible_api_key
+        }
+
+        # Wrap _get_limits with retry.
+        self._get_limits = retry(
+            reraise=True,
+            stop=stop_after_attempt(self.retries) | stop_after_delay(self.timeout),
+            wait=wait_exponential(multiplier=1, min=1, max=20),
+            retry=retry_if_exception_type(httpx.RequestError),
+            before_sleep=before_sleep_log(self.logger, logging.WARNING),
+        )(self._get_limits)
+
+        raw_limits = self._get_limits()
+
+        # Map API query_type -> your decorator endpoint keys
+        mapped_limits = {
+            "fast": raw_limits.get("fast", []),
+            "bulk": raw_limits.get("slow", []),
+            "scrape-url": raw_limits.get("visit", []),
+        }
+
+        self._limiters = {
+            endpoint: [RateLimiter(calls, period) for calls, period in buckets]
+            for endpoint, buckets in mapped_limits.items()
+        }
 
         # Filters
         self.publish_start = publish_start
@@ -1602,7 +1624,6 @@ class Nosible:
 
         return filtered
 
-
     def close(self):
         """
         Close the Nosible client, shutting down the HTTP session
@@ -1702,41 +1723,52 @@ class Nosible:
 
         return response
 
-    def _get_user_plan(self) -> str:
+    def _get_limits(self) -> dict[str, list[tuple[int, float]]]:
         """
-        Determine the user's subscription plan from the API key.
-
-        The `nosible_api_key` is expected to start with a plan prefix followed by
-        a pipe (`|`) and any additional data. This method splits on the first
-        pipe character, validates the prefix against supported plans, and returns it.
-
-        Returns
-        -------
-        str
-            The plan you are currently on.
-
-        Raises
-        ------
-        ValueError
-            If the extracted prefix is not one of the recognized plan names.
-
-        Examples
-        --------
-        >>> nos = Nosible(nosible_api_key="test+|xyz")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-        Traceback (most recent call last):
-        ...
-        ValueError: Your API key is not valid: test+ is not a valid plan prefix.
+        TODO
         """
-        # Split off anything after the first '|'
-        prefix = (self.nosible_api_key or "").split("|", 1)[0]
+        url = "https://www.nosible.ai/search/v2/limits"
+        resp = self._session.get(
+            url=url,
+            headers=self.headers,
+            timeout=self.timeout,
+            follow_redirects=True,
+        )
 
-        # Map prefixes -> plan names
-        plans = {"test", "self", "basic", "pro", "pro+", "bus", "bus+", "ent", "chat", "cons", "stup", "busn", "prod"}
+        if resp.status_code == 401:
+            raise ValueError("Your API key is not valid.")
+        if resp.status_code == 429:
+            raise ValueError("You have hit your rate limit.")
+        if resp.status_code == 409:
+            raise ValueError("Too many concurrent searches.")
+        if resp.status_code == 502:
+            raise ValueError("NOSIBLE is currently restarting.")
+        if resp.status_code == 504:
+            raise ValueError("NOSIBLE is currently overloaded.")
 
-        if prefix not in plans:
-            raise ValueError(f"Your API key is not valid: {prefix} is not a valid plan prefix.")
+        resp.raise_for_status()
 
-        return prefix
+        try:
+            data = resp.json()
+        except Exception as e:
+            raise ValueError("Invalid JSON response from /limits") from e
+
+        limits_list = data.get("limits")
+        if not isinstance(limits_list, list):
+            raise ValueError(f"Invalid /limits response shape: {data!r}")
+
+        grouped: dict[str, list[tuple[int, float]]] = {}
+        for item in limits_list:
+            query_type = item.get("query_type")
+            duration = item.get("duration_seconds")
+            limit = item.get("limit")
+
+            if query_type is None or duration is None or limit is None:
+                raise ValueError(f"Invalid limit entry: {item!r}")
+
+            grouped.setdefault(str(query_type), []).append((int(limit), float(duration)))
+
+        return grouped
 
     def _generate_expansions(self, question: Union[str, Search]) -> list:
         """
