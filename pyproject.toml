@@ -16,7 +16,7 @@ dependencies = [
   "duckdb",
   "openai",
   "tantivy",
-  "pyrate-limiter",
+  "pyrate-limiter<4",
   "tenacity",
   "cryptography",
   "pyarrow",
