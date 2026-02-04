@@ -2,6 +2,7 @@ import logging
 import sqlite3
 import os
 import threading
+import asyncio
 from functools import partial
 
 import httpx
@@ -21,6 +22,30 @@ logging.getLogger("requests_cache").setLevel(logging.DEBUG)
 
 CACHE_DIR = "httpx_tests_cache"
 CACHE_DB_PATH = "httpx_cache.sqlite"
+
+
+class NonClosingSyncTransport(httpx.BaseTransport):
+    def __init__(self, inner):
+        self._inner = inner
+
+    def handle_request(self, request):
+        return self._inner.handle_request(request)
+
+    def close(self):
+        # Prevent per-client close() from closing the shared cache/DB
+        return None
+
+
+class NonClosingAsyncTransport(httpx.AsyncBaseTransport):
+    def __init__(self, inner):
+        self._inner = inner
+
+    async def handle_async_request(self, request):
+        return await self._inner.handle_async_request(request)
+
+    async def aclose(self):
+        # Prevent per-client aclose() from closing the shared cache/DB
+        return None
 
 
 class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
@@ -126,15 +151,33 @@ def install_httpx_cache():
         policy=policy
     )
 
-    # Patch clients
-    httpx.Client = partial(httpx.Client, transport=sync_transport, follow_redirects=True)
-    httpx.AsyncClient = partial(httpx.AsyncClient, transport=async_transport, follow_redirects=True)
+     # Patch clients
+    _real_client = httpx.Client
+    _real_async_client = httpx.AsyncClient
+    httpx.Client = partial(_real_client, transport=NonClosingSyncTransport(sync_transport), follow_redirects=True)
+    httpx.AsyncClient = partial(_real_async_client, transport=NonClosingAsyncTransport(async_transport),
+        follow_redirects=True)
 
     yield
 
     # Cleanup
     try:
+        try:
+            sync_transport.close()
+        except Exception:
+            pass
+        try:
+            asyncio.run(async_transport.aclose())
+        except Exception:
+            pass
         sync_storage.close()
+    except Exception:
+        pass
+
+    # Restore originals (nice hygiene)
+    try:
+        httpx.Client = _real_client
+        httpx.AsyncClient = _real_async_client
     except Exception:
         pass
 
