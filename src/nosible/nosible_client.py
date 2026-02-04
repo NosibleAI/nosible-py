@@ -29,7 +29,7 @@ from nosible.classes.search_set import SearchSet
 from nosible.classes.snippet_set import SnippetSet
 from nosible.classes.web_page import WebPageData
 from nosible.utils.json_tools import json_loads
-from nosible.utils.rate_limiter import PLAN_RATE_LIMITS, RateLimiter, _rate_limited
+from nosible.utils.rate_limiter import RateLimiter, _rate_limited
 
 # Set up a module‐level logger.
 logger = logging.getLogger(__name__)
@@ -202,11 +202,6 @@ class Nosible:
         logging.getLogger("httpx").setLevel(logging.WARNING)
         logging.getLogger("httpcore").setLevel(logging.WARNING)
 
-        self._limiters = {
-            endpoint: [RateLimiter(calls, period) for calls, period in buckets]
-            for endpoint, buckets in PLAN_RATE_LIMITS[self._get_user_plan()].items()
-        }
-
         # Define retry decorator
         self._post = retry(
             reraise=True,
@@ -231,6 +226,22 @@ class Nosible:
 
         # Headers
         self.headers = {"Accept-Encoding": "gzip", "Content-Type": "application/json", "api-key": self.nosible_api_key}
+
+        # Wrap _get_limits with retry.
+        self._get_limits = retry(
+            reraise=True,
+            stop=stop_after_attempt(self.retries) | stop_after_delay(self.timeout),
+            wait=wait_exponential(multiplier=1, min=1, max=20),
+            retry=retry_if_exception_type(httpx.RequestError),
+            before_sleep=before_sleep_log(self.logger, logging.WARNING),
+        )(self._get_limits)
+
+        # Fetch server-provided limits and build local limiters.
+        limits = self._get_limits()
+        self._limiters = {
+            endpoint: [RateLimiter(calls, period) for calls, period in buckets]
+            for endpoint, buckets in limits.items()
+        }
 
         # Filters
         self.publish_start = publish_start
@@ -1602,7 +1613,6 @@ class Nosible:
 
         return filtered
 
-
     def close(self):
         """
         Close the Nosible client, shutting down the HTTP session
@@ -1702,41 +1712,95 @@ class Nosible:
 
         return response
 
-    def _get_user_plan(self) -> str:
+    def _get_limits(self) -> dict[str, list[tuple[int, float]]]:
         """
-        Determine the user's subscription plan from the API key.
+        Fetch rate limits for this API key from Nosible.
 
-        The `nosible_api_key` is expected to start with a plan prefix followed by
-        a pipe (`|`) and any additional data. This method splits on the first
-        pipe character, validates the prefix against supported plans, and returns it.
-
-        Returns
-        -------
-        str
-            The plan you are currently on.
-
-        Raises
-        ------
-        ValueError
-            If the extracted prefix is not one of the recognized plan names.
-
-        Examples
-        --------
-        >>> nos = Nosible(nosible_api_key="test+|xyz")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-        Traceback (most recent call last):
-        ...
-        ValueError: Your API key is not valid: test+ is not a valid plan prefix.
+        Expected shapes (any of these are accepted):
+          - {"fast": [[60, 60], [3000, 2592000]], "bulk": [[...]]}
+          - {"fast": [{"calls": 60, "period": 60}, ...], ...}
+          - {"response": { ...same as above... }}
         """
-        # Split off anything after the first '|'
-        prefix = (self.nosible_api_key or "").split("|", 1)[0]
+        url = "https://www.nosible.ai/search/v2/limits"
+        response = self._session.get(
+            url=url,
+            headers=self.headers,
+            timeout=self.timeout,
+            follow_redirects=True,
+        )
 
-        # Map prefixes -> plan names
-        plans = {"test", "self", "basic", "pro", "pro+", "bus", "bus+", "ent", "chat", "cons", "stup", "busn", "prod"}
+        # Mirror the same error mapping style as _post()
+        if response.status_code == 401:
+            raise ValueError("Your API key is not valid.")
+        if response.status_code == 422:
+            content_type = response.headers.get("Content-Type", "")
+            if content_type.startswith("application/json"):
+                body = response.json()
+                if isinstance(body, list):
+                    body = body[0]
+                if isinstance(body, dict) and body.get("type") == "string_too_short":
+                    raise ValueError("Your API key is not valid: Too Short.")
+            raise ValueError("You made a bad request.")
+        if response.status_code == 429:
+            raise ValueError("You have hit your rate limit.")
+        if response.status_code == 409:
+            raise ValueError("Too many concurrent searches.")
+        if response.status_code == 500:
+            raise ValueError("An unexpected error occurred.")
+        if response.status_code == 502:
+            raise ValueError("NOSIBLE is currently restarting.")
+        if response.status_code == 504:
+            raise ValueError("NOSIBLE is currently overloaded.")
 
-        if prefix not in plans:
-            raise ValueError(f"Your API key is not valid: {prefix} is not a valid plan prefix.")
+        response.raise_for_status()
 
-        return prefix
+        try:
+            data = response.json()
+        except Exception as e:
+            raise ValueError("Invalid JSON response from /limits") from e
+
+        payload = data.get("response", data)
+
+        if not isinstance(payload, dict):
+            raise ValueError(f"Invalid /limits response shape: {payload!r}")
+
+        limits: dict[str, list[tuple[int, float]]] = {}
+
+        for endpoint, buckets in payload.items():
+            # Some APIs wrap buckets: {"fast": {"buckets": [...]}}
+            if isinstance(buckets, dict) and "buckets" in buckets:
+                buckets = buckets["buckets"]
+
+            if not isinstance(buckets, list):
+                raise ValueError(f"Invalid buckets for endpoint {endpoint!r}: {buckets!r}")
+
+            norm: list[tuple[int, float]] = []
+            for b in buckets:
+                if isinstance(b, (list, tuple)) and len(b) == 2:
+                    calls, period = b
+                elif isinstance(b, dict):
+                    calls = (
+                            b.get("calls")
+                            or b.get("max_calls")
+                            or b.get("limit")
+                    )
+                    period = (
+                            b.get("period")
+                            or b.get("period_s")
+                            or b.get("window")
+                            or b.get("seconds")
+                    )
+                else:
+                    raise ValueError(f"Invalid bucket entry for {endpoint!r}: {b!r}")
+
+                if calls is None or period is None:
+                    raise ValueError(f"Bucket missing calls/period for {endpoint!r}: {b!r}")
+
+                norm.append((int(calls), float(period)))
+
+            limits[str(endpoint)] = norm
+
+        return limits
 
     def _generate_expansions(self, question: Union[str, Search]) -> list:
         """
