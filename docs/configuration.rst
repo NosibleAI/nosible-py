@@ -125,7 +125,7 @@ publish_end
 End date for when the document was published (ISO format).
     - **Type**: ``ISO formatted date string``
     - **Default**: None
-    - **Example**: ``"2025-10-01"``
+    - **Example**: ``"2026-10-01"``
 
 visited_start
 ~~~~~~~~~~~~~
@@ -141,7 +141,7 @@ visited_end
 End date for when the document was visited by NOSIBLE (ISO format).
     - **Type**: ``ISO formatted date string``
     - **Default**: None
-    - **Example**: ``"2025-10-01"``
+    - **Example**: ``"2026-10-01"``
 
 certain
 ~~~~~~~

@@ -134,7 +134,7 @@ You can find online endpoints to the NOSIBLE Search API Swagger Docs
 
 ---
 
-© 2025 Nosible Inc. | [Privacy Policy](https://www.nosible.ai/privacy) | [Terms](https://www.nosible.ai/terms)
+© 2026 Nosible Inc. | [Privacy Policy](https://www.nosible.ai/privacy) | [Terms](https://www.nosible.ai/terms)
 
 
 [nosible-badge]: https://img.shields.io/static/v1?label=Visit&message=nosible.ai&\style=flat&logoUri=https://raw.githubusercontent.com/NosibleAI/nosible-py/main/docs/_static/favicon.png&logoWidth=20

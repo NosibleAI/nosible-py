@@ -2,7 +2,7 @@ import os, sys
 sys.path.insert(0, os.path.abspath('../src'))
 
 project = 'Nosible Client'
-copyright = '2025, Nosible'
+copyright = '2026, Nosible'
 author = 'Richard Taylor'
 release = '0.3.12'
 
