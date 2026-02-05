@@ -1725,7 +1725,28 @@ class Nosible:
 
     def _get_limits(self) -> dict[str, list[tuple[int, float]]]:
         """
-        TODO
+        Fetch and parse the current API rate limits from the Nosible service.
+
+        Returns
+        -------
+        dict[str, list[tuple[int, float]]]
+            A dictionary mapping query types (e.g., 'fast', 'slow', 'visit') to a list
+            of limit buckets. Each bucket is a tuple containing:
+            - limit (int): The maximum number of requests allowed.
+            - duration_seconds (float): The time window for the limit.
+
+        Raises
+        ------
+        ValueError
+            If the API key is invalid (401).
+        ValueError
+            If the rate limit is hit (429).
+        ValueError
+            If there are too many concurrent searches (409).
+        ValueError
+            If the service is restarting (502) or overloaded (504).
+        ValueError
+            If the response JSON is invalid or missing required fields.
         """
         url = "https://www.nosible.ai/search/v2/limits"
         resp = self._session.get(
@@ -2122,7 +2143,7 @@ class Nosible:
             "certain",
             "netloc",
             "language",
-            "companies"
+            "companies",
             "doc",
         ]
         import polars as pl  # Lazy import

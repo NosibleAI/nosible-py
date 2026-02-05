@@ -48,19 +48,19 @@ uv pip install nosible
 
 ### 🔑 Authentication
 
-1. Sign in to [NOSIBLE.AI](https://www.nosible.ai/) and grab your free API key.
+1. Sign in to [NOSIBLE.COM](https://nosible.com/) and grab your free API key.
 2. Set it as an environment variable or pass directly:
 
 On Windows
 
 ```powershell
-$Env:NOSIBLE_API_KEY="basic|abcd1234..."
+$Env:NOSIBLE_API_KEY="nos_sk_..."
 $Env:LLM_API_KEY="sk-..."  # for query expansions (optional)
 ```
 
 On Linux
 ```bash
-export NOSIBLE_API_KEY="basic|abcd1234..."
+export NOSIBLE_API_KEY="nos_sk_..."
 export LLM_API_KEY="sk-..."  # for query expansions (optional)
 ```
 
@@ -72,7 +72,7 @@ Or in code:
 from nosible import Nosible
 
 client = Nosible(
-    nosible_api_key="basic|abcd1234...",
+    nosible_api_key="nos_sk_...",
     llm_api_key="sk-...",
 )
 ```
@@ -83,7 +83,7 @@ client = Nosible(
 from nosible import Nosible
 import os
 
-os.environ["NOSIBLE_API_KEY"] = "basic|abcd1234..."
+os.environ["NOSIBLE_API_KEY"] = "nos_sk_..."
 os.environ["LLM_API_KEY"] = "sk-..."
 ```
 
@@ -134,7 +134,7 @@ You can find online endpoints to the NOSIBLE Search API Swagger Docs
 
 ---
 
-© 2025 Nosible Inc. | [Privacy Policy](https://www.nosible.ai/privacy) | [Terms](https://www.nosible.ai/terms)
+© 2026 Nosible Inc. | [Privacy Policy](https://www.nosible.ai/privacy) | [Terms](https://www.nosible.ai/terms)
 
 
 [nosible-badge]: https://img.shields.io/static/v1?label=Visit&message=nosible.ai&\style=flat&logoUri=https://raw.githubusercontent.com/NosibleAI/nosible-py/main/docs/_static/favicon.png&logoWidth=20

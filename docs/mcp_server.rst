@@ -7,7 +7,7 @@ The NOSIBLE Search API can be used through an `MCP server <https://github.com/No
 Usage
 -----
 
-- Log on to `NOSIBLE <https://www.nosible.ai/search-api>`_ and retrieve your API key.
+- Log on to `NOSIBLE <https://www.nosible.com/>`_ and retrieve your API key.
 
 - Using with VSCode
 
