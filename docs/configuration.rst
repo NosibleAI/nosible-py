@@ -361,7 +361,7 @@ endpoint, you can do so by changing the client argument ``openai_base_url``:
    from nosible import Nosible
 
    client = Nosible(
-       nosible_api_key="basic|abcd1234...",
+       nosible_api_key="nos_sk_...",
        llm_api_key="sk-...",
        openai_base_url="https://api.openrouter.ai/v1"
    )

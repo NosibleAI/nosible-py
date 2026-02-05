@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.abspath('../src'))
 project = 'Nosible Client'
 copyright = '2025, Nosible'
 author = 'Richard Taylor'
-release = '0.3.11'
+release = '0.3.12'
 
 extensions = [
     'sphinx.ext.autodoc',
@@ -21,7 +21,6 @@ autodoc_default_options = {
     "special-members": False,
     "inherited-members": False,
     "show-inheritance": False,
-    # "excluded-members": "__init__",
 }
 autodoc_member_order = "bysource"
 autodoc_typehints = "description"
@@ -48,7 +47,7 @@ html_theme_options = {
     'flyout_display': 'attached',
     'version_selector': True,
     'language_selector': True,
-    # Toc options
+    # Toc options.
     'collapse_navigation': False,
     'sticky_navigation': True,
     'navigation_depth': 4,
@@ -69,14 +68,11 @@ html_context = {
     "github_user": "NosibleAI",
     "github_repo": "nosible-py",
     "github_version": "main/docs/",
-    # "conf_py_path": "",
 }
 
 pygments_style = "monokai"
 
 def skip_dunder_and_attrs(app, what, name, obj, skip, options):
-    # 1) still skip __init__ (if you care), and
-    # 2) skip every attribute
     if name == "__init__" or what == "attribute":
         return True
     return None

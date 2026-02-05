@@ -40,21 +40,21 @@ Search API, and show you how to harness the power of the NOSIBLE Search Engine.
 🔑 Authentication
 ~~~~~~~~~~~~~~~~~
 
-1. Sign in to `NOSIBLE <https://www.nosible.ai/search-api>`_ and grab your free API key.
+1. Sign in to `NOSIBLE <https://nosible.com/>`_ and grab your free API key.
 2. Set it as an environment variable or pass directly:
 
 On Windows
 
 .. code:: powershell
 
-   $Env:NOSIBLE_API_KEY="basic|abcd1234..."
+   $Env:NOSIBLE_API_KEY="nos_sk_..."
    $Env:LLM_API_KEY="sk-..."  # for query expansions (optional)
 
 On Linux
 
 .. code:: bash
 
-   export NOSIBLE_API_KEY="basic|abcd1234..."
+   export NOSIBLE_API_KEY="nos_sk_..."
    export LLM_API_KEY="sk-..."  # for query expansions (optional)
 
 Or in code:
@@ -66,7 +66,7 @@ Or in code:
    from nosible import Nosible
 
    client = Nosible(
-       nosible_api_key="basic|abcd1234...",
+       nosible_api_key="nos_sk_...",
        llm_api_key="sk-...",
    )
 
@@ -77,7 +77,7 @@ Or in code:
    from nosible import Nosible
    import os
 
-   os.environ["NOSIBLE_API_KEY"] = "basic|abcd1234..."
+   os.environ["NOSIBLE_API_KEY"] = "nos_sk_..."
    os.environ["LLM_API_KEY"] = "sk-..."
 
 🔍 Your first search
@@ -121,6 +121,12 @@ reranker, and signal. It knows what these things are and can tune them on the fl
 
 To easily view examples of how to use the client package, or demos to see what can be achieved with the NOSIBLE
 search engine, view our `examples and demos page <https://nosible-py.readthedocs.io/en/latest/examples.html>`__.
+
+🚫 Rate Limits
+~~~~~~~~~~~~~~
+
+To find rate limits and pricing info for the NOSIBLE Search API, visit our
+`subscriptions page <https://nosible.com/>`__..
 
 📡 Swagger Docs
 ~~~~~~~~~~~~~~~
