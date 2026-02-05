@@ -1,6 +1,6 @@
 [project]
 name = "nosible"
-version = "0.3.11"
+version = "0.3.12"
 description = "Python client for the NOSIBLE Search API"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.9"
@@ -19,9 +19,9 @@ dependencies = [
   "cryptography>=41",
   "polars>=0.20",
   "duckdb>=0.9",
-  "pyarrow>=10",
+  "pyarrow>=11",
   "pandas>=1.5",
-  "tantivy>=0.20",
+  "tantivy>=0.20.1",
 ]
 
 license = "MIT"
@@ -62,5 +62,5 @@ dev-dependencies = [
   "pytest-doctestplus",
   "pytest-xdist",
   "urllib3==1.26.15",
-  "hishel[async]",
+  "hishel[async]>=1.1.0",
 ]
