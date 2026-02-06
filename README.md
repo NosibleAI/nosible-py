@@ -115,7 +115,7 @@ with Nosible(nosible_api_key="YOUR API KEY") as client:
 
     results = client.search(
         # search() gives you access to Cybernaut 1
-        question="Find me interesting technical blogs about Monte Carlo Tree Search."
+        prompt="Find me interesting technical blogs about Monte Carlo Tree Search."
     )
 
     print(results)

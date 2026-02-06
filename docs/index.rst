@@ -109,7 +109,7 @@ reranker, and signal. It knows what these things are and can tune them on the fl
 
         results = client.search(
             # search() gives you access to Cybernaut 1
-            question="Find me interesting technical blogs about Monte Carlo Tree Search."
+            prompt="Find me interesting technical blogs about Monte Carlo Tree Search."
         )
 
         print(results)
