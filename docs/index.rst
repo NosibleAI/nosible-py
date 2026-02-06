@@ -11,6 +11,10 @@ Search API, and show you how to harness the power of the NOSIBLE Search Engine.
 📦 Installation
 ~~~~~~~~~~~~~~~
 
+.. important::
+   If you are using a new API key (format starting with ``nos_sk_...``), you must update to package version **0.3.12**
+   or newer.
+
 .. code:: bash
 
    pip install nosible
@@ -109,7 +113,7 @@ reranker, and signal. It knows what these things are and can tune them on the fl
 
         results = client.search(
             # search() gives you access to Cybernaut 1
-            question="Find me interesting technical blogs about Monte Carlo Tree Search."
+            prompt="Find me interesting technical blogs about Monte Carlo Tree Search."
         )
 
         print(results)

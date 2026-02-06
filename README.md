@@ -23,6 +23,8 @@ You can find the full NOSIBLE Search Client documentation
 
 ### 📦 Installation
 
+> **⚠️ Important:** If you are using a new API key (format starting with `nos_sk_...`), you must update to package version **0.3.12** or newer.
+
 ```bash
 pip install nosible
 ```
@@ -115,7 +117,7 @@ with Nosible(nosible_api_key="YOUR API KEY") as client:
 
     results = client.search(
         # search() gives you access to Cybernaut 1
-        question="Find me interesting technical blogs about Monte Carlo Tree Search."
+        prompt="Find me interesting technical blogs about Monte Carlo Tree Search."
     )
 
     print(results)
