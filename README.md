@@ -23,6 +23,8 @@ You can find the full NOSIBLE Search Client documentation
 
 ### 📦 Installation
 
+> **⚠️ Important:** If you are using a new API key (format starting with `nos_sk_...`), you must update to package version **0.3.12** or newer.
+
 ```bash
 pip install nosible
 ```
