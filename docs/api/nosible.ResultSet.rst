@@ -6,18 +6,18 @@
 .. autoclass:: ResultSet
    :exclude-members: results
 
-   
+
    .. rubric:: Attributes
 
    .. autosummary::
 
       ~ResultSet.results
 
-   
+
    .. rubric:: Methods
 
    .. autosummary::
-   
+
       ~ResultSet.analyze
       ~ResultSet.close
       ~ResultSet.find_in_search_results
@@ -41,9 +41,14 @@
       ~ResultSet.write_json
       ~ResultSet.write_ndjson
       ~ResultSet.write_parquet
-   
-   
 
-   
+
+CSV files written by ``ResultSet`` include SDK metadata that preserves nested
+JSON values, unknown fields, scalar types, explicit nulls, and omitted fields
+for lossless round trips. ``read_csv`` also accepts legacy SDK CSV files that
+do not contain this metadata.
+
+
+
    
    

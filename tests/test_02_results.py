@@ -1,178 +1,301 @@
-import pytest
+"""Tests for test 02 results."""
+
+import os
+from typing import Any
+
 import pandas as pd
-from nosible import Result, ResultSet
+import pytest
+
+from nosible import Nosible, Result, ResultSet
+
+TEST_MODULE = os.path.basename(p=__file__)
 
 
-def test_resultset_type(search_data):
+def test_resultset_type(
+    search_data: Any
+) -> None:
+    """
+
+    Verify resultset type.
+
+    :param search_data: Test dependency or input.
+    :return: Test result or None.
+    """
     assert isinstance(search_data, ResultSet)
 
 
-def test_resultset_iterable(search_data):
+def test_resultset_iterable(
+    search_data: Any
+) -> None:
+    """
+
+    Verify resultset iterable.
+
+    :param search_data: Test dependency or input.
+    :return: Test result or None.
+    """
     assert all(isinstance(res, Result) for res in search_data)
 
 
-def test_result_access_and_types(search_data):
-    r = search_data[0]
-    assert isinstance(r, Result)
-    assert isinstance(r.url, str)
-    assert isinstance(r.title, str)
-    assert isinstance(r.content, str)
-    assert isinstance(r.language, str)
-    assert isinstance(r.netloc, str)
-    assert isinstance(r.published, str)
-    assert isinstance(r.similarity, float)
-    assert isinstance(r.title, str)
+def test_result_access_and_types(
+    search_data: Any
+) -> None:
+    """
+
+    Verify result access and types.
+
+    :param search_data: Test dependency or input.
+    :return: Test result or None.
+    """
+    result = search_data[0]
+    assert isinstance(result, Result)
+    assert isinstance(result.url, str)
+    assert isinstance(result.title, str)
+    assert isinstance(result.content, str)
+    assert isinstance(result.language, str)
+    assert isinstance(result.netloc, str)
+    assert isinstance(result.published, str)
+    assert isinstance(result.similarity, float)
+    assert isinstance(result.title, str)
 
 
-def test_resultset_addition_and_equality(search_data):
-    r1 = search_data[1]
-    r2 = search_data[2]
-    a = r1 + r2
-    assert isinstance(a, ResultSet)
-    assert r1 == Result.from_dict(r1.to_dict())
+def test_resultset_addition_and_equality(
+    search_data: Any
+) -> None:
+    """
 
-    # add 1 result to the resultset
-    r3 = search_data[3]
-    b = a + r3
-    assert isinstance(b, ResultSet)
+    Verify resultset addition and equality.
+
+    :param search_data: Test dependency or input.
+    :return: Test result or None.
+    """
+    first_result = search_data[1]
+    second_result = search_data[2]
+    combined_results = first_result + second_result
+    assert isinstance(combined_results, ResultSet)
+    assert first_result == Result.from_dict(data=first_result.to_dict())
+
+    third_result = search_data[3]
+    expanded_results = combined_results + third_result
+    assert isinstance(expanded_results, ResultSet)
 
 
-def test_resultset_json_io(tmp_path, search_data):
-    search_data.write_json(tmp_path / "results_copy.json")
-    results_copy = ResultSet.read_json(tmp_path / "results_copy.json")
+def test_resultset_json_io(
+    tmp_path: Any,
+    search_data: Any
+) -> None:
+    """
+
+    Verify resultset json io.
+
+    :param tmp_path: Test dependency or input.
+    :param search_data: Test dependency or input.
+    :return: Test result or None.
+    """
+    search_data.write_json(file_path=tmp_path / "results_copy.json")
+    results_copy = ResultSet.read_json(file_path=tmp_path / "results_copy.json")
     assert search_data == results_copy
     assert len(search_data) == len(results_copy)
 
 
-def test_resultset_csv_io(tmp_path, search_data):
-    search_data.write_csv(tmp_path / "results_copy.csv")
-    results_copy_csv = ResultSet.read_csv(tmp_path / "results_copy.csv")
+def test_resultset_csv_io(
+    tmp_path: Any,
+    search_data: Any
+) -> None:
+    """
+
+    Verify resultset csv io.
+
+    :param tmp_path: Test dependency or input.
+    :param search_data: Test dependency or input.
+    :return: Test result or None.
+    """
+    search_data.write_csv(file_path=tmp_path / "results_copy.csv")
+    results_copy_csv = ResultSet.read_csv(file_path=tmp_path / "results_copy.csv")
     assert search_data == results_copy_csv
     assert len(search_data) == len(results_copy_csv)
 
 
-def test_resultset_parquet_io(tmp_path, search_data):
-    search_data.write_parquet(tmp_path / "results_copy.parquet")
-    results_copy_parquet = ResultSet.read_parquet(tmp_path / "results_copy.parquet")
+def test_resultset_parquet_io(
+    tmp_path: Any,
+    search_data: Any
+) -> None:
+    """
+
+    Verify resultset parquet io.
+
+    :param tmp_path: Test dependency or input.
+    :param search_data: Test dependency or input.
+    :return: Test result or None.
+    """
+    search_data.write_parquet(file_path=tmp_path / "results_copy.parquet")
+    results_copy_parquet = ResultSet.read_parquet(file_path=tmp_path / "results_copy.parquet")
     assert search_data == results_copy_parquet
     assert len(search_data) == len(results_copy_parquet)
 
 
-def test_resultset_arrow_io(tmp_path, search_data):
-    search_data.write_ipc(tmp_path / "results_copy.ipc")
-    results_copy_arrow = ResultSet.read_ipc(tmp_path / "results_copy.ipc")
+def test_resultset_arrow_io(
+    tmp_path: Any,
+    search_data: Any
+) -> None:
+    """
+
+    Verify resultset arrow io.
+
+    :param tmp_path: Test dependency or input.
+    :param search_data: Test dependency or input.
+    :return: Test result or None.
+    """
+    search_data.write_ipc(file_path=tmp_path / "results_copy.ipc")
+    results_copy_arrow = ResultSet.read_ipc(file_path=tmp_path / "results_copy.ipc")
     assert search_data == results_copy_arrow
     assert len(search_data) == len(results_copy_arrow)
 
 
-def test_resultset_polars(search_data):
+def test_resultset_polars(
+    search_data: Any
+) -> None:
+    """
+
+    Verify resultset polars.
+
+    :param search_data: Test dependency or input.
+    :return: Test result or None.
+    """
     pol = search_data.to_polars()
-    results_copy_polars = ResultSet.from_polars(pol)
+    results_copy_polars = ResultSet.from_polars(df=pol)
     assert search_data == results_copy_polars
 
 
-def test_resultset_to_dict(search_data):
+def test_resultset_to_dict(
+    search_data: Any
+) -> None:
+    """
+
+    Verify resultset to dict.
+
+    :param search_data: Test dependency or input.
+    :return: Test result or None.
+    """
     results_dict = search_data.to_dict()
     assert isinstance(results_dict, dict)
-    for key, res in results_dict.items():
-        assert isinstance(res, dict)
-        assert "url" in res
-        assert "title" in res
-        assert "content" in res
-        assert "language" in res
-        assert "netloc" in res
-        assert "published" in res
-        assert "similarity" in res
-        assert res["url_hash"] == key
+    for key, result_payload in results_dict.items():
+        assert isinstance(result_payload, dict)
+        assert "url" in result_payload
+        assert "title" in result_payload
+        assert "content" in result_payload
+        assert "language" in result_payload
+        assert "netloc" in result_payload
+        assert "published" in result_payload
+        assert "similarity" in result_payload
+        assert result_payload["url_hash"] == key
 
 
-# to_dicts
-def test_resultset_to_dicts(search_data):
+def test_resultset_to_dicts(
+    search_data: Any
+) -> None:
+    """
+
+    Verify resultset to dicts.
+
+    :param search_data: Test dependency or input.
+    :return: Test result or None.
+    """
     results_dicts = search_data.to_dicts()
     assert isinstance(results_dicts, list)
-    for res in results_dicts:
-        assert isinstance(res, dict)
-        assert "url" in res
-        assert "title" in res
-        assert "content" in res
-        assert "language" in res
-        assert "netloc" in res
-        assert "published" in res
-        assert "similarity" in res
-        assert "url_hash" in res
+    for result_payload in results_dicts:
+        assert isinstance(result_payload, dict)
+        assert "url" in result_payload
+        assert "title" in result_payload
+        assert "content" in result_payload
+        assert "language" in result_payload
+        assert "netloc" in result_payload
+        assert "published" in result_payload
+        assert "similarity" in result_payload
+        assert "url_hash" in result_payload
 
 
-# ndjson
-def test_resultset_write_ndjson(tmp_path, search_data):
-    search_data.write_ndjson(tmp_path / "results_copy.ndjson")
-    results_copy_ndjson = ResultSet.read_ndjson(tmp_path / "results_copy.ndjson")
+def test_resultset_write_ndjson(
+    tmp_path: Any,
+    search_data: Any
+) -> None:
+    """
+
+    Verify resultset write ndjson.
+
+    :param tmp_path: Test dependency or input.
+    :param search_data: Test dependency or input.
+    :return: Test result or None.
+    """
+    search_data.write_ndjson(file_path=tmp_path / "results_copy.ndjson")
+    results_copy_ndjson = ResultSet.read_ndjson(file_path=tmp_path / "results_copy.ndjson")
     assert search_data == results_copy_ndjson
     assert len(search_data) == len(results_copy_ndjson)
 
 
-# to_pandas
-def test_resultset_to_pandas(search_data):
-    df = search_data.to_pandas()
-    results_copy_pandas = ResultSet.from_pandas(df)
+def test_resultset_to_pandas(
+    search_data: Any
+) -> None:
+    """
+
+    Verify resultset to pandas.
+
+    :param search_data: Test dependency or input.
+    :return: Test result or None.
+    """
+    frame = search_data.to_pandas()
+    results_copy_pandas = ResultSet.from_pandas(df=frame)
     assert search_data == results_copy_pandas
     assert len(search_data) == len(results_copy_pandas)
-    assert isinstance(df, pd.DataFrame)
-    assert "url" in df.columns
-    assert "title" in df.columns
-    assert "content" in df.columns
-    assert "language" in df.columns
-    assert "netloc" in df.columns
-    assert "published" in df.columns
-    assert "similarity" in df.columns
+    assert isinstance(frame, pd.DataFrame)
+    assert "url" in frame.columns
+    assert "title" in frame.columns
+    assert "content" in frame.columns
+    assert "language" in frame.columns
+    assert "netloc" in frame.columns
+    assert "published" in frame.columns
+    assert "similarity" in frame.columns
 
 
-def test_resultset_getitem(search_data):
+def test_resultset_getitem(
+    search_data: Any
+) -> None:
     """
-    Test the __getitem__ method of ResultSet.
+    Verify integer and slice access for a result set.
 
-    This test checks if the ResultSet can be indexed with an integer or a slice,
-    and if it raises an IndexError for out-of-range indices.
-
-    Raises
-    ------
-    TypeError
-        If the key is not an integer or a slice.
-    IndexError
-        If the index is out of range.
+    :param search_data: Live search result set.
+    :return: None.
     """
     assert isinstance(search_data[0], Result)
     assert isinstance(search_data[1:3], ResultSet)
 
-    with pytest.raises(IndexError):
-        _ = search_data[len(search_data)]  # Out of range index
-    with pytest.raises(TypeError):
-        _ = search_data["invalid"]  # Invalid type for index
+    with pytest.raises(expected_exception=IndexError):
+        _ = search_data[len(search_data)]
+    with pytest.raises(expected_exception=TypeError):
+        _ = search_data["invalid"]
 
 
-def test_similar_excludes_current_document():
+def test_similar_excludes_current_document() -> None:
     """
-    Test that the similar method properly excludes the current document from search results.
+    Verify that similarity search excludes its source document.
 
-    This test creates a Nosible client, performs a fast search, takes the first result,
-    and verifies that calling similar() on that result excludes it from the returned results.
+    :return: None.
     """
-    from nosible import Nosible
-
-    # Create a Nosible client (similar to test_01_nosible.py)
     with Nosible(concurrency=1) as nos:
-        # Perform a search to get some results
-        search_results = nos.fast_search(question="Hedge funds seek to expand into private credit", n_results=10)
-
-        # Get the first result
+        search_results = nos.fast_search(
+            question="Hedge funds seek to expand into private credit",
+            n_results=10
+        )
         first_result = search_results[0]
+        similar_results = first_result.similar(
+            client=nos,
+            n_results=10
+        )
 
-        # Call similar() on the first result
-        similar_results = first_result.similar(client=nos, n_results=10)
+        similar_hashes = [result.url_hash for result in similar_results if result.url_hash]
+        assert first_result.url_hash not in similar_hashes, (
+            f"Original result URL hash {first_result.url_hash} "
+            "should not be in similar results"
+        )
 
-        # Verify that the first result is NOT in the similar results
-        # We check by comparing URL hashes
-        similar_hashes = [r.url_hash for r in similar_results if r.url_hash]
-        assert first_result.url_hash not in similar_hashes, f"Original result URL hash {first_result.url_hash} should not be in similar results"
-
-        # Also verify that similar results were actually returned (should be non-empty)
-        assert len(similar_results) >= 0, "Similar results should be returned (may be empty if no similar docs found)"
+        assert len(similar_results) > 0, "Similar results should be returned"

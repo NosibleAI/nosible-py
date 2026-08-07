@@ -1,238 +1,212 @@
-import logging
-import sqlite3
+"""Shared fixtures for opt-in live integration tests."""
+
 import os
-import threading
-import asyncio
-from functools import partial
+from typing import Any, List
 
-import httpx
 import pytest
-from hishel import (
-    CacheOptions,
-    SpecificationPolicy,
-    SyncSqliteStorage,
-    AsyncSqliteStorage
+
+from nosible import Nosible, Search, SearchSet
+
+TEST_MODULE = os.path.basename(p=__file__)
+
+
+INTEGRATION_FIXTURES = frozenset(
+    {
+        "bulk_search_data",
+        "scrape_url_data",
+        "search_data",
+        "searches_data",
+        "snippets_data",
+        "topic_trend_data"
+    }
 )
-from hishel.httpx import SyncCacheTransport, AsyncCacheTransport
-
-from nosible import Nosible, Search
-from nosible.classes.search_set import SearchSet
-
-logging.getLogger("requests_cache").setLevel(logging.DEBUG)
-
-CACHE_DIR = "httpx_tests_cache"
-CACHE_DB_PATH = "httpx_cache.sqlite"
+INTEGRATION_TEST_NAMES = frozenset(
+    {
+        "test_similar_excludes_current_document"
+    }
+)
 
 
-class NonClosingSyncTransport(httpx.BaseTransport):
-    def __init__(self, inner):
-        self._inner = inner
-
-    def handle_request(self, request):
-        return self._inner.handle_request(request)
-
-    def close(self):
-        # Prevent per-client close() from closing the shared cache/DB
-        return None
-
-
-class NonClosingAsyncTransport(httpx.AsyncBaseTransport):
-    def __init__(self, inner):
-        self._inner = inner
-
-    async def handle_async_request(self, request):
-        return await self._inner.handle_async_request(request)
-
-    async def aclose(self):
-        # Prevent per-client aclose() from closing the shared cache/DB
-        return None
-
-
-class ThreadSafeSyncSqliteStorage(SyncSqliteStorage):
+def pytest_addoption(
+    parser: Any
+) -> None:
     """
-    A subclass of SyncSqliteStorage that:
-    1. Uses a thread lock to prevent race conditions.
-    2. Manually defines the schema.
-    3. Sets a timeout to handle file locking better.
+    Register the explicit live-integration test switch.
+
+    :param parser: Pytest command-line option parser.
+    :return: None.
     """
-
-    def __init__(self, database_path, **kwargs):
-        self.db_path = database_path
-        self._lock = threading.Lock()
-        super().__init__(database_path=database_path, **kwargs)
-
-    def _ensure_connection(self):
-        with self._lock:
-            if self.connection is None:
-                # Added timeout=10 to handle macOS file locking latency
-                self.connection = sqlite3.connect(
-                    self.db_path,
-                    check_same_thread=False,
-                    timeout=10.0
-                )
-                self.connection.execute("PRAGMA journal_mode=WAL;")
-
-                # 1. Create 'entries' table
-                self.connection.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS entries (
-                        id BLOB PRIMARY KEY,
-                        cache_key TEXT NOT NULL,
-                        data BLOB,
-                        created_at REAL,
-                        deleted_at REAL
-                    )
-                    """
-                )
-                self.connection.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_cache_key ON entries(cache_key)"
-                )
-
-                # 2. Create 'streams' table
-                self.connection.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS streams (
-                        entry_id BLOB NOT NULL,
-                        chunk_number INTEGER NOT NULL,
-                        chunk_data BLOB NOT NULL,
-                        FOREIGN KEY(entry_id) REFERENCES entries(id)
-                    )
-                    """
-                )
-
-                self.connection.commit()
-
-        return self.connection
+    parser.addoption(
+        "--run-integration",
+        action="store_true",
+        default=False,
+        help="Run tests that call the live NOSIBLE APIs."
+    )
 
 
-@pytest.fixture(autouse=True, scope="session")
-def install_httpx_cache():
+def pytest_configure(
+    config: pytest.Config
+) -> None:
     """
-    Setup caching for all httpx requests (both sync and async) during tests.
+    Register the integration marker for strict marker validation.
+
+    :param config: Active pytest configuration.
+    :return: None.
     """
-    # Cleanup old DB
-    if os.path.exists(CACHE_DB_PATH):
-        try:
-            os.remove(CACHE_DB_PATH)
-        except OSError:
-            pass
-
-    options = CacheOptions(
-        allow_stale=True,
-        supported_methods=["GET", "POST"]
-    )
-    policy = SpecificationPolicy(cache_options=options)
-
-    # Setup Synchronous Storage
-    sync_storage = ThreadSafeSyncSqliteStorage(
-        database_path=CACHE_DB_PATH,
-        default_ttl=60 * 30
+    config.addinivalue_line(
+        name="markers",
+        line="integration: requires live NOSIBLE credentials and network access"
     )
 
-    # [CRITICAL FIX] Pre-initialize the DB in the main thread!
-    # This creates the tables NOW, so worker threads don't race to do it later.
-    sync_storage._ensure_connection()
 
-    sync_transport = SyncCacheTransport(
-        httpx.HTTPTransport(),
-        storage=sync_storage,
-        policy=policy
+def pytest_collection_modifyitems(
+    config: pytest.Config,
+    items: List[pytest.Item]
+) -> None:
+    """
+    Skip live tests unless the caller explicitly opts in.
+
+    :param config: Active pytest configuration.
+    :param items: Collected pytest items.
+    :return: None.
+    """
+    run_integration = config.getoption(
+        name="--run-integration"
     )
-
-    # Setup Asynchronous Storage
-    async_storage = AsyncSqliteStorage(
-        database_path=CACHE_DB_PATH,
-        default_ttl=60 * 30
+    skip_marker = pytest.mark.skip(
+        reason="live integration test; pass --run-integration to enable"
     )
-
-    async_transport = AsyncCacheTransport(
-        httpx.AsyncHTTPTransport(),
-        storage=async_storage,
-        policy=policy
-    )
-
-     # Patch clients
-    _real_client = httpx.Client
-    _real_async_client = httpx.AsyncClient
-    httpx.Client = partial(_real_client, transport=NonClosingSyncTransport(sync_transport), follow_redirects=True)
-    httpx.AsyncClient = partial(_real_async_client, transport=NonClosingAsyncTransport(async_transport),
-        follow_redirects=True)
-
-    yield
-
-    # Cleanup
-    try:
-        try:
-            sync_transport.close()
-        except Exception:
-            pass
-        try:
-            asyncio.run(async_transport.aclose())
-        except Exception:
-            pass
-        sync_storage.close()
-    except Exception:
-        pass
-
-    # Restore originals (nice hygiene)
-    try:
-        httpx.Client = _real_client
-        httpx.AsyncClient = _real_async_client
-    except Exception:
-        pass
-
-    if os.path.exists(CACHE_DB_PATH):
-        try:
-            os.remove(CACHE_DB_PATH)
-        except OSError:
-            pass
-
-
-# ... (Rest of your fixtures: search_data, etc. remain exactly the same) ...
-@pytest.fixture(scope="session")
-def search_data():
-    """Cache the search results for the session."""
-    with Nosible() as nos:
-        results = nos.fast_search(question="Hedge funds seek to expand into private credit", n_results=10)
-    return results
+    for item in items:
+        uses_live_fixture = bool(
+            INTEGRATION_FIXTURES.intersection(item.fixturenames)
+        )
+        is_integration = (
+            uses_live_fixture
+            or item.name in INTEGRATION_TEST_NAMES
+            or item.get_closest_marker(name="integration") is not None
+        )
+        if not is_integration:
+            continue
+        item.add_marker(
+            marker=pytest.mark.integration
+        )
+        if not run_integration:
+            item.add_marker(
+                marker=skip_marker
+            )
 
 
 @pytest.fixture(scope="session")
-def snippets_data(scrape_url_data):
-    """Cache the snippets data for the session."""
+def search_data() -> Any:
+    """
+    Fetch one live Fast Search result set.
+
+    :return: Live Fast Search result set.
+    """
+    require_integration_key()
+    with Nosible() as client:
+        return client.fast_search(
+            question="Hedge funds seek to expand into private credit",
+            n_results=10
+        )
+
+
+@pytest.fixture(scope="session")
+def snippets_data(
+    scrape_url_data: Any
+) -> Any:
+    """
+    Return snippets from the live Scrape fixture.
+
+    :param scrape_url_data: Live scraped page data.
+    :return: Snippet collection from the scraped page.
+    """
     return scrape_url_data.snippets
 
 
 @pytest.fixture(scope="session")
-def searches_data():
-    """Cache a single searches() invocation."""
-    queries = SearchSet(
-        [
-            Search(question="Hedge funds seek to expand into private credit", n_results=5),
-            Search(question="How have the Trump tariffs impacted the US economy?", n_results=5),
+def searches_data() -> Any:
+    """
+    Fetch two live concurrent Fast Search result sets.
+
+    :return: List of live Fast Search result sets.
+    """
+    require_integration_key()
+    searches = SearchSet(
+        searches_list=[
+            Search(
+                question="Hedge funds seek to expand into private credit",
+                n_results=5
+            ),
+            Search(
+                question="How have the Trump tariffs impacted the US economy?",
+                n_results=5
+            )
         ]
     )
-    with Nosible() as nos:
-        return list(nos.fast_searches(searches=queries))
+    with Nosible() as client:
+        return list(
+            client.fast_searches(
+                searches=searches
+            )
+        )
 
 
 @pytest.fixture(scope="session")
-def scrape_url_data(search_data):
-    """Cache one scrape_url() on the second result."""
-    with Nosible() as nos:
-        return search_data[1].scrape_url(client=nos)
+def scrape_url_data(
+    search_data: Any
+) -> Any:
+    """
+    Scrape the second live search result.
+
+    :param search_data: Live Fast Search result set.
+    :return: Scraped web-page data.
+    """
+    require_integration_key()
+    with Nosible() as client:
+        return search_data[1].scrape_url(
+            client=client
+        )
 
 
 @pytest.fixture(scope="session")
-def bulk_search_data():
-    """Cache a single bulk_search() invocation (using a minimal valid size)."""
-    with Nosible() as nos:
-        # Use n_results=1000 to satisfy the >=1000 requirement
-        return nos.bulk_search(question="Hedge funds seek to expand into private credit", n_results=1000)
+def bulk_search_data() -> Any:
+    """
+    Fetch one live Bulk Search result set.
+
+    :return: Live Bulk Search result set.
+    """
+    require_integration_key()
+    with Nosible() as client:
+        return client.bulk_search(
+            question="Hedge funds seek to expand into private credit",
+            n_results=1000
+        )
 
 
 @pytest.fixture(scope="session")
-def topic_trend_data():
-    """Cache a single topic_trend() invocation."""
-    with Nosible() as nos:
-        return nos.topic_trend(query="Christmas shopping")
+def topic_trend_data() -> Any:
+    """
+    Fetch one live Topic Trend response.
+
+    :return: Live Topic Trend response.
+    """
+    require_integration_key()
+    with Nosible() as client:
+        return client.topic_trend(
+            query="Christmas shopping"
+        )
+
+
+def require_integration_key() -> None:
+    """
+    Require a NOSIBLE key before a live fixture can execute.
+
+    :return: None.
+    """
+    if not os.getenv(
+        key="NOSIBLE_API_KEY"
+    ):
+        pytest.skip(
+            reason="NOSIBLE_API_KEY is required for live integration tests"
+        )

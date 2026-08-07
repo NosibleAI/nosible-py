@@ -54,7 +54,7 @@ Usage
 
 - Using with Cursor:
 
-  - Go to ``Cursor Settings`` -> ``MCP & Integrtions`` -> ``New MCP Server``
+  - Go to ``Cursor Settings`` -> ``MCP & Integrations`` -> ``New MCP Server``
   - Add this template below, with your own API key.
 
   .. code:: json

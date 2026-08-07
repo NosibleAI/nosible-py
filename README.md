@@ -1,142 +1,160 @@
-[![Linux Tests](https://img.shields.io/github/actions/workflow/status/NosibleAI/nosible-py/run_tests_and_publish.yml?branch=main&label=Linux%20Tests)](https://github.com/NosibleAI/nosible-py/actions/workflows/run_tests_and_publish.yml)
-[![Windows Tests](https://img.shields.io/github/actions/workflow/status/NosibleAI/nosible-py/run_tests_and_publish.yml?branch=main&label=Windows%20Tests)](https://github.com/NosibleAI/nosible-py/actions/workflows/run_tests_and_publish.yml)
-[![macOS Tests](https://img.shields.io/github/actions/workflow/status/NosibleAI/nosible-py/run_tests_and_publish.yml?branch=main&label=macOS%20Tests)](https://github.com/NosibleAI/nosible-py/actions/workflows/run_tests_and_publish.yml)
-[![Read the Docs](https://img.shields.io/readthedocs/nosible-py/latest.svg?label=docs&logo=readthedocs)](https://nosible-py.readthedocs.io/en/latest/)
-[![PyPI version](https://img.shields.io/pypi/v/nosible.svg?label=PyPI&logo=python)](https://pypi.org/project/nosible/)
-[![codecov](https://codecov.io/gh/NosibleAI/nosible-py/graph/badge.svg?token=DDXGQ3V6P9)](https://codecov.io/gh/NosibleAI/nosible-py)
-[![PyPI - Python Versions](https://img.shields.io/pypi/pyversions/nosible.svg)](https://pypi.org)
+[![Tests](https://img.shields.io/github/actions/workflow/status/NosibleAI/nosible-py/run_tests_and_publish.yml?branch=main&label=tests)](https://github.com/NosibleAI/nosible-py/actions/workflows/run_tests_and_publish.yml)
+[![Documentation](https://img.shields.io/readthedocs/nosible-py/latest.svg?label=docs&logo=readthedocs)](https://nosible-py.readthedocs.io/)
+[![PyPI](https://img.shields.io/pypi/v/nosible.svg?label=PyPI&logo=python)](https://pypi.org/project/nosible/)
 
+![NOSIBLE](https://github.com/NosibleAI/nosible-py/blob/main/docs/_static/readme.png?raw=true)
 
-[//]: # ([![Visit Nosible]&#40;https://img.shields.io/static/v1?label=Visit&message=nosible.ai&style=flat&logoUri=https://www.nosible.ai/assests/favicon.png&logoWidth=20&#41;]&#40;https://www.nosible.ai/&#41;)
+# NOSIBLE Python SDK
 
-![Logo](https://github.com/NosibleAI/nosible-py/blob/main/docs/_static/readme.png?raw=true)
+`nosible` is the synchronous Python client for the
+[NOSIBLE Search API](https://docs.nosible.com/) and
+[NOSIBLE World API](https://nosible.world/).
 
-# NOSIBLE Search Client
+Version 0.4.0 supports every Search v2.1 endpoint and exposes World through the
+`client.world` namespace. Existing 0.3 Search models and convenience methods
+remain available.
 
-A high-level Python client for the [NOSIBLE Search API](https://www.nosible.ai/search/v2/docs/#/).
-Easily integrate the Nosible Search API into your Python projects.
-
-### 📄 Documentation
-
-You can find the full NOSIBLE Search Client documentation 
-[here](https://nosible-py.readthedocs.io/).
-
-### 📦 Installation
-
-> **⚠️ Important:** If you are using a new API key (format starting with `nos_sk_...`), you must update to package version **0.3.12** or newer.
+## Installation
 
 ```bash
-pip install nosible
+pip install "nosible==0.4.0"
 ```
 
-### ⚡ Installing with uv 
+Python 3.9 or newer is supported.
 
-```bash
-uv pip install nosible
-```
+## Authentication
 
-**Requirements**:
-
-* Python 3.9+
-* polars
-* duckdb
-* openai
-* tantivy
-* pyrate-limiter
-* tenacity
-* cryptography
-* pyarrow
-* pandas
-
-### 🔑 Authentication
-
-1. Sign in to [NOSIBLE.COM](https://nosible.com/) and grab your free API key.
-2. Set it as an environment variable or pass directly:
-
-On Windows
+Create an API key at [app.nosible.com](https://app.nosible.com/), then set
+`NOSIBLE_API_KEY` or pass the key to the client.
 
 ```powershell
 $Env:NOSIBLE_API_KEY="nos_sk_..."
-$Env:LLM_API_KEY="sk-..."  # for query expansions (optional)
 ```
-
-On Linux
-```bash
-export NOSIBLE_API_KEY="nos_sk_..."
-export LLM_API_KEY="sk-..."  # for query expansions (optional)
-```
-
-Or in code:
-
-- As an argument:
 
 ```python
 from nosible import Nosible
 
-client = Nosible(
-    nosible_api_key="nos_sk_...",
-    llm_api_key="sk-...",
-)
+client = Nosible()
+# Or: client = Nosible(nosible_api_key="nos_sk_...")
 ```
 
-- As an environment variable:
+Search uses the `api-key` request header. Authenticated World routes use bearer
+authentication. World version is public and always credential-free. Search
+Schema and Markdown delivery requests are sent without credentials first; if a
+deployment responds with an authentication error, the SDK retries once with
+SDK-managed bearer authentication when an API key is configured. Credentials
+configured on an injected HTTP client are replaced for every SDK request and
+are never forwarded to presigned Bulk and Time Search download URLs.
 
-```python
-from nosible import Nosible
-import os
-
-os.environ["NOSIBLE_API_KEY"] = "nos_sk_..."
-os.environ["LLM_API_KEY"] = "sk-..."
-```
-
-### 🔍 Your first search
-
-To complete your first search:
+## Search v2.1
 
 ```python
 from nosible import Nosible
 
-with Nosible(nosible_api_key="YOUR API KEY") as client:
-
+with Nosible() as client:
     results = client.fast_search(
-        question="What is Artificial General Intelligence?"
+        question="What is changing in semiconductor capacity?",
+        companies=["NVIDIA", "TSMC"],
+        collection="this-week",
+        deduplicate=True,
+        n_results=25
     )
 
-    print(results)
+    for result in results:
+        print(result.title, result.similarity, result.url)
 ```
 
-### 🤖 Cybernaut 1
+The client covers all 11 Search endpoints:
 
-An AI agent with unrestricted access to everything in NOSIBLE including every shard, algorithm, selector, 
-reranker, and signal. It knows what these things are and can tune them on the fly to find better results.
+- `search` for Cybernaut agentic search
+- `fast_search` and `fast_searches`
+- `rich_search`
+- `bulk_search`
+- `time_search`
+- `scrape_url`
+- `topic_trend`
+- `save_search`, `get_searches`, and `delete_search`
+- `get_limits`
+
+Bulk and Time Search handle polling, Fernet decryption, and current Zstandard
+or legacy gzip payloads. `bulk_search` returns a `ResultSet`; `time_search`
+preserves the interval-bucket response. Transient download responses are
+retried, and authentication configured on an injected `httpx.Client` is
+explicitly disabled for presigned download hosts.
+
+`fast_searches` accepts question strings, `list[Search]`, or `SearchSet`.
+Shared filters and retrieval options are applied consistently to every search
+whose model does not override them. Non-null model values take precedence,
+including `False` for the optional `certain` filter. Expansion generation is
+enabled when either the batch or the individual model opts in. Requests run
+concurrently up to the client's configured `concurrency` while results retain
+input order.
+
+For compatibility, Fast Search defaults to 100 results and 128 context tokens,
+while the service schema defaults are 10 and 256. Requests for fewer than 10
+results are truncated locally.
+
+## World
 
 ```python
 from nosible import Nosible
 
-with Nosible(nosible_api_key="YOUR API KEY") as client:
-
-    results = client.search(
-        # search() gives you access to Cybernaut 1
-        prompt="Find me interesting technical blogs about Monte Carlo Tree Search."
+with Nosible() as client:
+    page = client.world.entity_events(
+        entity_type="ORG",
+        name="NVIDIA",
+        from_="2026-07-01",
+        to="2026-07-20",
+        include="event_lite",
+        include_live=True
     )
 
-    print(results)
+    for event in page:
+        print(event.event_id, event.event["title"])
+
+    neighbors = client.world.similar_events(
+        date="2026-07-20",
+        event_id=page[0].event_id,
+        floor=0.35
+    )
 ```
 
-### 📄 Documentation
+`client.world` covers dated events, entity/ticker/ontology timelines, global
+search and aggregation, resolve and metadata routes, dated search, event
+details and coverage, snapshots, and all Markdown delivery routes.
+`WorldEvent` and `WorldEventPage` preserve unknown fields so newer server
+schemas can round-trip without data loss. `Snippet` does the same for Search
+scrape payloads, including the distinction between an omitted field and an
+explicit null.
 
-You can find the full NOSIBLE Search Client documentation 
-[here](https://nosible-py.readthedocs.io/).
+## Errors and custom transports
 
-### 📡 Swagger Docs
+HTTP failures raise subclasses of `NosibleAPIError`, which remains a
+`ValueError` for backwards compatibility. Errors expose `status_code`,
+`code`, `method`, `path`, `body`, and `retry_after`.
 
-You can find online endpoints to the NOSIBLE Search API Swagger Docs
-[here](https://www.nosible.ai/search/v2/docs/#/).
+An `httpx.Client` and alternate merged API origin can be injected for testing
+or private deployments:
 
+```python
+import httpx
+from nosible import Nosible
 
----
+http = httpx.Client()
+client = Nosible(
+    base_url="https://staging.example/api",
+    http_client=http
+)
+client.close()  # Does not close an injected client.
+http.close()
+```
 
-© 2026 Nosible Inc. | [Privacy Policy](https://www.nosible.ai/privacy) | [Terms](https://www.nosible.ai/terms)
+## Reference
 
+- [Combined API documentation](https://docs.nosible.com/)
+- [Search data dictionaries](https://nosible.com/data-dictionaries)
+- [Python SDK documentation](https://nosible-py.readthedocs.io/)
+- [Start a trial](https://nosible.com/start-trial)
 
-[nosible-badge]: https://img.shields.io/static/v1?label=Visit&message=nosible.ai&\style=flat&logoUri=https://raw.githubusercontent.com/NosibleAI/nosible-py/main/docs/_static/favicon.png&logoWidth=20
+© 2026 NOSIBLE Inc. [Privacy](https://nosible.com/privacy) ·
+[Terms](https://nosible.com/terms)

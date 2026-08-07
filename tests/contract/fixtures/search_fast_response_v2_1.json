@@ -1,0 +1,36 @@
+{
+  "message": "Search completed.",
+  "query": {
+    "question": "What changed in the semiconductor supply chain?",
+    "companies": [
+      "NVIDIA"
+    ],
+    "collection": "this-week",
+    "deduplicate": true
+  },
+  "response": [
+    {
+      "url_hash": "aB3dE_fG7hIj-KlMnOpQrStU",
+      "url": "https://news.example/semiconductors",
+      "title": "Semiconductor supply chains diversify",
+      "description": "Manufacturers expanded capacity in multiple regions.",
+      "published": "2026-07-20",
+      "visited": "2026-07-20",
+      "netloc": "news.example",
+      "language": "en",
+      "author": "Jane Doe",
+      "best_chunk": "Manufacturers are diversifying advanced chip capacity.",
+      "content": "Manufacturers are diversifying advanced chip capacity across multiple regions.",
+      "semantics": {
+        "origin_shard": 143,
+        "chunks_total": 42,
+        "chunks_matched": 18,
+        "chunks_kept": 6,
+        "similarity": 0.9123
+      },
+      "future_search_field": {
+        "kept": true
+      }
+    }
+  ]
+}

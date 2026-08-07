@@ -1,144 +1,74 @@
 .. image:: _static/readme.png
-   :alt: Nosible logo
+   :alt: NOSIBLE
    :class: top-logo
 
-NOSIBLE Search Client
-======================
+NOSIBLE Python SDK
+==================
 
-Welcome to the NOSIBLE Client package! This documentation will give you an in-depth overview of the NOSIBLE
-Search API, and show you how to harness the power of the NOSIBLE Search Engine.
+The NOSIBLE Python SDK provides synchronous access to Search API v2.1 and the
+NOSIBLE World API from one client.
 
-📦 Installation
-~~~~~~~~~~~~~~~
+Installation
+------------
 
-.. important::
-   If you are using a new API key (format starting with ``nos_sk_...``), you must update to package version **0.3.12**
-   or newer.
+.. code-block:: bash
 
-.. code:: bash
+   pip install "nosible==0.4.0"
 
-   pip install nosible
+Python 3.9 and newer are supported.
 
+Authentication
+--------------
 
-⚡ Installing with uv 
-~~~~~~~~~~~~~~~~~~~~~
+Create an API key in the `NOSIBLE application <https://app.nosible.com/>`_,
+then set ``NOSIBLE_API_KEY``:
 
-.. code:: bash
-
-    uv pip install nosible
-
-
-**Requirements**:
-
-- Python 3.9+
-- polars
-- duckdb
-- openai
-- tantivy
-- pyrate-limiter
-- tenacity
-- cryptography
-- pyarrow
-- pandas
-
-🔑 Authentication
-~~~~~~~~~~~~~~~~~
-
-1. Sign in to `NOSIBLE <https://nosible.com/>`_ and grab your free API key.
-2. Set it as an environment variable or pass directly:
-
-On Windows
-
-.. code:: powershell
+.. code-block:: powershell
 
    $Env:NOSIBLE_API_KEY="nos_sk_..."
-   $Env:LLM_API_KEY="sk-..."  # for query expansions (optional)
 
-On Linux
-
-.. code:: bash
+.. code-block:: bash
 
    export NOSIBLE_API_KEY="nos_sk_..."
-   export LLM_API_KEY="sk-..."  # for query expansions (optional)
 
-Or in code:
+Search requests use the ``api-key`` header. Authenticated World requests use
+``Authorization: Bearer``. World version is always credential-free. Search
+Schema and Markdown delivery requests are public-first and retry once with
+SDK-managed bearer authentication only when a deployment rejects anonymous
+access and an API key is configured.
 
-- As an argument:
+First Search
+------------
 
-.. code:: python
+.. code-block:: python
+
+   from nosible import Nosible
+
+   with Nosible() as client:
+       results = client.fast_search(
+           question="What is changing in semiconductor capacity?",
+           n_results=25
+       )
+
+       for result in results:
+           print(result.title, result.similarity)
+
+First World query
+-----------------
+
+.. code-block:: python
 
    from nosible import Nosible
 
-   client = Nosible(
-       nosible_api_key="nos_sk_...",
-       llm_api_key="sk-...",
-   )
+   with Nosible() as client:
+       dates = client.world.dates()
+       events = client.world.events(date=dates["dates"][0])
 
-- As an environment variable:
+       for event in events:
+           print(event.event_id, event.event.get("title"))
 
-.. code:: python
-
-   from nosible import Nosible
-   import os
-
-   os.environ["NOSIBLE_API_KEY"] = "nos_sk_..."
-   os.environ["LLM_API_KEY"] = "sk-..."
-
-🔍 Your first search
-~~~~~~~~~~~~~~~~~~~~
-
-.. code:: python
-
-    from nosible import Nosible
-
-    with Nosible(nosible_api_key="YOUR API KEY") as client:
-
-        results = client.fast_search(
-            question="What is Artificial General Intelligence?"
-        )
-
-        print(results)
-
-🤖 Cybernaut 1
-~~~~~~~~~~~~~~~
-
-An AI agent with unrestricted access to everything in NOSIBLE including every shard, algorithm, selector,
-reranker, and signal. It knows what these things are and can tune them on the fly to find better results.
-
-.. code:: python
-
-    from nosible import Nosible
-
-    with Nosible(nosible_api_key="YOUR API KEY") as client:
-
-        results = client.search(
-            # search() gives you access to Cybernaut 1
-            prompt="Find me interesting technical blogs about Monte Carlo Tree Search."
-        )
-
-        print(results)
-
---------------
-
-⚒️ Examples and Demos
-~~~~~~~~~~~~~~~~~~~~~
-
-To easily view examples of how to use the client package, or demos to see what can be achieved with the NOSIBLE
-search engine, view our `examples and demos page <https://nosible-py.readthedocs.io/en/latest/examples.html>`__.
-
-🚫 Rate Limits
-~~~~~~~~~~~~~~
-
-To find rate limits and pricing info for the NOSIBLE Search API, visit our
-`subscriptions page <https://nosible.com/>`__..
-
-📡 Swagger Docs
-~~~~~~~~~~~~~~~
-
-You can find online endpoints to the NOSIBLE Search API Swagger Docs
-`here <https://www.nosible.ai/search/v2/docs/#/>`__.
-
---------------
+The combined endpoint documentation is available at
+`docs.nosible.com <https://docs.nosible.com/>`_.
 
 .. toctree::
    :maxdepth: 4
@@ -146,7 +76,11 @@ You can find online endpoints to the NOSIBLE Search API Swagger Docs
    :hidden:
 
    Getting Started <self>
+   search_v2_1
+   world
+   errors
    configuration
+   releasing
    examples
    mcp_server
 
@@ -160,8 +94,12 @@ API reference
    nosible.Nosible
    nosible.Result
    nosible.ResultSet
+   nosible.RichResult
    nosible.Search
    nosible.SearchSet
    nosible.WebPageData
    nosible.Snippet
    nosible.SnippetSet
+   nosible.WorldClient
+   nosible.WorldEvent
+   nosible.WorldEventPage

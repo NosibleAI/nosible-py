@@ -1,5 +1,5 @@
-orjson
 cryptography
+zstandard
 duckdb
 openai
 pandas
@@ -8,7 +8,6 @@ pyarrow
 pyrate-limiter
 httpx
 tantivy
-tenacity
 sphinx
 sphinx-rtd-theme
 sphinx_design

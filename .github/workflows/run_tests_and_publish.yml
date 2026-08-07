@@ -2,83 +2,22 @@ name: CI & Publish
 
 on:
   push:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * 1"
 
 jobs:
-  record:
-    name: Record HTTP interactions
-    runs-on: ubuntu-latest
-    env:
-      NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY }}
-      LLM_API_KEY:     ${{ secrets.LLM_API_KEY }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Python & UV tool
-        uses: astral-sh/setup-uv@v6
-        with:
-          python-version: 3.12
-          enable-cache: true
-
-      - name: Create virtual environment
-        run: uv venv
-
-      - name: Install project dependencies
-        run: uv pip install -e .
-
-      - name: Install test dependencies
-        run: uv pip install pytest pytest-doctestplus pytest-xdist
-
-      - name: Debug ls
-        run: |
-          pwd
-          ls
-
-      - name: Run tests in record mode
-        run: |
-          uv run pytest -n auto || true
-          
-      - name: Run tests in second pass to cache new results
-        run: |
-          uv run pytest -n auto || true
-
-      - name: Save cache of HTTP results (per-run)
-        if: always()
-        uses: actions/cache@v4
-        id: cache
-        with:
-          path: httpx_tests_cache
-          key: nosible-http-cache-${{ github.ref_name }}-${{ github.sha }}
-          enableCrossOsArchive: true
-
-
   test:
     name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
-    needs: record
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.9", "3.12"]
-    env:
-      NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY }}
-      LLM_API_KEY:     ${{ secrets.LLM_API_KEY }}
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Restore HTTP cache (per-run)
-        uses: actions/cache/restore@v4
-        id: cache
-        with:
-          path: httpx_tests_cache
-          key: nosible-http-cache-${{ github.ref_name }}-${{ github.sha }}
-          enableCrossOsArchive: true
-
-      # - name: Fail on cache miss
-      #   if: steps.cache.outputs.cache-hit != 'false'
-      #   run: exit 1
 
       - name: Setup Python & UV tool
         uses: astral-sh/setup-uv@v6
@@ -89,20 +28,25 @@ jobs:
       - name: Create virtual environment
         run: uv venv
 
-      - name: Install project dependencies
-        run: uv pip install -r docs/requirements.txt
+      - name: Install project and test dependencies
+        run: uv pip install -e . pytest pytest-doctestplus ruff
 
-      - name: Install test dependencies
-        run: |
-          uv pip install pytest pytest-doctestplus requests-cache
+      - name: Check code style
+        run: uv run ruff check .
 
-      - name: Debug ls
-        run: |
-          pwd
-          ls
+      - name: Check NOSIBLE Python rules
+        run: uv run python scripts/check_python_rules.py
 
-      - name: Run tests
+      - name: Run offline tests
         run: uv run pytest --maxfail=1
+
+      - name: Install documentation dependencies
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' }}
+        run: uv pip install sphinx sphinx-rtd-theme sphinx-design
+
+      - name: Build documentation with warnings as errors
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' }}
+        run: uv run sphinx-build -W --keep-going -E -b html docs docs/_build/html
 
   build:
     name: Build package distribution
@@ -118,10 +62,23 @@ jobs:
       - name: Setup UV tool
         uses: astral-sh/setup-uv@v6
         with:
+          python-version: "3.12"
           enable-cache: true
+
+      - name: Validate release metadata and tag
+        run: uv run --no-project python scripts/check_release.py
+
+      - name: Verify minimum supported build backend
+        run: |
+          uv venv .venv-minimum-build --python 3.9
+          uv pip install --python .venv-minimum-build/bin/python "setuptools==75.1.0" wheel build
+          .venv-minimum-build/bin/python -m build --no-isolation --outdir dist-minimum-backend
 
       - name: Build distributions
         run: uv build
+
+      - name: Validate built distributions
+        run: uvx --from twine twine check dist/*
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -133,7 +90,7 @@ jobs:
     name: Publish package to PyPI
     needs: build
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' && needs.build.result == 'success' }}
+    if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && needs.build.result == 'success' }}
     environment:
       name: pypi
       url: https://pypi.org/project/nosible
@@ -148,5 +105,33 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  live-contract:
+    name: Live Search and World contract smoke test
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python & UV tool
+        uses: astral-sh/setup-uv@v6
         with:
-          pypi_token: ${{ secrets.PYPI_API_TOKEN }}
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Require live-test credentials
+        env:
+          NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY }}
+        run: test -n "$NOSIBLE_API_KEY"
+
+      - name: Create virtual environment
+        run: uv venv
+
+      - name: Install project and test dependencies
+        run: uv pip install -e . pytest pytest-doctestplus
+
+      - name: Run controlled live contract suite
+        env:
+          NOSIBLE_API_KEY: ${{ secrets.NOSIBLE_API_KEY }}
+        run: uv run pytest --run-integration -m integration --maxfail=1

@@ -1,135 +1,93 @@
-import functools
+"""Rate-limiting support for NOSIBLE client operations."""
+
+import os
 import logging
 import time
+from typing import Optional
 
 from pyrate_limiter import Limiter, Rate
 from pyrate_limiter.buckets.in_memory_bucket import InMemoryBucket
 from pyrate_limiter.exceptions import BucketFullException, LimiterDelayException
 
-log = logging.getLogger(__name__)
-
-
-def _rate_limited(endpoint):
-    """
-    Decorator to throttle calls to the given endpoint
-    using whatever limiters you’ve stored in self._limiters.
-    """
-
-    def deco(fn):
-        @functools.wraps(fn)
-        def wrapper(self, *args, **kwargs):
-            # print(f"[RATE LIMIT] enforcing {endpoint}")
-            for rl in self._limiters[endpoint]:
-                rl.acquire()
-            return fn(self, *args, **kwargs)
-
-        return wrapper
-
-    return deco
+GLOBAL_LIMITER_KEY = f"nosible-{os.getpid()}"
+LOGGER = logging.getLogger(name=__name__)
 
 
 class RateLimiter:
-    """
-    Thread-safe sliding-window rate limiter via PyrateLimiter.
-    """
+    """Thread-safe sliding-window rate limiter."""
 
-    _GLOBAL_KEY = "nosible"
-
-    def __init__(self, max_calls: int, period_s: float):
+    def __init__(
+        self: "RateLimiter",
+        max_calls: int,
+        period_s: float
+    ) -> None:
         """
-        Initialize the RateLimiter.
+        Initialise a sliding-window rate limiter.
 
-        Parameters
-        ----------
-        max_calls : int
-            Maximum number of calls allowed within each time window.
-        period_s : float
-            Length of the rolling window, in seconds.
-
-        Raises
-        ------
-        ValueError
-            If max_calls is not positive or period_s is not positive.
-
-        Examples
-        --------
-        >>> rl = RateLimiter(5, 2.0)
-        >>> isinstance(rl, RateLimiter)
-        True
+        :param max_calls: Maximum calls allowed within the window.
+        :param period_s: Window duration in seconds.
+        :return: None.
         """
-        # PyrateLimiter expects interval in ms
+        if max_calls <= 0:
+            raise ValueError("max_calls must be greater than zero")
+        if period_s <= 0:
+            raise ValueError("period_s must be greater than zero")
+
         period_ms = int(period_s * 1000)
+        bucket = InMemoryBucket(
+            rates=[
+                Rate(
+                    limit=max_calls,
+                    interval=period_ms
+                )
+            ]
+        )
+        self.limiter = Limiter(
+            argument=bucket,
+            max_delay=1000
+        )
 
-        # Build our bucket
-        bucket = InMemoryBucket([Rate(max_calls, period_ms)])
-        self._limiter = Limiter(bucket, max_delay=1000)
-
-    def acquire(self) -> None:
+    def acquire(
+        self: "RateLimiter"
+    ) -> None:
         """
-        Block until a slot is available under the rate limit.
+        Block until a rate-limit slot is available.
 
-        This method will block the calling thread until the number
-        of calls made in the last period_s seconds is strictly
-        less than max_calls.  Once a slot is free, it records
-        the call and returns.
-
-        Raises
-        ------
-        BucketFullException
-            If the limiter is configured to never delay and the bucket is full.
-
-        Examples
-        --------
-        >>> rl = RateLimiter(1, 10.0)
-        >>> rl.acquire()  # first call always passes
-        >>> # Second call within 10 seconds will block until the window resets
-        >>> start = time.monotonic(); rl.acquire(); end = time.monotonic()
-        >>> end - start >= 10.0
-        True
+        :return: None.
         """
         waited = False
         while True:
             try:
-                self._limiter.try_acquire(self._GLOBAL_KEY)
+                self.limiter.try_acquire(name=GLOBAL_LIMITER_KEY)
                 if waited:
-                    log.info("Resumed after wait")
+                    LOGGER.info(msg="Resumed after rate-limit wait")
                 return
-            except BucketFullException as exc:
-                # exc.meta_info['remaining_time'] is ms until next token
-                wait_ms = exc.meta_info.get("remaining_time", 0)
+            except BucketFullException as error:
+                wait_ms = error.meta_info.get("remaining_time", 0)
                 wait_s = max(wait_ms / 1000.0, 0.01)
-
                 if not waited:
-                    log.info(f"Waiting on rate limit: sleeping {wait_s * 1000:.3f}s")
+                    LOGGER.info(
+                        msg=(
+                            "Waiting on rate limit: sleeping "
+                            f"{wait_s * 1000:.3f}ms"
+                        )
+                    )
                     waited = True
-
-                # Ensure at least a small sleep if rounding to zero
                 time.sleep(wait_s)
 
-    def try_acquire(self, name: str = None) -> bool:
+    def try_acquire(
+        self: "RateLimiter",
+        name: Optional[str] = None
+    ) -> bool:
         """
         Attempt to acquire a slot without blocking.
 
-        Returns
-        -------
-        bool
-            True if a slot was available and consumed; False if the
-            rate limit has been reached.
-
-        Examples
-        --------
-        >>> rl = RateLimiter(1, 10.0)
-        >>> rl.try_acquire()
-        True
-        >>> # Immediately calling again will fail
-        >>> rl.try_acquire()
-        False
+        :param name: Optional limiter identity.
+        :return: Whether a slot was acquired.
         """
-        key = name if name else self._GLOBAL_KEY
-
+        key = name if name else GLOBAL_LIMITER_KEY
         try:
-            self._limiter.try_acquire(key)
+            self.limiter.try_acquire(name=key)
             return True
         except (BucketFullException, LimiterDelayException):
-            # Return False instead of crashing when the limit is hit
             return False

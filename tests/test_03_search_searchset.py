@@ -1,72 +1,127 @@
-from nosible import Search, SearchSet
+"""Tests for test 03 search searchset."""
+
+import os
+from typing import Any
+
 import pytest
 
-s1 = Search(question="Hedge funds seek to expand into private credit", n_results=10)
-s2 = Search(question="Nvidia insiders dump more than $1 billion in stock", n_results=10)
+from nosible import Search, SearchSet
+
+TEST_MODULE = os.path.basename(p=__file__)
+
+FIRST_SEARCH = Search(
+    question="Hedge funds seek to expand into private credit",
+    n_results=10
+)
+SECOND_SEARCH = Search(
+    question="Nvidia insiders dump more than $1 billion in stock",
+    n_results=10
+)
 
 
-def test_search_initialization():
-    assert isinstance(s1, Search)
-    assert isinstance(s2, Search)
-    assert s1.question == "Hedge funds seek to expand into private credit"
-    assert s2.question == "Nvidia insiders dump more than $1 billion in stock"
+def test_search_initialization() -> None:
+    """
+
+    Verify search initialization.
+
+    :return: Test result or None.
+    """
+    assert isinstance(FIRST_SEARCH, Search)
+    assert isinstance(SECOND_SEARCH, Search)
+    assert FIRST_SEARCH.question == "Hedge funds seek to expand into private credit"
+    assert SECOND_SEARCH.question == "Nvidia insiders dump more than $1 billion in stock"
 
 
-def test_searchset_initialization():
-    search_set = SearchSet([s1, s2])
+def test_searchset_initialization() -> None:
+    """
+
+    Verify searchset initialization.
+
+    :return: Test result or None.
+    """
+    search_set = SearchSet(searches_list=[FIRST_SEARCH, SECOND_SEARCH])
 
     assert isinstance(search_set, SearchSet)
     assert len(search_set) == 2
-    assert search_set[0] == s1
-    assert search_set[1] == s2
-    assert search_set.searches_list== [s1, s2]
+    assert search_set[0] == FIRST_SEARCH
+    assert search_set[1] == SECOND_SEARCH
+    assert search_set.searches_list== [FIRST_SEARCH, SECOND_SEARCH]
 
 
-def test_searchset_iterable():
-    search_set = SearchSet([s1, s2])
+def test_searchset_iterable() -> None:
+    """
+
+    Verify searchset iterable.
+
+    :return: Test result or None.
+    """
+    search_set = SearchSet(searches_list=[FIRST_SEARCH, SECOND_SEARCH])
 
     assert isinstance(search_set, SearchSet)
-    assert all(isinstance(s, Search) for s in search_set)
+    assert all(isinstance(search, Search) for search in search_set)
 
 
-def test_searchset_access():
-    search_set = SearchSet([s1, s2])
-    assert search_set[0] == s1
-    assert search_set[1] == s2
+def test_searchset_access() -> None:
+    """
 
-    with pytest.raises(IndexError):
-        _ = search_set[2]  # Accessing out of range index should raise IndexError
+    Verify searchset access.
+
+    :return: Test result or None.
+    """
+    search_set = SearchSet(searches_list=[FIRST_SEARCH, SECOND_SEARCH])
+    assert search_set[0] == FIRST_SEARCH
+    assert search_set[1] == SECOND_SEARCH
+
+    with pytest.raises(expected_exception=IndexError):
+        _ = search_set[2]
 
 
-# to_dicts
-def test_searchset_to_dicts():
-    search_set = SearchSet([s1, s2])
+def test_searchset_to_dicts() -> None:
+    """
+
+    Verify searchset to dicts.
+
+    :return: Test result or None.
+    """
+    search_set = SearchSet(searches_list=[FIRST_SEARCH, SECOND_SEARCH])
 
     dicts = search_set.to_dicts()
     assert isinstance(dicts, list)
     assert len(dicts) == 2
-    assert dicts[0] == s1.to_dict()
-    assert dicts[1] == s2.to_dict()
+    assert dicts[0] == FIRST_SEARCH.to_dict()
+    assert dicts[1] == SECOND_SEARCH.to_dict()
 
 
-# write_json
-def test_searchset_write_json(tmp_path):
-    search_set = SearchSet([s1, s2])
+def test_searchset_write_json(
+    tmp_path: Any
+) -> None:
+    """
+
+    Verify searchset write json.
+
+    :param tmp_path: Test dependency or input.
+    :return: Test result or None.
+    """
+    search_set = SearchSet(searches_list=[FIRST_SEARCH, SECOND_SEARCH])
 
     json_str = search_set.write_json()
     assert isinstance(json_str, str)
-    assert len(json_str) > 0  # Ensure that the JSON string is not empty
+    assert len(json_str) > 0
 
-    # save to file and read back
-    search_set.write_json(tmp_path / "search_set.json")
-    search_set_copy = SearchSet.read_json(tmp_path / "search_set.json")
+    search_set.write_json(path=tmp_path / "search_set.json")
+    search_set_copy = SearchSet.read_json(path=tmp_path / "search_set.json")
     assert search_set == search_set_copy
 
 
-# add a search to the set
-def test_searchset_addition():
-    search_set = SearchSet([s1])
+def test_searchset_addition() -> None:
+    """
 
-    search_set.add(s2)
+    Verify searchset addition.
+
+    :return: Test result or None.
+    """
+    search_set = SearchSet(searches_list=[FIRST_SEARCH])
+
+    search_set.add(search=SECOND_SEARCH)
     assert len(search_set) == 2
-    assert search_set[1] == s2
+    assert search_set[1] == SECOND_SEARCH

@@ -1,627 +1,403 @@
-from __future__ import annotations
+"""Model for individual NOSIBLE Search results."""
 
-from dataclasses import asdict, dataclass
-from typing import TYPE_CHECKING
+import os
+import copy
+import warnings
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Set
 
+from openai import OpenAI
+
+import nosible.classes.result_set
+import nosible.classes.search
 from nosible.classes.web_page import WebPageData
 from nosible.utils.json_tools import print_dict
 
-if TYPE_CHECKING:
-    from nosible.classes.result_set import ResultSet
-else:
-    ResultSet = None
-import warnings
+MODULE_NAME = os.path.basename(p=__file__)
+RESULT_FIELDS: Set[str] = {
+    "url",
+    "title",
+    "description",
+    "netloc",
+    "published",
+    "visited",
+    "author",
+    "content",
+    "best_chunk",
+    "language",
+    "similarity",
+    "url_hash",
+    "brand_safety",
+    "continent",
+    "region",
+    "country",
+    "sector",
+    "industry_group",
+    "industry",
+    "sub_industry",
+    "iab_tier_1",
+    "iab_tier_2",
+    "iab_tier_3",
+    "iab_tier_4",
+    "semantics"
+}
 
 
-@dataclass(init=True, repr=True, eq=True, frozen=False)
+@dataclass
 class Result:
-    """
-    Represents a single search result, including metadata and content.
+    """One losslessly represented Search result."""
 
-    Parameters
-    ----------
-    url : str, optional
-        The URL of the search result.
-    title : str, optional
-        The title of the search result.
-    description : str, optional
-        A brief description or summary of the search result.
-    netloc : str, optional
-        The network location (domain) of the URL.
-    published : datetime or str, optional
-        The publication date of the search result.
-    visited : datetime or str, optional
-        The date and time when the result was visited.
-    author : str, optional
-        The author of the content.
-    content : str, optional
-        The main content or body of the search result.
-    best_chunk : str, optional
-        The best snippet of text that matches your question from the search result.
-    language : str, optional
-        The language code of the content (e.g., 'en' for English).
-    similarity : float, optional
-        Similarity score with respect to a query or reference.
-    brand_safety : str, optional
-        Whether it is safe, sensitive, or unsafe to advertise on this content.
-    language : str, optional
-        Language code to use in search (ISO 639-1 language code).
-    continent : str, optional
-        Continent the results must come from (e.g., "Europe", "Asia").
-    region : str, optional
-        Region or subcontinent the results must come from (e.g., "Southern Africa", "Caribbean").
-    country : str, optional
-        Country the results must come from.
-    sector : str, optional
-        GICS Sector the results must relate to (e.g., "Energy", "Information Technology").
-    industry_group : str, optional
-        GICS Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance").
-    industry : str, optional
-        GICS Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
-    sub_industry : str, optional
-        GICS Sub-industry classification of the content's subject.
-    iab_tier_1 : str, optional
-        IAB Tier 1 category for the content.
-    iab_tier_2 : str, optional
-        IAB Tier 2 category for the content.
-    iab_tier_3 : str, optional
-        IAB Tier 3 category for the content.
-    iab_tier_4 : str, optional
-        IAB Tier 4 category for the content.
+    url: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    netloc: Optional[str] = None
+    published: Optional[str] = None
+    visited: Optional[str] = None
+    author: Optional[str] = None
+    content: Optional[str] = None
+    best_chunk: Optional[str] = None
+    language: Optional[str] = None
+    similarity: Optional[float] = None
+    url_hash: Optional[str] = None
+    brand_safety: Optional[str] = None
+    continent: Optional[str] = None
+    region: Optional[str] = None
+    country: Optional[str] = None
+    sector: Optional[str] = None
+    industry_group: Optional[str] = None
+    industry: Optional[str] = None
+    sub_industry: Optional[str] = None
+    iab_tier_1: Optional[str] = None
+    iab_tier_2: Optional[str] = None
+    iab_tier_3: Optional[str] = None
+    iab_tier_4: Optional[str] = None
+    semantics: Optional[Dict[str, Any]] = None
+    extra: Dict[str, Any] = field(
+        default_factory=dict,
+        repr=False
+    )
+    present_fields: Set[str] = field(
+        default_factory=set,
+        init=False,
+        repr=False,
+        compare=False
+    )
 
-    Examples
-    --------
-    >>> result = Result(
-    ...     url="https://example.com",
-    ...     title="Example Domain",
-    ...     description="This domain is for use in illustrative examples.",
-    ...     netloc="example.com",
-    ...     published="2024-01-01",
-    ...     visited="2024-01-01",
-    ...     author="Example Author",
-    ...     content="<html>...</html>",
-    ...     language="en",
-    ...     similarity=0.98,
-    ...     url_hash="abc123",
-    ... )
-    >>> print(result.title)
-    Example Domain
-    >>> result_dict = result.to_dict()
-    >>> sorted(result_dict.keys())  # doctest: +ELLIPSIS
-    ['author', 'content', 'description', 'language', 'netloc', 'published', ... 'visited']
-    """
-
-    url: str | None = None
-    """The URL of the search result."""
-    title: str | None = None
-    """The title of the search result."""
-    description: str | None = None
-    """A brief description or summary of the search result."""
-    netloc: str | None = None
-    """The network location (domain) of the URL."""
-    published: str | None = None
-    """The publication date of the search result."""
-    visited: str | None = None
-    """The date and time when the result was visited."""
-    author: str | None = None
-    """The author of the content."""
-    content: str | None = None
-    """The main content or body of the search result."""
-    best_chunk: str | None = None
-    """The best snippet of text that matches your question from the search result."""
-    language: str | None = None
-    """The language code of the content (e.g., 'en' for English)."""
-    similarity: float | None = None
-    """Similarity score with respect to a query or reference."""
-    url_hash: str | None = None
-    """A hash of the URL for quick comparisons."""
-    brand_safety: str | None = None
-    """Whether it is safe, sensitive, or unsafe to advertise on this content."""
-    continent: str | None = None
-    """Continent the results must come from (e.g., "Europe", "Asia")."""
-    region: str | None = None
-    """Region or subcontinent the results must come from (e.g., "Southern Africa", "Caribbean")."""
-    country: str | None = None
-    """Country the results must come from."""
-    sector: str | None = None
-    """GICS Sector the results must relate to (e.g., "Energy", "Information Technology")."""
-    industry_group: str | None = None
-    """GICS Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance")."""
-    industry: str | None = None
-    """GICS Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines")."""
-    sub_industry: str | None = None
-    """GICS Sub-industry classification of the content's subject."""
-    iab_tier_1: str | None = None
-    """IAB Tier 1 category for the content."""
-    iab_tier_2: str | None = None
-    """IAB Tier 2 category for the content."""
-    iab_tier_3: str | None = None
-    """IAB Tier 3 category for the content."""
-    iab_tier_4: str | None = None
-    """IAB Tier 4 category for the content."""
-
-    def __str__(self) -> str:
+    def __str__(
+        self: "Result"
+    ) -> str:
         """
-        Return a short summary of the Result.
+        Return populated result fields as readable JSON.
 
-        Returns
-        -------
-        str
-            A formatted string showing the title, similarity, and URL of the Result.
-
-        Examples
-        --------
-        >>> result = Result(title="Example Domain", similarity=0.9876)
-        >>> print(str(result))
-          0.99 | Example Domain
+        :return: Formatted result fields.
         """
-        # Get the full dictionary
-        data = self.to_dict()
+        populated_fields = {
+            key: value
+            for key, value in self.to_dict().items()
+            if value is not None
+        }
+        return print_dict(data=populated_fields)
 
-        # Create a new dictionary excluding keys where the value is None
-        clean_data = {k: v for k, v in data.items() if v is not None}
-
-        return print_dict(clean_data)
-
-    def __getitem__(self, key: str) -> str | float | bool | None:
+    def __getitem__(
+        self: "Result",
+        key: str
+    ) -> Any:
         """
-        Retrieve the value of a field by its key.
+        Return a result field by name.
 
-        Parameters
-        ----------
-        key : str
-            The name of the field to retrieve.
-
-        Returns
-        -------
-        str or float or bool or None
-            The value associated with the specified key.
-
-        Raises
-        ------
-        KeyError
-            If the key does not exist in the object.
-
-        Examples
-        --------
-        >>> result = Result(title="Example Domain", similarity=0.98)
-        >>> result["title"]
-        'Example Domain'
-        >>> result["similarity"]
-        0.98
-        >>> result["url"] is None
-        True
-        >>> result["nonexistent"]
-        Traceback (most recent call last):
-            ...
-        KeyError: "Key 'nonexistent' not found in Result"
+        :param key: Result field name.
+        :return: Selected result value.
         """
         try:
             return object.__getattribute__(self, key)
-        except AttributeError as err:
-            raise KeyError(f"Key '{key}' not found in Result") from err
+        except AttributeError as error:
+            raise KeyError(f"Key '{key}' not found in Result") from error
 
-    def __add__(self, other: Result) -> ResultSet:
+    def __add__(
+        self: "Result",
+        other: "Result"
+    ) -> "nosible.classes.result_set.ResultSet":
         """
-        Combine two Result instances into a ResultSet.
+        Combine two results into a result set.
 
-        This method allows you to add two Result objects together, returning a ResultSet
-        containing both results.
-
-        Parameters
-        ----------
-        other : Result
-            Another Result instance to combine with this one.
-
-        Returns
-        -------
-        ResultSet
-            A ResultSet containing both this and the other Result.
-
-        Examples
-        --------
-        >>> from nosible import Result, ResultSet
-        >>> r1 = Result(title="First Result", similarity=0.9)
-        >>> r2 = Result(title="Second Result", similarity=0.8)
-        >>> combined = r1 + r2
-        >>> isinstance(combined, ResultSet)
-        True
+        :param other: Result to add.
+        :return: Result set containing both results.
         """
-        from nosible.classes.result_set import ResultSet
-
-        return ResultSet([self, other])
-
-    def scrape_url(self, client) -> WebPageData:
-        """
-        Scrape the URL associated with this Result and retrieve its content.
-
-        This method uses the provided Nosible client to fetch the web page content for the given URL.
-        The result is returned as a WebPageData object containing the page's content and metadata.
-
-        Parameters
-        ----------
-        client : Nosible
-            An instance of the Nosible client to use for fetching the web page.
-
-        Returns
-        -------
-        WebPageData
-            An object containing the fetched web page's content and metadata.
-
-        Raises
-        ------
-        ValueError
-            If the Result does not have a URL.
-        RuntimeError
-            If fetching the web page fails.
-
-        Examples
-        --------
-        >>> from nosible import Nosible, Result
-        >>> with Nosible() as nos:
-        ...     result = Result(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")
-        ...     page = result.scrape_url(client=nos)
-        ...     isinstance(page, WebPageData)
-        True
-        """
-        if not self.url:
-            raise ValueError("Cannot scrape Result without a URL.")
-        try:
-            return client.scrape_url(url=self.url)
-        except Exception as e:
-            raise RuntimeError(f"Failed to scrape URL '{self.url}': {e}") from e
-
-    def sentiment(self, client) -> float:
-        """
-        Fetch a sentiment score for this Result via your LLM client, ensuring
-        the result is a float in [-1.0, 1.0].
-
-        Parameters
-        ----------
-        client : Nosible
-            An instance of your Nosible client with `.llm_api_key` on it.
-
-        Returns
-        -------
-        float
-            Sentiment score in [-1.0, 1.0].
-
-        Raises
-        ------
-        ValueError
-            If `client` or `client.llm_api_key` is missing, if the LLM response
-            is not parseable as a float, or if it falls outside [-1.0, 1.0].
-
-        Examples
-        --------
-        >>> from nosible.classes.result import Result
-        >>> class DummyClient:
-        ...     llm_api_key = "dummy"
-        ...
-        ...     def scrape_url(self, url):
-        ...         return "web page"
-        >>> result = Result(url="https://example.com", content="This is great!")
-        >>> import types
-        >>> def fake_sentiment(self, client):
-        ...     return 0.8
-        >>> result.sentiment = types.MethodType(fake_sentiment, result)
-        >>> result.sentiment(DummyClient())
-        0.8
-
-        >>> result = Result(url="https://example.com", content="Awful experience.")
-        >>> def fake_sentiment_neg(self, client):
-        ...     return -0.9
-        >>> result.sentiment = types.MethodType(fake_sentiment_neg, result)
-        >>> result.sentiment(DummyClient())
-        -0.9
-
-        >>> class NoKeyClient:
-        ...     llm_api_key = None
-        >>> result = Result(url="https://example.com", content="Neutral.")
-        >>> try:
-        ...     result.sentiment(NoKeyClient())
-        ... except ValueError as e:
-        ...     print("ValueError" in str(e))
-        False
-
-        >>> class NoneClient:
-        ...     pass
-        >>> result = Result(url="https://example.com", content="Neutral.")
-        >>> try:
-        ...     result.sentiment(None)
-        ... except ValueError as e:
-        ...     print("A Nosible client instance must be provided" in str(e))
-        True
-        """
-        if client is None:
-            raise ValueError("A Nosible client instance must be provided as 'client'.")
-        if not client.llm_api_key:
-            raise ValueError("LLM API key is required for getting result sentiment.")
-
-        content = self.content
-
-        prompt = f"""
-            # TASK DESCRIPTION
-            On a scale from -1.0 (very negative) to 1.0 (very positive),
-            please rate the sentiment of the following text and return _only_ the numeric score:
-            {content.strip()}
-
-            # RESPONSE FORMAT
-
-            The response must be a float in [-1.0, 1.0]. No other text must be returned.
-        """
-        from openai import OpenAI
-        llm_client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=client.llm_api_key)
-
-        # Call the chat completions endpoint.
-        resp = llm_client.chat.completions.create(
-            model=client.sentiment_model, messages=[{"role": "user", "content": prompt.strip()}], temperature=0.7
+        if not isinstance(other, Result):
+            raise TypeError("Can only add another Result instance")
+        return nosible.classes.result_set.ResultSet(
+            results=[
+                self,
+                other
+            ]
         )
 
-        raw = resp.choices[0].message.content
+    def scrape_url(
+        self: "Result",
+        client: Any
+    ) -> WebPageData:
+        """
+        Scrape the URL associated with this result.
 
-        # Parse and validate
+        :param client: Configured NOSIBLE client.
+        :return: Scraped web-page data.
+        """
+        if not self.url:
+            raise ValueError("Cannot scrape Result without a URL")
+        return client.scrape_url(url=self.url)
+
+    def sentiment(
+        self: "Result",
+        client: Any
+    ) -> float:
+        """
+        Score this result's content with the configured LLM.
+
+        :param client: Configured NOSIBLE client with an LLM API key.
+        :return: Sentiment score from negative one to positive one.
+        """
+        if client is None:
+            raise ValueError(
+                "A Nosible client instance must be provided as 'client'"
+            )
+        if not client.llm_api_key:
+            raise ValueError(
+                "LLM API key is required for getting result sentiment"
+            )
+
+        content = self.content or ""
+        prompt = (
+            "On a scale from -1.0 (very negative) to 1.0 (very positive), "
+            "rate the sentiment of the following text and return only the "
+            f"numeric score:\n{content.strip()}"
+        )
+        llm_client = OpenAI(
+            base_url=client.openai_base_url,
+            api_key=client.llm_api_key
+        )
+        response = llm_client.chat.completions.create(
+            model=client.sentiment_model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.7
+        )
+        raw_score = response.choices[0].message.content
         try:
-            score = float(raw)
-        except ValueError:
-            raise ValueError(f"Sentiment response is not a float: {raw!r}")
-
+            score = float(raw_score)
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                f"Sentiment response is not a float: {raw_score!r}"
+            ) from error
         if not -1.0 <= score <= 1.0:
-            raise ValueError(f"Sentiment {score} outside valid range [-1.0, 1.0]")
-
+            raise ValueError(
+                f"Sentiment {score} outside valid range [-1.0, 1.0]"
+            )
         return score
 
     def similar(
-        self,
-        client,
-        sql_filter: str = None,
+        self: "Result",
+        client: Any,
+        sql_filter: Optional[str] = None,
         n_results: int = 100,
         n_probes: int = 30,
         n_contextify: int = 128,
         algorithm: str = "hybrid-3",
-        publish_start: str = None,
-        publish_end: str = None,
-        visited_start: str = None,
-        visited_end: str = None,
-        certain: bool = None,
-        include_netlocs: list = None,
-        exclude_netlocs: list = None,
-        include_companies: list = None,
-        exclude_companies: list = None,
-        include_docs: list = None,
-        exclude_docs: list = None,
-        brand_safety: str = None,
-        language: str = None,
-        continent: str = None,
-        region: str = None,
-        country: str = None,
-        sector: str = None,
-        industry_group: str = None,
-        industry: str = None,
-        sub_industry: str = None,
-        iab_tier_1: str = None,
-        iab_tier_2: str = None,
-        iab_tier_3: str = None,
-        iab_tier_4: str = None,
-        instruction: str = None,
-        *args, **kwargs
-    ) -> ResultSet:
+        publish_start: Optional[str] = None,
+        publish_end: Optional[str] = None,
+        visited_start: Optional[str] = None,
+        visited_end: Optional[str] = None,
+        certain: Optional[bool] = None,
+        include_netlocs: Optional[List[str]] = None,
+        exclude_netlocs: Optional[List[str]] = None,
+        include_companies: Optional[List[str]] = None,
+        exclude_companies: Optional[List[str]] = None,
+        include_docs: Optional[List[str]] = None,
+        exclude_docs: Optional[List[str]] = None,
+        brand_safety: Optional[str] = None,
+        language: Optional[str] = None,
+        continent: Optional[str] = None,
+        region: Optional[str] = None,
+        country: Optional[str] = None,
+        sector: Optional[str] = None,
+        industry_group: Optional[str] = None,
+        industry: Optional[str] = None,
+        sub_industry: Optional[str] = None,
+        iab_tier_1: Optional[str] = None,
+        iab_tier_2: Optional[str] = None,
+        iab_tier_3: Optional[str] = None,
+        iab_tier_4: Optional[str] = None,
+        instruction: Optional[str] = None,
+        *args: Any,
+        **kwargs: Any
+    ) -> "nosible.classes.result_set.ResultSet":
         """
-        Find similar search results based on the content or metadata of this Result.
+        Find results similar to this result while excluding the source document.
 
-        This method uses the provided Nosible client to find other results
-        that are similar to this one, based on its title and optional filters.
-
-        Parameters
-        ----------
-        client : Nosible
-            An instance of the Nosible client to use for finding similar results.
-        sql_filter : list of str, optional
-            SQL‐style filter clauses.
-        n_results : int
-            Max number of results (max 100).
-        n_probes : int
-            Number of index shards to probe.
-        n_contextify : int
-            Context window size per result.
-        algorithm : str
-            Search algorithm type.
-        publish_start : str, optional
-            Start date for when the document was published (ISO format).
-        publish_end : str, optional
-            End date for when the document was published (ISO format).
-        visited_start : str, optional
-            Start date for when the document was visited by NOSIBLE (ISO format).
-        visited_end : str, optional
-            End date for when the document was visited by NOSIBLE (ISO format).
-        certain : bool, optional
-            Only include documents where we are 100% sure of the date.
-        include_netlocs : list of str, optional
-            List of netlocs (domains) to include in the search. (Max: 50)
-        exclude_netlocs : list of str, optional
-            List of netlocs (domains) to exclude in the search. (Max: 50)
-        include_companies : list of str, optional
-            Google KG IDs of public companies to require (Max: 50).
-        exclude_companies : list of str, optional
-            Google KG IDs of public companies to forbid (Max: 50).
-        include_docs : list of str, optional
-            URL hashes of docs to include (Max: 50).
-        exclude_docs : list of str, optional
-            URL hashes of docs to exclude (Max: 50).
-        brand_safety : str, optional
-            Whether it is safe, sensitive, or unsafe to advertise on this content.
-        language : str, optional
-            Language code to use in search (ISO 639-1 language code).
-        continent : str, optional
-            Continent the results must come from (e.g., "Europe", "Asia").
-        region : str, optional
-            Region or subcontinent the results must come from (e.g., "Southern Africa", "Caribbean").
-        country : str, optional
-            Country the results must come from.
-        sector : str, optional
-            GICS Sector the results must relate to (e.g., "Energy", "Information Technology").
-        industry_group : str, optional
-            GICS Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance").
-        industry : str, optional
-            GICS Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
-        sub_industry : str, optional
-            GICS Sub-industry classification of the content's subject.
-        iab_tier_1 : str, optional
-            IAB Tier 1 category for the content.
-        iab_tier_2 : str, optional
-            IAB Tier 2 category for the content.
-        iab_tier_3 : str, optional
-            IAB Tier 3 category for the content.
-        iab_tier_4 : str, optional
-            IAB Tier 4 category for the content.
-        instruction : str, optional
-            Instruction to use with the search query.
-
-        Returns
-        -------
-        ResultSet
-            A ResultSet object containing similar results.
-
-        Raises
-        ------
-        ValueError
-            If the Result does not have a URL or client is not provided.
-        RuntimeError
-            If finding similar results fails.
-
-        Examples
-        --------
-        >>> from nosible import Nosible, Result  # doctest: +SKIP
-        >>> with Nosible() as nos:  # doctest: +SKIP
-        ...     result = Result(url="https://example.com", title="Example Domain")  # doctest: +SKIP
-        ...     similar_results = result.similar(client=nos)  # doctest: +SKIP
+        :param client: Configured NOSIBLE client.
+        :param sql_filter: Optional SQL filter.
+        :param n_results: Maximum result count.
+        :param n_probes: Number of search probes.
+        :param n_contextify: Context size per result.
+        :param algorithm: Retrieval algorithm.
+        :param publish_start: Earliest publication date.
+        :param publish_end: Latest publication date.
+        :param visited_start: Earliest NOSIBLE visit date.
+        :param visited_end: Latest NOSIBLE visit date.
+        :param certain: Whether dates must be certain.
+        :param include_netlocs: Domains to include.
+        :param exclude_netlocs: Domains to exclude.
+        :param include_companies: Company identifiers to include.
+        :param exclude_companies: Company identifiers to exclude.
+        :param include_docs: Document hashes to include.
+        :param exclude_docs: Document hashes to exclude.
+        :param brand_safety: Brand-safety filter.
+        :param language: ISO language filter.
+        :param continent: Continent filter.
+        :param region: Region filter.
+        :param country: Country filter.
+        :param sector: GICS sector filter.
+        :param industry_group: GICS industry-group filter.
+        :param industry: GICS industry filter.
+        :param sub_industry: GICS sub-industry filter.
+        :param iab_tier_1: IAB tier-one filter.
+        :param iab_tier_2: IAB tier-two filter.
+        :param iab_tier_3: IAB tier-three filter.
+        :param iab_tier_4: IAB tier-four filter.
+        :param instruction: Additional retrieval instruction.
+        :param args: Ignored legacy positional arguments.
+        :param kwargs: Deprecated legacy keyword arguments.
+        :return: Similar search results.
         """
-        if "include_languages" in kwargs:
+        if args:
             warnings.warn(
-                "The 'include_languages' parameter is deprecated and will be removed in a future release. "
-                "Please use the parameter 'language' instead.",
+                message="Additional positional arguments are ignored",
+                category=DeprecationWarning,
+                stacklevel=2
             )
-        if "exclude_languages" in kwargs:
+        if "include_languages" in kwargs or "exclude_languages" in kwargs:
             warnings.warn(
-                "The 'exclude_languages' parameter is deprecated and will be removed in a future release. "
-                "Please use the parameter 'language' instead.",
+                message=(
+                    "Language list filters are deprecated; use 'language' instead"
+                ),
+                category=DeprecationWarning,
+                stacklevel=2
             )
-
         if client is None:
-            raise ValueError("A Nosible client instance must be provided as 'client'.")
-        if not self.url:
-            raise ValueError("Cannot find similar results without a URL.")
-        try:
-            from nosible import Search
-
-            # Exclude the original doc from the new search.
-            exclude_docs_list = list(exclude_docs) if exclude_docs else []
-            if self.url_hash and self.url_hash not in exclude_docs_list:
-                exclude_docs_list.append(self.url_hash)
-
-            s = Search(
-                question=self.title,
-                expansions=[],
-                n_results=n_results,
-                sql_filter=sql_filter,
-                n_probes=n_probes,
-                n_contextify=n_contextify,
-                algorithm=algorithm,
-                publish_start=publish_start,
-                publish_end=publish_end,
-                include_netlocs=include_netlocs,
-                exclude_netlocs=exclude_netlocs,
-                visited_start=visited_start,
-                visited_end=visited_end,
-                certain=certain,
-                include_companies=include_companies,
-                exclude_companies=exclude_companies,
-                include_docs=include_docs,
-                exclude_docs=exclude_docs_list,
-                brand_safety=brand_safety,
-                language=language,
-                continent=continent,
-                region=region,
-                country=country,
-                sector=sector,
-                industry_group=industry_group,
-                industry=industry,
-                sub_industry=sub_industry,
-                iab_tier_1=iab_tier_1,
-                iab_tier_2=iab_tier_2,
-                iab_tier_3=iab_tier_3,
-                iab_tier_4=iab_tier_4,
-                instruction=instruction,
+            raise ValueError(
+                "A Nosible client instance must be provided as 'client'"
             )
-            results = client.fast_search(search=s)
-            return results
-        except Exception as e:
-            raise RuntimeError(f"Failed to find similar results for title '{self.title}': {e}") from e
+        if not self.url:
+            raise ValueError("Cannot find similar results without a URL")
 
-    def to_dict(self):
+        excluded_documents = list(exclude_docs) if exclude_docs else []
+        if self.url_hash and self.url_hash not in excluded_documents:
+            excluded_documents.append(self.url_hash)
+        search = nosible.classes.search.Search(
+            question=self.title,
+            expansions=[],
+            sql_filter=sql_filter,
+            n_results=n_results,
+            n_probes=n_probes,
+            n_contextify=n_contextify,
+            algorithm=algorithm,
+            publish_start=publish_start,
+            publish_end=publish_end,
+            visited_start=visited_start,
+            visited_end=visited_end,
+            certain=certain,
+            include_netlocs=include_netlocs,
+            exclude_netlocs=exclude_netlocs,
+            include_companies=include_companies,
+            exclude_companies=exclude_companies,
+            include_docs=include_docs,
+            exclude_docs=excluded_documents,
+            brand_safety=brand_safety,
+            language=language,
+            continent=continent,
+            region=region,
+            country=country,
+            sector=sector,
+            industry_group=industry_group,
+            industry=industry,
+            sub_industry=sub_industry,
+            iab_tier_1=iab_tier_1,
+            iab_tier_2=iab_tier_2,
+            iab_tier_3=iab_tier_3,
+            iab_tier_4=iab_tier_4,
+            instruction=instruction
+        )
+        return client.fast_search(search=search)
+
+    def to_dict(
+        self: "Result"
+    ) -> Dict[str, Any]:
         """
-        Convert the Result instance to a dictionary.
+        Convert the result to its lossless dictionary representation.
 
-        Returns
-        -------
-        dict
-            A dictionary containing all fields of the Result.
-
-        Examples
-        --------
-        >>> result = Result(
-        ...     url="https://example.com",
-        ...     title="Example Domain",
-        ...     description="A domain used for illustrative examples.",
-        ...     netloc="example.com",
-        ...     published="2024-01-01",
-        ...     visited="2024-01-01",
-        ...     author="Example Author",
-        ...     content="<html>...</html>",
-        ...     language="en",
-        ...     similarity=0.95,
-        ...     url_hash="abc123",
-        ... )
-        >>> d = result.to_dict()
-        >>> d["title"]
-        'Example Domain'
-        >>> d["visited"]
-        '2024-01-01'
+        :return: Search result payload.
         """
-        return asdict(self, dict_factory=dict)
+        selected_fields = (
+            self.present_fields & RESULT_FIELDS
+            if self.present_fields
+            else RESULT_FIELDS
+        )
+        data = {
+            name: copy.deepcopy(x=getattr(self, name))
+            for name in RESULT_FIELDS
+            if name in selected_fields
+            and not (
+                name == "semantics"
+                and self.semantics is None
+                and not self.present_fields
+            )
+        }
+        data.update(copy.deepcopy(x=self.extra))
+        return data
 
     @classmethod
-    def from_dict(cls, data: dict) -> Result:
+    def from_dict(
+        cls: "type[Result]",
+        data: Dict[str, Any]
+    ) -> "Result":
         """
-        Create a Result instance from a dictionary.
+        Create a result without discarding unknown response fields.
 
-        Parameters
-        ----------
-        data : dict
-            Dictionary containing the fields of the Result.
-
-        Returns
-        -------
-        Result
-            An instance of Result populated with the provided data.
-
-        Examples
-        --------
-        >>> data = {
-        ...     "url": "https://example.com",
-        ...     "title": "Example Domain",
-        ...     "description": "A domain used for illustrative examples.",
-        ...     "netloc": "example.com",
-        ...     "published": "2024-01-01",
-        ...     "visited": "2024-01-01",
-        ...     "author": "Example Author",
-        ...     "content": "<html>...</html>",
-        ...     "language": "en",
-        ...     "similarity": 0.95,
-        ...     "url_hash": "abc123",
-        ... }
-        >>> result = Result.from_dict(data)
-        >>> result.title
-        'Example Domain'
+        :param data: Search result payload.
+        :return: Parsed result.
         """
-        return cls(**data)
+        if not isinstance(data, dict):
+            raise ValueError(
+                f"{MODULE_NAME}: Result data must be a dictionary"
+            )
+
+        semantics = copy.deepcopy(x=data.get("semantics"))
+        similarity = copy.deepcopy(x=data.get("similarity"))
+        if "similarity" not in data and isinstance(semantics, dict):
+            similarity = semantics.get("similarity")
+        best_chunk = copy.deepcopy(x=data.get("best_chunk"))
+        if "best_chunk" not in data and isinstance(semantics, dict):
+            best_chunk = semantics.get("best_chunk")
+
+        values = {
+            key: copy.deepcopy(x=value)
+            for key, value in data.items()
+            if key in RESULT_FIELDS
+            and key not in {
+                "similarity",
+                "best_chunk"
+            }
+        }
+        values["similarity"] = similarity
+        values["best_chunk"] = best_chunk
+        values["extra"] = {
+            key: copy.deepcopy(x=value)
+            for key, value in data.items()
+            if key not in RESULT_FIELDS
+        }
+        result = cls(**values)
+        result.present_fields = set(data)
+        return result

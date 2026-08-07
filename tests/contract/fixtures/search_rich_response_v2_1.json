@@ -1,0 +1,100 @@
+{
+  "message": "Rich search completed.",
+  "query": {
+    "question": "What changed in the semiconductor supply chain?",
+    "enrich_profile": true,
+    "enrich_targeting": true,
+    "enrich_history": true,
+    "enrich_signals": true,
+    "enrich_vectors": true
+  },
+  "response": [
+    {
+      "page": {
+        "url_hash": "aB3dE_fG7hIj-KlMnOpQrStU",
+        "url": "https://news.example/semiconductors",
+        "title": "Semiconductor supply chains diversify",
+        "description": "Manufacturers expanded capacity in multiple regions.",
+        "author": "Jane Doe",
+        "published": "2026-07-20",
+        "visited": "2026-07-20",
+        "netloc": "news.example",
+        "language": "en",
+        "verified": false
+      },
+      "snippet": {
+        "best_chunk": "Manufacturers are diversifying advanced chip capacity.",
+        "content": "Manufacturers are diversifying advanced chip capacity across multiple regions."
+      },
+      "tokens": {
+        "best_chunk": "manufacturers are diversifying advanced chip capacity",
+        "content": "manufacturers are diversifying advanced chip capacity across multiple regions"
+      },
+      "semantics": {
+        "origin_shard": 143,
+        "chunks_total": 42,
+        "chunks_matched": 18,
+        "chunks_kept": 6,
+        "similarity": 0.9345
+      },
+      "profile": {
+        "netloc": "news.example",
+        "verified": false,
+        "legal_name": "Example News Ltd",
+        "title": "Example News",
+        "description": "Independent technology news.",
+        "contact_email": "news@example.com",
+        "telephone_num": "Unknown",
+        "street_address": "Unknown",
+        "legal_jurisdiction": null,
+        "privacy_policy": "/privacy",
+        "terms_of_service": "/terms"
+      },
+      "targeting": {
+        "netloc": "news.example",
+        "verified": false,
+        "brand_safety": "Safe",
+        "continent": "North America",
+        "region": "Northern America",
+        "country": "United States",
+        "language": "en",
+        "sector": "Information Technology",
+        "industry_group": "Semiconductors & Semiconductor Equipment",
+        "industry": "Semiconductors & Semiconductor Equipment",
+        "sub_industry": "Semiconductors",
+        "iab_tier_1": "Business and Finance",
+        "iab_tier_2": "Industries",
+        "iab_tier_3": null,
+        "iab_tier_4": null,
+        "ads_txt_url": null
+      },
+      "history": {
+        "netloc": "news.example",
+        "verified": false,
+        "first_published": "2024-01-01",
+        "first_archived": "2024-01-02",
+        "first_crawled": "2024-01-03",
+        "2000_published_pct": 0.0,
+        "2005_published_pct": 0.0,
+        "2010_published_pct": 0.03,
+        "2015_published_pct": 0.14,
+        "2020_published_pct": 0.41,
+        "2025_published_pct": 0.18
+      },
+      "signals": {
+        "signal_sentiment": "positive",
+        "signal_forward": "forward",
+        "prob_positive": 0.81,
+        "prob_neutral": 0.12,
+        "prob_negative": 0.07,
+        "prob_forward": 0.72,
+        "prob_not_forward": 0.28
+      },
+      "vectors": {
+        "nosible_bitstring": "kK9mQ2xZvB4w==",
+        "qwen3_8b_bitstring": "7Hf2pLnRXq1A=="
+      },
+      "future_rich_field": "must survive"
+    }
+  ]
+}
