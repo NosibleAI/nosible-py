@@ -1,0 +1,299 @@
+{
+  "event_id": "2026-07-20_en_US_v1_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa_A1b2C3d4",
+  "version": "1.2",
+  "has_tickers": true,
+  "event": {
+    "date": "2026-07-20",
+    "title": "Chipmakers expand advanced packaging capacity",
+    "description": "Several semiconductor manufacturers announced new advanced packaging capacity across Asia and North America.",
+    "continent": "North America",
+    "region": "Northern America",
+    "country": "United States",
+    "language": "en"
+  },
+  "coordinate": {
+    "lat": 37.7749,
+    "lng": -122.4194,
+    "source": "primary_location"
+  },
+  "signals": {
+    "materiality": "high",
+    "sentiment": "positive",
+    "forward_looking": "forward",
+    "time_horizon": "quarters",
+    "materiality_score": 0.91
+  },
+  "coverage": {
+    "total_coverage": 128,
+    "total_netlocs": 47,
+    "coverage_concentration_index": 0.1842
+  },
+  "entities": {
+    "PERSON": {
+      "Jane Example": 4
+    },
+    "ORG": {
+      "NVIDIA": 21,
+      "TSMC": 18
+    },
+    "GPE": {
+      "United States": 13,
+      "Taiwan": 11
+    },
+    "LOC": {
+      "Silicon Valley": 3
+    },
+    "PRODUCT": {
+      "Blackwell": 8
+    },
+    "EVENT": {
+      "capacity expansion": 5
+    },
+    "DATE": {
+      "2027": 6
+    },
+    "MONEY": {
+      "$2 billion": 4
+    },
+    "FUTURE_NER_TYPE": {
+      "Preserve Me": 1
+    }
+  },
+  "tickers": [
+    {
+      "name": "NVIDIA Corporation",
+      "type": "Common Stock",
+      "website": "https://www.nvidia.com",
+      "wiki_qid": "Q182477",
+      "wiki_page": "Nvidia",
+      "linkedin": "nvidia",
+      "name_eodhd": "NVIDIA Corporation",
+      "name_figi": "NVIDIA CORP",
+      "name_kgid": "Nvidia",
+      "name_lei": "NVIDIA Corporation",
+      "name_orig": "NVIDIA Corporation",
+      "name_wiki": "Nvidia",
+      "isin": "US67066G1040",
+      "lei": "549300S4KLFTLO7GSQ80",
+      "figi": "BBG000BBJQV0",
+      "ticker_wiki": "NVDA",
+      "ticker_figi": "NVDA",
+      "ticker_eodhd": "NVDA.US",
+      "ticker_serp": "NVDA.US",
+      "match_string": [
+        "NVIDIA",
+        "NVIDIA Corporation"
+      ],
+      "match_count": 21
+    }
+  ],
+  "ontology": {
+    "iptc_genre": [
+      {
+        "label": "News",
+        "cosine": 0.97,
+        "below_floor": false
+      },
+      {
+        "label": "Analysis",
+        "cosine": 0.81,
+        "below_floor": false
+      }
+    ],
+    "media_frame": [
+      {
+        "label": "Economic consequences",
+        "cosine": 0.88,
+        "below_floor": false
+      }
+    ],
+    "ekman7_emotion": [
+      {
+        "label": "joy",
+        "cosine": 0.71,
+        "below_floor": false
+      }
+    ],
+    "schema_org_event": [
+      {
+        "label": "BusinessEvent",
+        "cosine": 0.78,
+        "below_floor": false
+      }
+    ],
+    "iptc_media_topics": [
+      {
+        "level_1": "economy, business and finance",
+        "level_2": "computing and information technology",
+        "level_3": "semiconductors",
+        "cosine": 0.96,
+        "below_floor": false
+      },
+      {
+        "level_1": "science and technology",
+        "level_2": "technology and engineering",
+        "level_3": null,
+        "cosine": 0.84,
+        "below_floor": false
+      }
+    ],
+    "iab": [
+      {
+        "tier_1": "Business and Finance",
+        "tier_2": "Industries",
+        "tier_3": "Technology Industry",
+        "tier_4": "Semiconductors",
+        "cosine": 0.95,
+        "below_floor": false
+      }
+    ],
+    "gics": [
+      {
+        "sector": "Information Technology",
+        "industry_group": "Semiconductors & Semiconductor Equipment",
+        "industry": "Semiconductors & Semiconductor Equipment",
+        "sub_industry": "Semiconductors",
+        "cosine": 0.94,
+        "below_floor": false
+      }
+    ],
+    "mitre_attack": [
+      {
+        "tactic": null,
+        "technique": null,
+        "subtechnique": null,
+        "cosine": 0.1,
+        "below_floor": true
+      }
+    ],
+    "emdat": [
+      {
+        "disaster_group": null,
+        "disaster_subgroup": null,
+        "disaster_type": null,
+        "cosine": 0.08,
+        "below_floor": true
+      }
+    ],
+    "plover": [
+      {
+        "event": "AGREE",
+        "mode": "Diplomatic",
+        "context": "Economic",
+        "cosine": 0.62,
+        "below_floor": false
+      }
+    ],
+    "icd11": [
+      {
+        "chapter": null,
+        "block": null,
+        "cosine": 0.07,
+        "below_floor": true
+      }
+    ],
+    "sportsml": [
+      {
+        "sport": null,
+        "event_type": null,
+        "cosine": 0.05,
+        "below_floor": true
+      }
+    ],
+    "nosible": [
+      {
+        "category": "Corporate Actions",
+        "subcategory": "Capital Investment",
+        "event": "Capacity Expansion",
+        "cosine": 0.93,
+        "below_floor": false
+      }
+    ],
+    "asset_class": [
+      {
+        "main_class": "Equities",
+        "sub_class": "Technology Equities",
+        "cosine": 0.86,
+        "below_floor": false
+      }
+    ],
+    "sdgs": [
+      {
+        "goal": "Goal 9: Industry, Innovation and Infrastructure",
+        "target": "9.4",
+        "cosine": 0.75,
+        "below_floor": false
+      }
+    ],
+    "future_ontology": [
+      {
+        "label": "Preserve new taxonomies",
+        "cosine": 0.99,
+        "below_floor": false
+      }
+    ]
+  },
+  "provenance": [
+    {
+      "event_score": 0.982,
+      "url": "https://wire.example/chip-capacity",
+      "title": "Chipmakers plan new packaging plants",
+      "description": "Manufacturers detailed multiyear investment plans.",
+      "snippets": [
+        "The first facilities are expected to open in 2027.",
+        "Investment will span several countries."
+      ],
+      "language": "en"
+    },
+    {
+      "event_score": 0.911,
+      "url": "https://markets.example/semiconductor-investment",
+      "title": "Semiconductor investment accelerates",
+      "description": "Capital spending plans increased.",
+      "snippets": [
+        "Advanced packaging remains a bottleneck."
+      ],
+      "language": "en"
+    }
+  ],
+  "timestamps": {
+    "first_seen": "2026-07-20T08:30:00Z",
+    "last_seen": "2026-07-20T15:45:00Z",
+    "most_seen": "2026-07-20T11:00:00Z",
+    "hourly_counts_utc": {
+      "2026-07-20T08:00:00Z": 11,
+      "2026-07-20T09:00:00Z": 23
+    },
+    "utc_all_seen": [
+      "2026-07-20T08:30:00Z",
+      "2026-07-20T15:45:00Z"
+    ],
+    "raw_all_seen": [
+      "2026-07-20 08:30:00+00:00",
+      "2026-07-20 15:45:00+00:00"
+    ]
+  },
+  "similar": {
+      "2026-07-19_en_US_v1_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb_Z9y8X7w6": 0.873
+  },
+  "oai_vector": "0.012,-0.034,0.056",
+  "extra": {
+    "signals": {
+      "sentiment": {
+        "prob_positive": 0.82,
+        "prob_neutral": 0.14,
+        "prob_negative": 0.04
+      },
+      "forward_looking": {
+        "prob_forward": 0.89,
+        "prob_not_forward": 0.11
+      }
+    },
+    "future_extra_field": {
+      "kept": true
+    }
+  },
+  "future_top_level_field": {
+    "kept": true
+  }
+}

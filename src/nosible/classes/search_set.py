@@ -1,314 +1,210 @@
+"""Collection model for NOSIBLE searches."""
+
+import os
 from collections.abc import Iterator
 from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 
-from nosible.classes.search import Search
+import nosible.classes.search
 from nosible.utils.json_tools import json_dumps, json_loads
 
 
-@dataclass()
-class SearchSet(Iterator[Search]):
-    """
-    Manages an iterable collection of Search objects.
+@dataclass
+class SearchSet(Iterator[Any]):
+    """Mutable iterator and collection of Search objects."""
 
-    This class provides methods for managing a collection of Search instances,
-    including adding, removing, serializing, saving, loading, and clearing the collection.
-    It supports iteration, indexing, and conversion to and from JSON-compatible formats.
+    searches_list: List[Any] = field(default_factory=list)
+    index: int = field(
+        default=0,
+        init=False,
+        repr=False,
+        compare=False
+    )
 
-    Parameters
-    ----------
-    searches_list : list of Search
-        The list of Search objects in the collection.
-
-    Examples
-    --------
-    >>> s1 = Search(question="What is Python?", n_results=3)
-    >>> s2 = Search(question="What is PEP8?", n_results=2)
-    >>> searches = SearchSet([s1, s2])
-    >>> print(searches)
-    0: What is Python?
-    1: What is PEP8?
-    >>> searches.add(Search(question="What is AI?", n_results=1))
-    >>> searches.write_json("searches.json")
-    >>> loaded = SearchSet.read_json("searches.json")
-    >>> print(loaded[2].question)
-    What is AI?
-    """
-
-    searches_list: list[Search] = field(default_factory=list)
-    """ A list of Search objects in the collection."""
-    _index: int = field(default=0, init=False, repr=False, compare=False)
-    """ Internal index for iteration over searches."""
-
-    def __iter__(self) -> "SearchSet":
+    def __iter__(
+        self: "SearchSet"
+    ) -> "SearchSet":
         """
-        Reset iteration and return self.
-        This method is called when the iterator is initialized, allowing iteration over the SearchSet.
+        Reset iteration and return this collection.
 
-        Returns
-        -------
-        SearchSet
+        :return: Reset search iterator.
         """
-        self._index = 0
+        self.index = 0
         return self
 
-    def __next__(self) -> Search:
+    def __next__(
+        self: "SearchSet"
+    ) -> Any:
         """
-        Return the next Search in the collection or stop iteration.
+        Return the next search.
 
-        Raises
-        ------
-        StopIteration
-            If there are no more searches to return.
-
-        Returns
-        -------
-        Search
-            The next Search instance in the collection.
+        :return: Next search in the collection.
         """
-        if self._index < len(self.searches_list):
-            search = self.searches_list[self._index]
-            self._index += 1
+        if self.index < len(self.searches_list):
+            search = self.searches_list[self.index]
+            self.index += 1
             return search
         raise StopIteration
 
-    def __str__(self) -> str:
+    def __str__(
+        self: "SearchSet"
+    ) -> str:
         """
-        List all questions in the collection, one per line with index.
+        Return the indexed questions in the collection.
 
-        Returns
-        -------
-        str
-            A string representation of the SearchSet, showing each search's question with its index.
+        :return: Newline-delimited search questions.
         """
-        return "\n".join(f"{i}: {s.question}" for i, s in enumerate(self.searches_list))
+        return "\n".join(
+            f"{index}: {search.question}"
+            for index, search in enumerate(self.searches_list)
+        )
 
-    def __getitem__(self, index: int) -> Search:
+    def __getitem__(
+        self: "SearchSet",
+        index: int
+    ) -> Any:
         """
-        Get a Search by its index.
+        Return a search by index.
 
-        Parameters
-        ----------
-        index : int
-            Index of the search to retrieve.
-
-        Returns
-        -------
-        Search
-            The search at the specified index.
-
-        Raises
-        ------
-        IndexError
-            If index is out of range.
+        :param index: Search index.
+        :return: Search at the requested index.
         """
-        if 0 <= index < len(self.searches_list):
+        try:
             return self.searches_list[index]
-        raise IndexError(f"Index {index} out of range for searches collection of size {len(self.searches_list)}")
+        except IndexError as error:
+            raise IndexError(
+                f"Index {index} out of range for {len(self.searches_list)} searches"
+            ) from error
 
-    def __len__(self) -> int:
+    def __len__(
+        self: "SearchSet"
+    ) -> int:
         """
-        Get the number of searches in the collection.
+        Return the number of searches.
 
-        Returns:
-            int: The number of Search instances in the collection.
+        :return: Number of searches in the collection.
         """
         return len(self.searches_list)
 
-    def __add__(self, other: "SearchSet") -> "SearchSet":
+    def __add__(
+        self: "SearchSet",
+        other: "SearchSet"
+    ) -> "SearchSet":
         """
-        Combine two SearchSet instances into a new SearchSet.
+        Combine two search sets.
 
-        Parameters
-        ----------
-        other : SearchSet
-            Another SearchSet instance to combine with.
-
-        Returns
-        -------
-        SearchSet
-            A new SearchSet containing searches from both instances.
-
-        Raises
-        ------
-        TypeError
-            If 'other' is not a SearchSet instance.
+        :param other: Search set to add.
+        :return: Combined search set.
         """
         if not isinstance(other, SearchSet):
             raise TypeError("Can only add another SearchSet instance")
-        return SearchSet(self.searches_list + other.searches_list)
+        return SearchSet(
+            searches_list=self.searches_list + other.searches_list
+        )
 
-    def __setitem__(self, index: int, value: Search) -> None:
+    def __setitem__(
+        self: "SearchSet",
+        index: int,
+        value: Any
+    ) -> None:
         """
-        Set a Search at a specific index.
+        Replace a search at an index.
 
-        Parameters
-        ----------
-        index : int
-            Index to set the search at.
-        value : Search
-            The Search instance to set.
-
-        Raises
-        ------
-        IndexError
-            If index is out of range.
+        :param index: Search index.
+        :param value: Replacement search.
+        :return: None.
         """
-        if 0 <= index < len(self.searches_list):
+        try:
             self.searches_list[index] = value
-        else:
-            raise IndexError(f"Index {index} out of range for searches collection of size {len(self.searches_)}")
+        except IndexError as error:
+            raise IndexError(
+                f"Index {index} out of range for {len(self.searches_list)} searches"
+            ) from error
 
-    def add(self, search: Search) -> None:
+    def add(
+        self: "SearchSet",
+        search: Any
+    ) -> None:
         """
-        Add a Search instance to the collection.
+        Add a search to the collection.
 
-        Parameters
-        ----------
-        search : Search
-            The Search instance to add to the collection.
-
-        Examples
-        --------
-        >>> searches = SearchSet()
-        >>> search = Search(question="What is Python?", n_results=3)
-        >>> searches.add(search)
-        >>> print(len(searches.searches))
-        1
-        >>> print(searches[0].question)
-        What is Python?
+        :param search: Search to append.
+        :return: None.
         """
+        if not isinstance(search, nosible.classes.search.Search):
+            raise TypeError("search must be a Search instance")
         self.searches_list.append(search)
 
-    def remove(self, index: int) -> None:
+    def remove(
+        self: "SearchSet",
+        index: int
+    ) -> None:
         """
-        Remove a Search instance from the collection by its index.
+        Remove a search by index.
 
-        Parameters
-        ----------
-        index : int
-            The index of the Search instance to remove from the collection.
-
-        Examples
-        --------
-        Remove a search from the collection by its index:
-
-        >>> s1 = Search(question="First")
-        >>> s2 = Search(question="Second")
-        >>> s3 = Search(question="Third")
-        >>> searches = SearchSet([s1, s2, s3])
-        >>> searches.remove(1)
-        >>> [s.question for s in searches.searches]
-        ['First', 'Third']
+        :param index: Search index to remove.
+        :return: None.
         """
         del self.searches_list[index]
 
-    def to_dicts(self) -> list[dict]:
+    def write_json(
+        self: "SearchSet",
+        path: Optional[str] = None
+    ) -> Optional[str]:
         """
-        Convert all Search objects in the collection to a list of dictionaries.
+        Serialize the collection and optionally write it to disk.
 
-        This method serializes each Search instance in the collection to its
-        dictionary representation, making it suitable for JSON serialization,
-        storage, or interoperability with APIs expecting a list of search
-        parameter dictionaries.
-
-        Returns
-        -------
-        list of dict
-            A list where each element is a dictionary representation of a Search
-            object in the collection.
-
-        Examples
-        --------
-        >>> s1 = Search(question="What is Python?", n_results=3)
-        >>> s2 = Search(question="What is PEP8?", n_results=2)
-        >>> searches = SearchSet([s1, s2])
-        >>> searches.to_dicts()[1]["question"]
-        'What is PEP8?'
+        :param path: Optional destination file path.
+        :return: JSON string when no path is supplied, otherwise None.
         """
-        return [s.to_dict() for s in self.searches_list]
+        json_text = json_dumps(obj=self.to_dicts())
+        if path is None:
+            return json_text
 
-    def write_json(self, path: str = None) -> str:
+        file_path = os.fspath(path=path)
+        with open(
+            file=file_path,
+            mode="w",
+            encoding="utf-8"
+        ) as file_handle:
+            file_handle.write(json_text)
+        return None
+
+    def to_dicts(
+        self: "SearchSet"
+    ) -> List[Dict[str, Any]]:
         """
-        Convert the entire SearchSet collection to a JSON string or save to a file.
+        Convert all searches to dictionaries.
 
-        If a file path is provided, the JSON string is saved to that file.
-        Otherwise, the JSON string is returned.
-
-        Parameters
-        ----------
-        path : str, optional
-            The file path where the JSON data will be written. If not provided,
-            the JSON string is returned.
-
-        Returns
-        -------
-        str
-            A JSON string representation of the SearchSet collection if no path is provided.
-
-        Raises
-        -------
-        RuntimeError
-            If there is an error during serialization or file writing.
-
-        Examples
-        --------
-        >>> s1 = Search(question="What is Python?", n_results=3)
-        >>> s2 = Search(question="What is PEP8?", n_results=2)
-        >>> searches = SearchSet([s1, s2])
-        >>> json_str = searches.write_json()
-        >>> isinstance(json_str, str)
-        True
-        >>> searches.write_json(
-        ...     "searches.json"
-        ... )  # The file 'searches.json' will contain both search queries in JSON format.
+        :return: Search parameter dictionaries.
         """
-        try:
-            json_bytes = json_dumps(self.to_dicts())
-            if path:
-                try:
-                    with open(path, "w") as f:
-                        f.write(json_bytes)
-                    return None
-                except Exception as e:
-                    raise RuntimeError(f"Failed to write JSON to '{path}': {e}") from e
-            return json_bytes
-        except Exception as e:
-            raise RuntimeError(f"Failed to serialize results to JSON: {e}") from e
+        return [
+            search.to_dict()
+            for search in self.searches_list
+        ]
 
     @classmethod
-    def read_json(cls, path: str) -> "SearchSet":
+    def read_json(
+        cls: "type[SearchSet]",
+        path: str
+    ) -> "SearchSet":
         """
-        Load a SearchSet collection from a JSON file.
+        Read a search collection from a JSON file.
 
-        Reads the specified file, parses its JSON content, and constructs a
-        SearchSet object containing all loaded Search instances. This method is
-        useful for restoring collections of search configurations that were
-        previously saved to disk.
-
-        Parameters
-        ----------
-        path : str
-            The file path from which to load the SearchSet collection.
-
-        Returns
-        -------
-        SearchSet
-            An instance of the SearchSet class containing all loaded Search objects.
-
-        Examples
-        --------
-        Save and load a SearchSet collection:
-
-        >>> s1 = Search(question="Python basics", n_results=2)
-        >>> s2 = Search(question="PEP8 guidelines", n_results=1)
-        >>> searches = SearchSet([s1, s2])
-        >>> searches.write_json("searches.json")
-        >>> loaded_searches = SearchSet.read_json("searches.json")
-        >>> print([s.question for s in loaded_searches])
-        ['Python basics', 'PEP8 guidelines']
+        :param path: Source file path.
+        :return: Parsed search set.
         """
-        with open(path) as f:
-            raw = f.read()
-            data_list = json_loads(raw)
-        searches_list= [Search(**item) for item in data_list]
-        return cls(searches_list)
+        file_path = os.fspath(path=path)
+        with open(
+            file=file_path,
+            encoding="utf-8"
+        ) as file_handle:
+            data = json_loads(value=file_handle.read())
+        if not isinstance(data, list):
+            raise ValueError("SearchSet JSON must contain a list")
+        return cls(
+            searches_list=[
+                nosible.classes.search.Search.from_dict(data=item)
+                for item in data
+            ]
+        )

@@ -1,15 +1,15 @@
-﻿Result
+Result
 ==============
 
 .. currentmodule:: nosible
 
 .. autoclass:: Result
-   :exclude-members: author, content, description, language, netloc, published, similarity, title, url, url_hash, visited, brand_safety, language, continent, region, country, sector, industry_group, industry, sub_industry, iab_tier_1, iab_tier_2, iab_tier_3, iab_tier_4
-   
+   :exclude-members: author, content, description, language, netloc, published, similarity, title, url, url_hash, visited, best_chunk, brand_safety, continent, region, country, sector, industry_group, industry, sub_industry, iab_tier_1, iab_tier_2, iab_tier_3, iab_tier_4, semantics, extra
+
    .. rubric:: Attributes
 
    .. autosummary::
-   
+
       ~Result.author
       ~Result.content
       ~Result.description
@@ -21,21 +21,36 @@
       ~Result.url
       ~Result.url_hash
       ~Result.visited
+      ~Result.best_chunk
+      ~Result.brand_safety
+      ~Result.continent
+      ~Result.region
+      ~Result.country
+      ~Result.sector
+      ~Result.industry_group
+      ~Result.industry
+      ~Result.sub_industry
+      ~Result.iab_tier_1
+      ~Result.iab_tier_2
+      ~Result.iab_tier_3
+      ~Result.iab_tier_4
+      ~Result.semantics
+      ~Result.extra
 
 
    .. rubric:: Methods
 
    .. autosummary::
-   
+
       ~Result.from_dict
       ~Result.sentiment
       ~Result.similar
       ~Result.to_dict
       ~Result.scrape_url
-   
-   
 
-   
-   
-   
-   
+
+
+
+
+
+

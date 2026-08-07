@@ -1,134 +1,85 @@
+"""Synchronous client for the merged NOSIBLE Search and World APIs."""
+
+import os
 import gzip
 import json
 import logging
-import os
+import math
 import re
-import sys
 import textwrap
 import time
 import types
+import warnings
+from calendar import monthrange
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
-from typing import Optional, Union
-import warnings
+from datetime import datetime, timedelta
+from functools import partial
+from typing import Any, Dict, FrozenSet, List, Optional, Tuple, Union
+from urllib.parse import urlsplit
 
 import httpx
-from tenacity import (
-    before_sleep_log,
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    stop_after_delay,
-    wait_exponential,
-)
+import polars as pl
+import zstandard
+from cryptography.fernet import Fernet, InvalidToken
+from openai import OpenAI, OpenAIError
 
 from nosible.classes.result_set import ResultSet
+from nosible.classes.rich_result import RichResult
 from nosible.classes.search import Search
 from nosible.classes.search_set import SearchSet
 from nosible.classes.snippet_set import SnippetSet
 from nosible.classes.web_page import WebPageData
-from nosible.utils.json_tools import json_loads
-from nosible.utils.rate_limiter import RateLimiter, _rate_limited
+from nosible.exceptions import error_from_response
+from nosible.transport import NosibleTransport
+from nosible.world_client import WorldClient
 
-# Set up a module‐level logger.
-logger = logging.getLogger(__name__)
-# logging.basicConfig(level=logging.INFO)
-logging.basicConfig(level=logging.DEBUG)
-logging.disable(logging.CRITICAL)
+LOGGER = logging.getLogger(name=__name__)
+SEARCH_ALGORITHMS: FrozenSet[str] = frozenset(
+    {
+        "string",
+        "lexical",
+        "baseline",
+        "hamming",
+        "hybrid-1",
+        "hybrid-2",
+        "hybrid-3",
+        "company"
+    }
+)
+SEARCH_BRAND_SAFETY: FrozenSet[str] = frozenset(
+    {
+        "Safe",
+        "Sensitive",
+        "Unsafe"
+    }
+)
+SEARCH_CONTINENTS: FrozenSet[str] = frozenset(
+    {
+        "Africa",
+        "Asia",
+        "Europe",
+        "North America",
+        "Oceania",
+        "South America",
+        "Worldwide"
+    }
+)
+SEARCH_LANGUAGES: FrozenSet[str] = frozenset(
+    """
+    af am ar as az be bg bn br bs ca cs cy da de el en eo es et eu fa fi fr fy
+    ga gd gl gu ha he hi hr hu hy id is it ja jv ka kk km kn ko ku ky la lo lt
+    lv mg mk ml mn mr ms my ne nl no om or pa pl ps pt ro ru sa sd sh si sk sl
+    so sq sr su sv sw ta te th tl tr ug uk ur uz vi xh yi zh
+    """.split()
+)
 
 
 class Nosible:
-    """
-    High-level client for the Nosible Search API.
-
-    Parameters
-    ----------
-    nosible_api_key : str, optional
-        API key for the Nosible Search API.
-    llm_api_key : str, optional
-        API key for LLM-based query expansions.
-    openai_base_url : str
-        Base URL for the OpenAI-compatible LLM API. (default is OpenRouter's API endpoint)
-    sentiment_model : str, optional
-        Model to use for sentiment analysis (default is "openai/gpt-4o").
-    expansions_model : str, optional
-        Model to use for expansions (default is "openai/gpt-4o").
-    timeout : int
-        Request timeout for HTTP calls.
-    retries : int,
-        Number of retry attempts for transient HTTP errors.
-    concurrency : int,
-        Maximum concurrent search requests.
-    publish_start : str, optional
-        Start date for when the document was published (ISO format).
-    publish_end : str, optional
-        End date for when the document was published (ISO format).
-    visited_start : str, optional
-        Start date for when the document was visited by NOSIBLE (ISO format).
-    visited_end : str, optional
-        End date for when the document was visited by NOSIBLE (ISO format).
-    certain : bool, optional
-        Only include documents where we are 100% sure of the date.
-    include_netlocs : list of str, optional
-        List of netlocs (domains) to include in the search. (Max: 50)
-    exclude_netlocs : list of str, optional
-        List of netlocs (domains) to exclude in the search. (Max: 50)
-    include_companies : list of str, optional
-        Google KG IDs of public companies to require (Max: 50).
-    exclude_companies : list of str, optional
-        Google KG IDs of public companies to forbid (Max: 50).
-    include_docs : list of str, optional
-        URL hashes of docs to include (Max: 50).
-    exclude_docs : list of str, optional
-        URL hashes of docs to exclude (Max: 50).
-    brand_safety : str, optional
-        Whether it is safe, sensitive, or unsafe to advertise on this content.
-    language : str, optional
-        Language code to use in search (ISO 639-1 language code).
-    continent : str, optional
-        Continent the results must come from (e.g., "Europe", "Asia").
-    region : str, optional
-        Region or subcontinent the results must come from (e.g., "Southern Africa", "Caribbean").
-    country : str, optional
-        Country the results must come from.
-    sector : str, optional
-        Sector the results must relate to (e.g., "Energy", "Information Technology").
-    industry_group : str, optional
-        Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance").
-    industry : str, optional
-        Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
-    sub_industry : str, optional
-        Sub-industry classification of the content's subject.
-    iab_tier_1 : str, optional
-        IAB Tier 1 category for the content.
-    iab_tier_2 : str, optional
-        IAB Tier 2 category for the content.
-    iab_tier_3 : str, optional
-        IAB Tier 3 category for the content.
-    iab_tier_4 : str, optional
-        IAB Tier 4 category for the content.
-    instruction : str, optional
-        Instruction to use with the search query.
-
-    Notes
-    -----
-    - The `nosible_api_key` is required to access the Nosible Search API.
-    - The `llm_api_key` is optional and used for LLM-based query expansions.
-    - The `openai_base_url` defaults to OpenRouter's API endpoint.
-    - The `sentiment_model` is used for sentiment analysis.
-    - The `expansions_model` is used for generating query expansions.
-    - The `timeout`, `retries`, and `concurrency` parameters control the behavior of HTTP requests.
-
-    Examples
-    --------
-    >>> from nosible import Nosible  # doctest: +SKIP
-    >>> nos = Nosible(nosible_api_key="your_api_key_here")  # doctest: +SKIP
-    >>> search = nos.fast_search(question="What is Nosible?", n_results=5)  # doctest: +SKIP
-    """
+    """High-level synchronous client for NOSIBLE Search and World."""
 
     def __init__(
-        self,
+        self: "Nosible",
         nosible_api_key: Optional[str] = None,
         llm_api_key: Optional[str] = None,
         openai_base_url: str = "https://openrouter.ai/api/v1",
@@ -137,137 +88,132 @@ class Nosible:
         timeout: int = 30,
         retries: int = 5,
         concurrency: int = 10,
-        publish_start: str = None,
-        publish_end: str = None,
-        include_netlocs: list = None,
-        exclude_netlocs: list = None,
-        visited_start: str = None,
-        visited_end: str = None,
-        certain: bool = None,
-        include_companies: list = None,
-        exclude_companies: list = None,
-        include_docs: list = None,
-        exclude_docs: list = None,
-        brand_safety: str = None,
-        language: str = None,
-        continent: str = None,
-        region: str = None,
-        country: str = None,
-        sector: str = None,
-        industry_group: str = None,
-        industry: str = None,
-        sub_industry: str = None,
-        iab_tier_1: str = None,
-        iab_tier_2: str = None,
-        iab_tier_3: str = None,
-        iab_tier_4: str = None,
-        instruction: str = None,
-        *args, **kwargs
+        publish_start: Optional[str] = None,
+        publish_end: Optional[str] = None,
+        include_netlocs: Optional[List[str]] = None,
+        exclude_netlocs: Optional[List[str]] = None,
+        visited_start: Optional[str] = None,
+        visited_end: Optional[str] = None,
+        certain: Optional[bool] = None,
+        include_companies: Optional[List[str]] = None,
+        exclude_companies: Optional[List[str]] = None,
+        include_docs: Optional[List[str]] = None,
+        exclude_docs: Optional[List[str]] = None,
+        brand_safety: Optional[str] = None,
+        language: Optional[str] = None,
+        continent: Optional[str] = None,
+        region: Optional[str] = None,
+        country: Optional[str] = None,
+        sector: Optional[str] = None,
+        industry_group: Optional[str] = None,
+        industry: Optional[str] = None,
+        sub_industry: Optional[str] = None,
+        iab_tier_1: Optional[str] = None,
+        iab_tier_2: Optional[str] = None,
+        iab_tier_3: Optional[str] = None,
+        iab_tier_4: Optional[str] = None,
+        instruction: Optional[str] = None,
+        base_url: str = "https://nosible.world/api",
+        http_client: Optional[httpx.Client] = None,
+        *args: Any,
+        **kwargs: Any
     ) -> None:
+        """
+        Initialise a shared Search and World client.
 
-        if "include_languages" in kwargs:
+        :param nosible_api_key: NOSIBLE API key or None to use NOSIBLE_API_KEY.
+        :param llm_api_key: LLM API key or None to use LLM_API_KEY.
+        :param openai_base_url: OpenAI-compatible LLM base URL.
+        :param sentiment_model: Model used for sentiment scoring.
+        :param expansions_model: Model used for query expansions.
+        :param timeout: Default HTTP timeout in seconds.
+        :param retries: Maximum transport attempts.
+        :param concurrency: Retained batch-convenience concurrency setting.
+        :param publish_start: Default earliest publication date.
+        :param publish_end: Default latest publication date.
+        :param include_netlocs: Default domains to include.
+        :param exclude_netlocs: Default domains to exclude.
+        :param visited_start: Default earliest visit date.
+        :param visited_end: Default latest visit date.
+        :param certain: Default date-certainty filter.
+        :param include_companies: Default company identifiers to include.
+        :param exclude_companies: Default company identifiers to exclude.
+        :param include_docs: Default document hashes to include.
+        :param exclude_docs: Default document hashes to exclude.
+        :param brand_safety: Default brand-safety filter.
+        :param language: Default ISO language filter.
+        :param continent: Default continent filter.
+        :param region: Default region filter.
+        :param country: Default country filter.
+        :param sector: Default GICS sector filter.
+        :param industry_group: Default GICS industry-group filter.
+        :param industry: Default GICS industry filter.
+        :param sub_industry: Default GICS sub-industry filter.
+        :param iab_tier_1: Default IAB tier-one filter.
+        :param iab_tier_2: Default IAB tier-two filter.
+        :param iab_tier_3: Default IAB tier-three filter.
+        :param iab_tier_4: Default IAB tier-four filter.
+        :param instruction: Default retrieval instruction.
+        :param base_url: Merged NOSIBLE API base URL.
+        :param http_client: Optional caller-owned HTTPX client.
+        :param args: Ignored legacy positional arguments.
+        :param kwargs: Deprecated legacy keyword arguments.
+        :return: None.
+        """
+        if args:
             warnings.warn(
-                "The 'include_languages' parameter is deprecated and will be removed in a future release. "
-                "Please use the parameter 'language' instead.",
+                message="Additional positional arguments are ignored",
+                category=DeprecationWarning,
+                stacklevel=2
             )
-        if "exclude_languages" in kwargs:
+        if "include_languages" in kwargs or "exclude_languages" in kwargs:
             warnings.warn(
-                "The 'exclude_languages' parameter is deprecated and will be removed in a future release. "
-                "Please use the parameter 'language' instead.",
+                message="Language list filters are deprecated; use 'language'",
+                category=DeprecationWarning,
+                stacklevel=2
             )
+        if isinstance(timeout, bool) or timeout <= 0:
+            raise ValueError("timeout must be greater than zero")
+        if isinstance(concurrency, bool) or concurrency <= 0:
+            raise ValueError("concurrency must be greater than zero")
 
-        # API Keys
-        if nosible_api_key is not None:
-            self.nosible_api_key = nosible_api_key
-        elif os.getenv("NOSIBLE_API_KEY") is not None:
-            try:
-                self.nosible_api_key = os.getenv("NOSIBLE_API_KEY")
-            except KeyError:
-                raise ValueError("Must provide api_key or set $NOSIBLE_API_KEY")
-        else:
-            # Neither passed in nor in the environment
-            raise ValueError("Must provide api_key or set $NOSIBLE_API_KEY")
-
-        self.llm_api_key = llm_api_key or os.getenv("LLM_API_KEY")
+        self.nosible_api_key = nosible_api_key or os.getenv(key="NOSIBLE_API_KEY")
+        self.llm_api_key = llm_api_key or os.getenv(key="LLM_API_KEY")
         self.openai_base_url = openai_base_url
         self.sentiment_model = sentiment_model
         self.expansions_model = expansions_model
-        # Network parameters
         self.timeout = timeout
         self.retries = retries
         self.concurrency = concurrency
-
-        # Initialize Logger
-        self.logger = logging.getLogger(__name__)
-        logging.getLogger("httpx").setLevel(logging.WARNING)
-        logging.getLogger("httpcore").setLevel(logging.WARNING)
-
-        # Define retry decorator
-        self._post = retry(
-            reraise=True,
-            stop=stop_after_attempt(self.retries) | stop_after_delay(self.timeout),
-            wait=wait_exponential(multiplier=1, min=1, max=20),
-            retry=retry_if_exception_type(httpx.RequestError),
-            before_sleep=before_sleep_log(self.logger, logging.WARNING),
-        )(self._post)
-
-        # Wrap _generate_expansions in the same retry logic
-        self._generate_expansions = retry(
-            reraise=True,
-            stop=stop_after_attempt(self.retries) | stop_after_delay(self.timeout),
-            wait=wait_exponential(multiplier=1, min=1, max=20),
-            retry=retry_if_exception_type(httpx.RequestError),
-            before_sleep=before_sleep_log(self.logger, logging.WARNING),
-        )(self._generate_expansions)
-
-        # Thread pool for parallel searches
-        self._session = httpx.Client(follow_redirects=True)
-        self._executor = ThreadPoolExecutor(max_workers=self.concurrency)
-
-        # Headers
+        self.base_url = os.fspath(path=base_url).rstrip("/")
+        self.owns_http_client = http_client is None
+        self.session = http_client or httpx.Client(follow_redirects=True)
+        self.transport = NosibleTransport(
+            base_url=self.base_url,
+            api_key=self.nosible_api_key,
+            client=self.session,
+            timeout=self.timeout,
+            retries=self.retries
+        )
+        self.world = WorldClient(transport=self.transport)
         self.headers = {
-            "Accept-Encoding": "gzip",
-            "Content-Type": "application/json",
-            "api-key": self.nosible_api_key
+            "Accept-Encoding": "gzip, zstd",
+            "Content-Type": "application/json"
         }
-
-        # Wrap _get_limits with retry.
-        self._get_limits = retry(
-            reraise=True,
-            stop=stop_after_attempt(self.retries) | stop_after_delay(self.timeout),
-            wait=wait_exponential(multiplier=1, min=1, max=20),
-            retry=retry_if_exception_type(httpx.RequestError),
-            before_sleep=before_sleep_log(self.logger, logging.WARNING),
-        )(self._get_limits)
-
-        raw_limits = self._get_limits()
-
-        # Map API query_type -> your decorator endpoint keys
-        mapped_limits = {
-            "fast": raw_limits.get("fast", []),
-            "bulk": raw_limits.get("slow", []),
-            "scrape-url": raw_limits.get("visit", []),
-        }
-
-        self._limiters = {
-            endpoint: [RateLimiter(calls, period) for calls, period in buckets]
-            for endpoint, buckets in mapped_limits.items()
-        }
-
-        # Filters
+        if self.nosible_api_key:
+            self.headers["api-key"] = self.nosible_api_key
+        self.closed = False
         self.publish_start = publish_start
         self.publish_end = publish_end
         self.include_netlocs = include_netlocs
         self.exclude_netlocs = exclude_netlocs
-        self.include_companies = include_companies
-        self.exclude_companies = exclude_companies
         self.visited_start = visited_start
         self.visited_end = visited_end
         self.certain = certain
         self.include_companies = include_companies
         self.exclude_companies = exclude_companies
-        self.exclude_docs = exclude_docs
         self.include_docs = include_docs
+        self.exclude_docs = exclude_docs
         self.brand_safety = brand_safety
         self.language = language
         self.continent = continent
@@ -283,257 +229,363 @@ class Nosible:
         self.iab_tier_4 = iab_tier_4
         self.instruction = instruction
 
-    @_rate_limited("fast")
+    def __enter__(
+        self: "Nosible"
+    ) -> "Nosible":
+        """
+        Enter a client context.
+
+        :return: This client.
+        """
+        return self
+
+    def __exit__(
+        self: "Nosible",
+        exc_type: Optional[type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[types.TracebackType]
+    ) -> Optional[bool]:
+        """
+        Close the client and propagate context exceptions.
+
+        :param exc_type: Exception type raised in the context.
+        :param exc_value: Exception value raised in the context.
+        :param traceback: Exception traceback raised in the context.
+        :return: False so context exceptions propagate.
+        """
+        self.close()
+        return False
+
     def search(
-        self,
-        prompt: str = None,
-        agent: str = "cybernaut-1",
+        self: "Nosible",
+        prompt: Optional[str] = None,
+        agent: str = "cybernaut-1"
     ) -> ResultSet:
         """
-        Gives you access to Cybernaut-1, an AI agent with unrestricted access to everything in
-        NOSIBLE including every shard, algorithm, selector, reranker, and signal.
-        It knows what these things are and can tune them on the fly to find better results.
+        Run agentic Search with Cybernaut.
 
-        Parameters
-        ----------
-        prompt: str
-            The information you are looking for.
-        agent: str
-            The search agent you want to use.
-
-        Returns
-        -------
-        ResultSet
-            The results of the search.
-
-        Examples
-        --------
-        >>> from nosible import Nosible
-        >>> with Nosible() as nos:
-        ...     results = nos.search("Interesting news from AI startups last week.")
-        ...     print(isinstance(results, ResultSet))
-        True
+        :param prompt: Agent instruction from 25 to 2,500 characters.
+        :param agent: Agent identifier.
+        :return: Agentic search results.
         """
-        payload = {
-            "prompt": prompt,
-            "agent": agent,
-        }
+        if not isinstance(prompt, str) or not 25 <= len(prompt) <= 2500:
+            raise ValueError(
+                "prompt must contain between 25 and 2500 characters"
+            )
+        if agent != "cybernaut-1":
+            raise ValueError("agent must be 'cybernaut-1'")
+        data = self.search_json(
+            endpoint="search",
+            payload={
+                "prompt": prompt,
+                "agent": agent
+            }
+        )
+        return ResultSet.from_dict(data=data)
 
-        resp = self._post(url="https://www.nosible.ai/search/v2/search", payload=payload)
-        resp.raise_for_status()
-        items = resp.json().get("response", [])
-        return ResultSet.from_dicts(items)
-
-    def fast_search(
-        self,
-        search: Search = None,
-        question: str = None,
-        expansions: list[str] = None,
-        sql_filter: list[str] = None,
+    def fast_searches(
+        self: "Nosible",
+        searches: Optional[Union[SearchSet, List[Search]]] = None,
+        questions: Optional[List[str]] = None,
+        expansions: Optional[List[str]] = None,
+        sql_filter: Optional[str] = None,
         n_results: int = 100,
         n_probes: int = 30,
         n_contextify: int = 128,
         algorithm: str = "hybrid-3",
-        min_similarity: float = None,
-        must_include: list[str] = None,
-        must_exclude: list[str] = None,
+        min_similarity: Optional[float] = None,
+        must_include: Optional[List[str]] = None,
+        must_exclude: Optional[List[str]] = None,
         autogenerate_expansions: bool = False,
-        publish_start: str = None,
-        publish_end: str = None,
-        include_netlocs: list = None,
-        exclude_netlocs: list = None,
-        visited_start: str = None,
-        visited_end: str = None,
-        certain: bool = None,
-        include_companies: list = None,
-        exclude_companies: list = None,
-        include_docs: list = None,
-        exclude_docs: list = None,
-        brand_safety: str = None,
-        language: str = None,
-        continent: str = None,
-        region: str = None,
-        country: str = None,
-        sector: str = None,
-        industry_group: str = None,
-        industry: str = None,
-        sub_industry: str = None,
-        iab_tier_1: str = None,
-        iab_tier_2: str = None,
-        iab_tier_3: str = None,
-        iab_tier_4: str = None,
-        instruction: str = None,
-        *args, **kwargs
+        publish_start: Optional[str] = None,
+        publish_end: Optional[str] = None,
+        include_netlocs: Optional[List[str]] = None,
+        exclude_netlocs: Optional[List[str]] = None,
+        visited_start: Optional[str] = None,
+        visited_end: Optional[str] = None,
+        certain: Optional[bool] = None,
+        include_companies: Optional[List[str]] = None,
+        exclude_companies: Optional[List[str]] = None,
+        include_docs: Optional[List[str]] = None,
+        exclude_docs: Optional[List[str]] = None,
+        brand_safety: Optional[str] = None,
+        language: Optional[str] = None,
+        continent: Optional[str] = None,
+        region: Optional[str] = None,
+        country: Optional[str] = None,
+        sector: Optional[str] = None,
+        industry_group: Optional[str] = None,
+        industry: Optional[str] = None,
+        sub_industry: Optional[str] = None,
+        iab_tier_1: Optional[str] = None,
+        iab_tier_2: Optional[str] = None,
+        iab_tier_3: Optional[str] = None,
+        iab_tier_4: Optional[str] = None,
+        instruction: Optional[str] = None,
+        companies: Optional[List[str]] = None,
+        collection: Optional[str] = None,
+        deduplicate: Optional[bool] = None,
+        internal_use: Optional[Dict[str, Any]] = None,
+        **kwargs: Any
+    ) -> Iterator[ResultSet]:
+        """
+        Run several Fast searches and return an iterator over results.
+
+        :param searches: Search objects to execute.
+        :param questions: Question strings to execute.
+        :param expansions: Shared query expansions.
+        :param sql_filter: Shared SQL filter.
+        :param n_results: Results requested per search.
+        :param n_probes: Search probes per request.
+        :param n_contextify: Context size per result.
+        :param algorithm: Retrieval algorithm.
+        :param min_similarity: Minimum similarity score.
+        :param must_include: Required strings.
+        :param must_exclude: Forbidden strings.
+        :param autogenerate_expansions: Whether to generate LLM expansions.
+        :param publish_start: Earliest publication date.
+        :param publish_end: Latest publication date.
+        :param include_netlocs: Domains to include.
+        :param exclude_netlocs: Domains to exclude.
+        :param visited_start: Earliest visit date.
+        :param visited_end: Latest visit date.
+        :param certain: Whether dates must be certain.
+        :param include_companies: Company identifiers to include.
+        :param exclude_companies: Company identifiers to exclude.
+        :param include_docs: Document hashes to include.
+        :param exclude_docs: Document hashes to exclude.
+        :param brand_safety: Brand-safety filter.
+        :param language: ISO language filter.
+        :param continent: Continent filter.
+        :param region: Region filter.
+        :param country: Country filter.
+        :param sector: GICS sector filter.
+        :param industry_group: GICS industry-group filter.
+        :param industry: GICS industry filter.
+        :param sub_industry: GICS sub-industry filter.
+        :param iab_tier_1: IAB tier-one filter.
+        :param iab_tier_2: IAB tier-two filter.
+        :param iab_tier_3: IAB tier-three filter.
+        :param iab_tier_4: IAB tier-four filter.
+        :param instruction: Retrieval instruction.
+        :param companies: Company names to refine retrieval.
+        :param collection: Search collection.
+        :param deduplicate: Whether to remove duplicate headlines.
+        :param internal_use: Private feature controls.
+        :param kwargs: Deprecated language-list filters.
+        :return: Iterator over completed result sets.
+        """
+        if (searches is None) == (questions is None):
+            raise TypeError(
+                "Specify exactly one of 'questions' or 'searches'."
+            )
+        warn_legacy_language_filters(kwargs=kwargs)
+        search_calls = []
+        if questions is not None:
+            if not isinstance(questions, list) or any(
+                not isinstance(question, str)
+                for question in questions
+            ):
+                raise TypeError("questions must be a list of strings")
+            for question in questions:
+                search_calls.append(
+                    partial(
+                        self.fast_search,
+                        question=question,
+                        expansions=expansions,
+                        sql_filter=sql_filter,
+                        n_results=n_results,
+                        n_probes=n_probes,
+                        n_contextify=n_contextify,
+                        algorithm=algorithm,
+                        min_similarity=min_similarity,
+                        must_include=must_include,
+                        must_exclude=must_exclude,
+                        autogenerate_expansions=autogenerate_expansions,
+                        publish_start=publish_start,
+                        publish_end=publish_end,
+                        include_netlocs=include_netlocs,
+                        exclude_netlocs=exclude_netlocs,
+                        visited_start=visited_start,
+                        visited_end=visited_end,
+                        certain=certain,
+                        include_companies=include_companies,
+                        exclude_companies=exclude_companies,
+                        include_docs=include_docs,
+                        exclude_docs=exclude_docs,
+                        brand_safety=brand_safety,
+                        language=language,
+                        continent=continent,
+                        region=region,
+                        country=country,
+                        sector=sector,
+                        industry_group=industry_group,
+                        industry=industry,
+                        sub_industry=sub_industry,
+                        iab_tier_1=iab_tier_1,
+                        iab_tier_2=iab_tier_2,
+                        iab_tier_3=iab_tier_3,
+                        iab_tier_4=iab_tier_4,
+                        instruction=instruction,
+                        companies=companies,
+                        collection=collection,
+                        deduplicate=deduplicate,
+                        internal_use=internal_use
+                    )
+                )
+        else:
+            search_values = (
+                searches.searches_list
+                if isinstance(searches, SearchSet)
+                else searches
+            )
+            if not isinstance(search_values, list) or any(
+                not isinstance(search_value, Search)
+                for search_value in search_values
+            ):
+                raise TypeError(
+                    "searches must be a SearchSet or list of Search objects"
+                )
+            for search_value in search_values:
+                search_calls.append(
+                    partial(
+                        self.fast_search,
+                        search=search_value,
+                        expansions=expansions,
+                        sql_filter=sql_filter,
+                        n_results=n_results,
+                        n_probes=n_probes,
+                        n_contextify=n_contextify,
+                        algorithm=algorithm,
+                        min_similarity=min_similarity,
+                        must_include=must_include,
+                        must_exclude=must_exclude,
+                        autogenerate_expansions=autogenerate_expansions,
+                        publish_start=publish_start,
+                        publish_end=publish_end,
+                        include_netlocs=include_netlocs,
+                        exclude_netlocs=exclude_netlocs,
+                        visited_start=visited_start,
+                        visited_end=visited_end,
+                        certain=certain,
+                        include_companies=include_companies,
+                        exclude_companies=exclude_companies,
+                        include_docs=include_docs,
+                        exclude_docs=exclude_docs,
+                        brand_safety=brand_safety,
+                        language=language,
+                        continent=continent,
+                        region=region,
+                        country=country,
+                        sector=sector,
+                        industry_group=industry_group,
+                        industry=industry,
+                        sub_industry=sub_industry,
+                        iab_tier_1=iab_tier_1,
+                        iab_tier_2=iab_tier_2,
+                        iab_tier_3=iab_tier_3,
+                        iab_tier_4=iab_tier_4,
+                        instruction=instruction,
+                        companies=companies,
+                        collection=collection,
+                        deduplicate=deduplicate,
+                        internal_use=internal_use
+                    )
+                )
+        with ThreadPoolExecutor(max_workers=self.concurrency) as executor:
+            futures = [
+                executor.submit(search_call)
+                for search_call in search_calls
+            ]
+            result_sets = [
+                future.result()
+                for future in futures
+            ]
+        return iter(result_sets)
+
+    def rich_search(
+        self: "Nosible",
+        question: str,
+        instruction: Optional[str] = None,
+        expansions: Optional[List[str]] = None,
+        sql_filter: Optional[str] = None,
+        algorithm: str = "hybrid-3",
+        min_similarity: Optional[float] = None,
+        must_include: Optional[List[str]] = None,
+        must_exclude: Optional[List[str]] = None,
+        brand_safety: Optional[str] = None,
+        language: Optional[str] = None,
+        continent: Optional[str] = None,
+        region: Optional[str] = None,
+        country: Optional[str] = None,
+        sector: Optional[str] = None,
+        industry_group: Optional[str] = None,
+        industry: Optional[str] = None,
+        sub_industry: Optional[str] = None,
+        iab_tier_1: Optional[str] = None,
+        iab_tier_2: Optional[str] = None,
+        iab_tier_3: Optional[str] = None,
+        iab_tier_4: Optional[str] = None,
+        companies: Optional[List[str]] = None,
+        collection: Optional[str] = None,
+        deduplicate: Optional[bool] = None,
+        internal_use: Optional[Dict[str, Any]] = None,
+        n_results: int = 10,
+        n_probes: int = 30,
+        n_contextify: int = 256,
+        enrich_profile: bool = True,
+        enrich_targeting: bool = True,
+        enrich_history: bool = True,
+        enrich_signals: bool = True,
+        enrich_vectors: bool = True
     ) -> ResultSet:
         """
-        Run a single search query.
+        Run Rich Search with optional enrichment blocks.
 
-        If `question` is a string, it is wrapped into a Search with the provided
-        parameters; if it is already a Search instance, its fields take precedence.
-
-        Parameters
-        ----------
-        question : str
-            Query string.
-        search : Search
-            Search object to search with.
-        expansions : list of str, optional
-            Up to 10 semantically/lexically related queries to boost recall.
-        sql_filter : list of str, optional
-            SQL‐style filter clauses.
-        n_results : int
-            Max number of results (max 100).
-        n_probes : int
-            Number of index shards to probe.
-        n_contextify : int
-            Context window size per result.
-        algorithm : str
-            Search algorithm type.
-        min_similarity : float
-            Results must have at least this similarity score.
-        must_include : list of str
-            Only results mentioning these strings will be included.
-        must_exclude : list of str
-            Any result mentioning these strings will be excluded.
-        autogenerate_expansions : bool
-            Do you want to generate expansions automatically using a LLM?
-        publish_start : str, optional
-            Start date for when the document was published (ISO format).
-        publish_end : str, optional
-            End date for when the document was published (ISO format).
-        visited_start : str, optional
-            Start date for when the document was visited by NOSIBLE (ISO format).
-        visited_end : str, optional
-            End date for when the document was visited by NOSIBLE (ISO format).
-        certain : bool, optional
-            Only include documents where we are 100% sure of the date.
-        include_netlocs : list of str, optional
-            List of netlocs (domains) to include in the search. (Max: 50)
-        exclude_netlocs : list of str, optional
-            List of netlocs (domains) to exclude in the search. (Max: 50)
-        include_companies : list of str, optional
-            Google KG IDs of public companies to require (Max: 50).
-        exclude_companies : list of str, optional
-            Google KG IDs of public companies to forbid (Max: 50).
-        include_docs : list of str, optional
-            URL hashes of docs to include (Max: 50).
-        exclude_docs : list of str, optional
-            URL hashes of docs to exclude (Max: 50).
-        brand_safety : str, optional
-            Whether it is safe, sensitive, or unsafe to advertise on this content.
-        language : str, optional
-            Language code to use in search (ISO 639-1 language code).
-        continent : str, optional
-            Continent the results must come from (e.g., "Europe", "Asia").
-        region : str, optional
-            Region or subcontinent the results must come from (e.g., "Southern Africa", "Caribbean").
-        country : str, optional
-            Country the results must come from.
-        sector : str, optional
-            Sector the results must relate to (e.g., "Energy", "Information Technology").
-        industry_group : str, optional
-            Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance").
-        industry : str, optional
-            Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
-        sub_industry : str, optional
-            Sub-industry classification of the content's subject.
-        iab_tier_1 : str, optional
-            IAB Tier 1 category for the content.
-        iab_tier_2 : str, optional
-            IAB Tier 2 category for the content.
-        iab_tier_3 : str, optional
-            IAB Tier 3 category for the content.
-        iab_tier_4 : str, optional
-            IAB Tier 4 category for the content.
-        instruction : str, optional
-            Instruction to use with the search query.
-
-        Returns
-        -------
-        ResultSet
-            The results of the search.
-
-        Raises
-        ------
-        TypeError
-            If both question and search are specified
-        TypeError
-            If neither question nor search are specified
-        RuntimeError
-            If the response fails in any way.
-        ValueError
-            If `n_results` is greater than 100.
-
-        Notes
-        -----
-        You must provide either a `question` string or a `Search` object, not both.
-        The search parameters will be set from the provided object or string and any additional keyword arguments.
-        include_companies and exclude_companies must be the Google KG IDs of public companies.
-
-        Examples
-        --------
-        >>> from nosible.classes.search import Search
-        >>> from nosible import Nosible
-        >>> s = Search(question="Hedge funds seek to expand into private credit", n_results=10)
-        >>> with Nosible() as nos:
-        ...     results = nos.fast_search(search=s)
-        ...     print(isinstance(results, ResultSet))
-        ...     print(len(results))
-        True
-        10
-        >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.fast_search()  # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ...
-        TypeError: Specify exactly one of 'question' or 'search'.
-        >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.fast_search(question="foo", search=s)  # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ...
-        TypeError: Specify exactly one of 'question' or 'search'.
-        >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.fast_search(question="foo", n_results=101)  # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ...
-        ValueError: Search can not have more than 100 results - Use bulk search instead.
+        :param question: Search question.
+        :param instruction: Retrieval instruction.
+        :param expansions: Query expansions.
+        :param sql_filter: SQL filter.
+        :param algorithm: Retrieval algorithm.
+        :param min_similarity: Minimum similarity score.
+        :param must_include: Required strings.
+        :param must_exclude: Forbidden strings.
+        :param brand_safety: Brand-safety filter.
+        :param language: ISO language filter.
+        :param continent: Continent filter.
+        :param region: Region filter.
+        :param country: Country filter.
+        :param sector: GICS sector filter.
+        :param industry_group: GICS industry-group filter.
+        :param industry: GICS industry filter.
+        :param sub_industry: GICS sub-industry filter.
+        :param iab_tier_1: IAB tier-one filter.
+        :param iab_tier_2: IAB tier-two filter.
+        :param iab_tier_3: IAB tier-three filter.
+        :param iab_tier_4: IAB tier-four filter.
+        :param companies: Company names to refine retrieval.
+        :param collection: Search collection.
+        :param deduplicate: Whether to remove duplicate headlines.
+        :param internal_use: Private feature controls.
+        :param n_results: Requested result count.
+        :param n_probes: Number of search probes.
+        :param n_contextify: Context size per result.
+        :param enrich_profile: Whether to return profile enrichment.
+        :param enrich_targeting: Whether to return targeting enrichment.
+        :param enrich_history: Whether to return history enrichment.
+        :param enrich_signals: Whether to return signal enrichment.
+        :param enrich_vectors: Whether to return vector enrichment.
+        :return: Rich search results.
         """
-        if "include_languages" in kwargs:
-            warnings.warn(
-                "The 'include_languages' parameter is deprecated and will be removed in a future release. "
-                "Please use the parameter 'language' instead.",
-            )
-        if "exclude_languages" in kwargs:
-            warnings.warn(
-                "The 'exclude_languages' parameter is deprecated and will be removed in a future release. "
-                "Please use the parameter 'language' instead.",
-            )
-
-        if (question is None and search is None) or (question is not None and search is not None):
-            raise TypeError("Specify exactly one of 'question' or 'search'.")
-
-        search_obj = self._construct_search(
-            question=search if search is not None else question,
+        payload = without_none(
+            question=question,
+            instruction=instruction,
             expansions=expansions,
             sql_filter=sql_filter,
-            n_results=n_results,
-            n_probes=n_probes,
-            n_contextify=n_contextify,
             algorithm=algorithm,
             min_similarity=min_similarity,
             must_include=must_include,
             must_exclude=must_exclude,
-            autogenerate_expansions=autogenerate_expansions,
-            publish_start=publish_start,
-            publish_end=publish_end,
-            include_netlocs=include_netlocs,
-            exclude_netlocs=exclude_netlocs,
-            visited_start=visited_start,
-            visited_end=visited_end,
-            certain=certain,
-            include_companies=include_companies,
-            exclude_companies=exclude_companies,
-            include_docs=include_docs,
-            exclude_docs=exclude_docs,
             brand_safety=brand_safety,
             language=language,
             continent=continent,
@@ -547,1595 +599,1195 @@ class Nosible:
             iab_tier_2=iab_tier_2,
             iab_tier_3=iab_tier_3,
             iab_tier_4=iab_tier_4,
-            instruction=instruction,
+            companies=companies,
+            collection=collection,
+            deduplicate=deduplicate,
+            internal_use=internal_use,
+            n_results=n_results,
+            n_probes=n_probes,
+            n_contextify=n_contextify,
+            enrich_profile=enrich_profile,
+            enrich_targeting=enrich_targeting,
+            enrich_history=enrich_history,
+            enrich_signals=enrich_signals,
+            enrich_vectors=enrich_vectors
+        )
+        validate_search_common(
+            payload=payload,
+            result_bounds=(10, 100),
+            probe_bounds=(5, 50),
+            context_bounds=(64, 1024)
+        )
+        for name in (
+            "enrich_profile",
+            "enrich_targeting",
+            "enrich_history",
+            "enrich_signals",
+            "enrich_vectors"
+        ):
+            if not isinstance(payload[name], bool):
+                raise ValueError(f"{name} must be a boolean")
+        data = self.search_json(
+            endpoint="rich-search",
+            payload=payload
+        )
+        response = data.get("response", [])
+        if not isinstance(response, list):
+            raise ValueError("rich-search response must be a list")
+        return ResultSet(
+            results=[
+                RichResult.from_dict(data=item)
+                for item in response
+            ],
+            message=data.get("message"),
+            query=data.get("query")
         )
 
-        future = self._executor.submit(self._search_single, search_obj)
-        try:
-            return future.result()
-        except ValueError:
-            # Propagate our own "too many results" error directly.
-            raise
-        except Exception as e:
-            self.logger.warning(f"Search for {search_obj.question!r} failed: {e}")
-            raise RuntimeError(f"Search for {search_obj.question!r} failed") from e
-
-    def fast_searches(
-        self,
-        *,
-        searches: Union[SearchSet, list[Search]] = None,
-        questions: list[str] = None,
-        expansions: list[str] = None,
-        sql_filter: list[str] = None,
-        n_results: int = 100,
-        n_probes: int = 30,
-        n_contextify: int = 128,
-        algorithm: str = "hybrid-3",
-        min_similarity: float = None,
-        must_include: list[str] = None,
-        must_exclude: list[str] = None,
-        autogenerate_expansions: bool = False,
-        publish_start: str = None,
-        publish_end: str = None,
-        include_netlocs: list = None,
-        exclude_netlocs: list = None,
-        visited_start: str = None,
-        visited_end: str = None,
-        certain: bool = None,
-        include_companies: list = None,
-        exclude_companies: list = None,
-        include_docs: list = None,
-        exclude_docs: list = None,
-        brand_safety: str = None,
-        language: str = None,
-        continent: str = None,
-        region: str = None,
-        country: str = None,
-        sector: str = None,
-        industry_group: str = None,
-        industry: str = None,
-        sub_industry: str = None,
-        iab_tier_1: str = None,
-        iab_tier_2: str = None,
-        iab_tier_3: str = None,
-        iab_tier_4: str = None,
-        instruction: str = None,
-        **kwargs
-    ) -> Iterator[ResultSet]:
-        """
-        Run multiple searches concurrently and yield results.
-
-        Parameters
-        ----------
-        searches: SearchSet or list of Search
-            The searches execute.
-        questions : list of str
-            The search queries to execute.
-        expansions : list of str, optional
-            List of expansion terms to use for each search.
-        sql_filter : list of str, optional
-            SQL-like filters to apply to the search.
-        n_results : int
-            Number of results to return per search.
-        n_probes : int
-            Number of probes to use for the search algorithm.
-        n_contextify : int
-            Context window size for the search.
-        algorithm : str
-            Search algorithm to use.
-        min_similarity : float
-            Results must have at least this similarity score.
-        must_include : list of str
-            Only results mentioning these strings will be included.
-        must_exclude : list of str
-            Any result mentioning these strings will be excluded.
-        autogenerate_expansions : bool
-            Do you want to generate expansions automatically using a LLM?.
-        publish_start : str, optional
-            Start date for when the document was published (ISO format).
-        publish_end : str, optional
-            End date for when the document was published (ISO format).
-        visited_start : str, optional
-            Start date for when the document was visited by NOSIBLE (ISO format).
-        visited_end : str, optional
-            End date for when the document was visited by NOSIBLE (ISO format).
-        certain : bool, optional
-            Only include documents where we are 100% sure of the date.
-        include_netlocs : list of str, optional
-            List of netlocs (domains) to include in the search. (Max: 50)
-        exclude_netlocs : list of str, optional
-            List of netlocs (domains) to exclude in the search. (Max: 50)
-            Language codes to exclude in the search (Max: 50, ISO 639-1 language codes).
-        include_companies : list of str, optional
-            Google KG IDs of public companies to require (Max: 50).
-        exclude_companies : list of str, optional
-            Google KG IDs of public companies to forbid (Max: 50).
-        include_docs : list of str, optional
-            URL hashes of docs to include (Max: 50).
-        exclude_docs : list of str, optional
-            URL hashes of docs to exclude (Max: 50).
-        brand_safety : str, optional
-            Whether it is safe, sensitive, or unsafe to advertise on this content.
-        language : str, optional
-            Language code to use in search (ISO 639-1 language code).
-        continent : str, optional
-            Continent the results must come from (e.g., "Europe", "Asia").
-        region : str, optional
-            Region or subcontinent the results must come from (e.g., "Southern Africa", "Caribbean").
-        country : str, optional
-            Country the results must come from.
-        sector : str, optional
-            GICS Sector the results must relate to (e.g., "Energy", "Information Technology").
-        industry_group : str, optional
-            GICS Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance").
-        industry : str, optional
-            GICS Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
-        sub_industry : str, optional
-            GICS Sub-industry classification of the content's subject.
-        iab_tier_1 : str, optional
-            IAB Tier 1 category for the content.
-        iab_tier_2 : str, optional
-            IAB Tier 2 category for the content.
-        iab_tier_3 : str, optional
-            IAB Tier 3 category for the content.
-        iab_tier_4 : str, optional
-            IAB Tier 4 category for the content.
-        instruction : str, optional
-            Instruction to use with the search query.
-
-        Returns
-        ------
-        ResultSet or None
-            Each completed search’s results, or None on failure.
-
-        Raises
-        ------
-        TypeError
-            If `queries` is not a list of strings, a list of Search objects, or a SearchSet instance.
-        TypeError
-            If both queries and searches are specified.
-        TypeError
-            If neither queries nor searches are specified.
-
-        Notes
-        -----
-        You must provide either a list of `questions` or a list of `Search` objects, not both.
-        The search parameters will be set from the provided object or string and any additional keyword arguments.
-
-        Examples
-        --------
-        >>> from nosible import Nosible
-        >>> queries = SearchSet(
-        ...     [
-        ...         Search(question="Hedge funds seek to expand into private credit", n_results=5),
-        ...         Search(question="How have the Trump tariffs impacted the US economy?", n_results=5),
-        ...     ]
-        ... )
-        >>> with Nosible() as nos:
-        ...     results_list = list(nos.fast_searches(searches=queries))
-        >>> print(len(results_list))
-        2
-        >>> for r in results_list:
-        ...     print(isinstance(r, ResultSet), bool(r))
-        True True
-        True True
-        >>> with Nosible() as nos:
-        ...     results_list_str = list(
-        ...         nos.fast_searches(
-        ...             questions=[
-        ...                 "What are the terms of the partnership between Microsoft and OpenAI?",
-        ...                 "What are the terms of the partnership between Volkswagen and Uber?",
-        ...             ]
-        ...         )
-        ...     )
-        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +ELLIPSIS
-        >>> nos.fast_searches()  # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ...
-        TypeError: Specify exactly one of 'questions' or 'searches'.
-        >>> from nosible import Nosible
-        >>> nos = Nosible(nosible_api_key="test|xyz")
-        >>> nos.fast_searches(questions=["A"], searches=SearchSet(searches=["A"]))  # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ...
-        TypeError: Specify exactly one of 'questions' or 'searches'.
-        """
-        if "include_languages" in kwargs:
-            warnings.warn(
-                "The 'include_languages' parameter is deprecated and will be removed in a future release. "
-                "Please use the parameter 'language' instead.",
-            )
-        if "exclude_languages" in kwargs:
-            warnings.warn(
-                "The 'exclude_languages' parameter is deprecated and will be removed in a future release. "
-                "Please use the parameter 'language' instead.",
-            )
-
-        if (questions is None and searches is None) or (questions is not None and searches is not None):
-            raise TypeError("Specify exactly one of 'questions' or 'searches'.")
-
-        # Function to ensure correct errors are raised.
-        def _run_generator():
-            search_queries = questions if questions is not None else searches
-
-            searches_list = self._construct_search(
-                question=search_queries,
-                expansions=expansions,
-                sql_filter=sql_filter,
-                n_results=n_results,
-                n_probes=n_probes,
-                n_contextify=n_contextify,
-                algorithm=algorithm,
-                min_similarity=min_similarity,
-                must_include=must_include,
-                must_exclude=must_exclude,
-                autogenerate_expansions=autogenerate_expansions,
-                publish_start=publish_start,
-                publish_end=publish_end,
-                include_netlocs=include_netlocs,
-                exclude_netlocs=exclude_netlocs,
-                visited_start=visited_start,
-                visited_end=visited_end,
-                certain=certain,
-                include_companies=include_companies,
-                exclude_companies=exclude_companies,
-                include_docs=include_docs,
-                exclude_docs=exclude_docs,
-                brand_safety=brand_safety,
-                language=language,
-                continent=continent,
-                region=region,
-                country=country,
-                sector=sector,
-                industry_group=industry_group,
-                industry=industry,
-                sub_industry=sub_industry,
-                iab_tier_1=iab_tier_1,
-                iab_tier_2=iab_tier_2,
-                iab_tier_3=iab_tier_3,
-                iab_tier_4=iab_tier_4,
-                instruction=instruction,
-            )
-
-            futures = [self._executor.submit(self._search_single, s) for s in searches_list]
-
-            for future in futures:
-                try:
-                    yield future.result()
-                except Exception as e:
-                    self.logger.warning(f"Search failed: {e!r}")
-                    raise
-
-        return _run_generator()
-
-
-    @_rate_limited("fast")
-    def _search_single(self, search_obj: Search) -> ResultSet:
-        """
-        Execute a single search request using the parameters from a Search object.
-
-        Parameters
-        ----------
-        search_obj : Search
-            A Search instance containing all search parameters.
-
-        Returns
-        -------
-        ResultSet
-            The results of the search.
-
-        Raises
-        ------
-        ValueError
-            If `n_results` > 100.
-        ValueError
-            If min_similarity is not [0,1].
-
-        Examples
-        --------
-        >>> from nosible.classes.search import Search
-        >>> from nosible import Nosible
-        >>> s = Search(question="Nvidia insiders dump more than $1 billion in stock", n_results=200)
-        >>> with Nosible() as nos:
-        ...     results = nos.fast_search(search=s)  # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ...
-        ValueError: Search can not have more than 100 results - Use bulk search instead.
-        """
-        # --------------------------------------------------------------------------------------------------------------
-        # Setting search params. Individual search will override Nosible defaults.
-        # --------------------------------------------------------------------------------------------------------------
-        question = search_obj.question  # No default
-        expansions = search_obj.expansions if search_obj.expansions is not None else []  # Default to empty list
-        sql_filter = search_obj.sql_filter if search_obj.sql_filter is not None else None
-        n_results = search_obj.n_results if search_obj.n_results is not None else 100
-        n_probes = search_obj.n_probes if search_obj.n_probes is not None else 30
-        n_contextify = search_obj.n_contextify if search_obj.n_contextify is not None else 128
-        algorithm = search_obj.algorithm if search_obj.algorithm is not None else "hybrid-3"
-        min_similarity = search_obj.min_similarity if search_obj.min_similarity is not None else 0
-        must_include = search_obj.must_include if search_obj.must_include is not None else []
-        must_exclude = search_obj.must_exclude if search_obj.must_exclude is not None else []
-        autogenerate_expansions = (
-            search_obj.autogenerate_expansions if search_obj.autogenerate_expansions is not None else False
-        )
-        publish_start = search_obj.publish_start if search_obj.publish_start is not None else self.publish_start
-        publish_end = search_obj.publish_end if search_obj.publish_end is not None else self.publish_end
-        include_netlocs = search_obj.include_netlocs if search_obj.include_netlocs is not None else self.include_netlocs
-        exclude_netlocs = search_obj.exclude_netlocs if search_obj.exclude_netlocs is not None else self.exclude_netlocs
-        visited_start = search_obj.visited_start if search_obj.visited_start is not None else self.visited_start
-        visited_end = search_obj.visited_end if search_obj.visited_end is not None else self.visited_end
-        certain = search_obj.certain if search_obj.certain is not None else self.certain
-        include_companies = (
-            search_obj.include_companies if search_obj.include_companies is not None else self.include_companies
-        )
-        exclude_companies = (
-            search_obj.exclude_companies if search_obj.exclude_companies is not None else self.exclude_companies
-        )
-        include_docs = search_obj.include_docs if search_obj.include_docs is not None else self.include_docs
-        exclude_docs = search_obj.exclude_docs if search_obj.exclude_docs is not None else self.exclude_docs
-        brand_safety = search_obj.brand_safety if search_obj.brand_safety is not None else self.brand_safety
-        language = search_obj.language if search_obj.language is not None else self.language
-        continent = search_obj.continent if search_obj.continent is not None else self.continent
-        region = search_obj.region if search_obj.region is not None else self.region
-        country = search_obj.country if search_obj.country is not None else self.country
-        sector = search_obj.sector if search_obj.sector is not None else self.sector
-        industry_group = search_obj.industry_group if search_obj.industry_group is not None else self.industry_group
-        industry = search_obj.industry if search_obj.industry is not None else self.industry
-        sub_industry = search_obj.sub_industry if search_obj.sub_industry is not None else self.sub_industry
-        iab_tier_1 = search_obj.iab_tier_1 if search_obj.iab_tier_1 is not None else self.iab_tier_1
-        iab_tier_2 = search_obj.iab_tier_2 if search_obj.iab_tier_2 is not None else self.iab_tier_2
-        iab_tier_3 = search_obj.iab_tier_3 if search_obj.iab_tier_3 is not None else self.iab_tier_3
-        iab_tier_4 = search_obj.iab_tier_4 if search_obj.iab_tier_4 is not None else self.iab_tier_4
-        instruction = search_obj.instruction if search_obj.instruction is not None else self.instruction
-
-        must_include = must_include if must_include is not None else []
-        must_exclude = must_exclude if must_exclude is not None else []
-        min_similarity = min_similarity if min_similarity is not None else 0
-
-        if not (0.0 <= min_similarity <= 1.0):
-            raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
-
-        # Generate expansions if not provided
-        if expansions is None:
-            expansions = []
-        if autogenerate_expansions is True:
-            expansions = self._generate_expansions(question=question)
-
-        # Generate sql_filter if not provided
-        if sql_filter is None:
-            sql_filter = self._format_sql(
-                publish_start=publish_start,
-                publish_end=publish_end,
-                include_netlocs=include_netlocs,
-                exclude_netlocs=exclude_netlocs,
-                visited_start=visited_start,
-                visited_end=visited_end,
-                certain=certain,
-                include_companies=include_companies,
-                exclude_companies=exclude_companies,
-                include_docs=include_docs,
-                exclude_docs=exclude_docs,
-            )
-
-        # Enforce limits
-        if n_results > 100:
-            raise ValueError("Search can not have more than 100 results - Use bulk search instead.")
-        filter_responses = n_results
-        n_results = max(n_results, 10)
-
-        payload = {
-            "question": question,
-            "expansions": expansions,
-            "sql_filter": sql_filter,
-            "n_results": n_results,
-            "n_probes": n_probes,
-            "n_contextify": n_contextify,
-            "algorithm": algorithm,
-            "min_similarity": min_similarity,
-            "must_include": must_include,
-            "must_exclude": must_exclude,
-        }
-        optional = {
-            "instruction": instruction,
-            "brand_safety":brand_safety,
-            "language": language,
-            "continent": continent,
-            "region": region,
-            "country": country,
-            "sector": sector,
-            "industry_group": industry_group,
-            "industry": industry,
-            "sub_industry": sub_industry,
-            "iab_tier_1": iab_tier_1,
-            "iab_tier_2": iab_tier_2,
-            "iab_tier_3": iab_tier_3,
-            "iab_tier_4": iab_tier_4,
-        }
-        for key, val in optional.items():
-            if val is not None:
-                payload[key] = val
-
-        resp = self._post(url="https://www.nosible.ai/search/v2/fast-search", payload=payload)
-        resp.raise_for_status()
-        items = resp.json().get("response", [])[:filter_responses]
-        return ResultSet.from_dicts(items)
-
-    @staticmethod
-    def _construct_search(
-        question: Union[str, Search, SearchSet, list[Search], list[str]], **options
-    ) -> Union[Search, SearchSet]:
-        """
-        Constructs a `Search` or `SearchSet` object from the provided input.
-        Parameters
-        ----------
-        question : Union[str, Search, SearchSet, list[Search], list[str]]
-            The input to construct the search from. This can be a single search query string,
-            a `Search` object, a `SearchSet` object, or a list of either search query strings or `Search` objects.
-        **options
-            Additional keyword arguments to pass to the `Search` initializer.
-        Returns
-        -------
-        Union[Search, SearchSet]
-            A `Search` object if the input is a single query or `Search`, or a `SearchSet` object if the input is a
-            list or a `SearchSet`.
-        Raises
-        ------
-        TypeError
-            If `question` is not a `str`, `Search`, `SearchSet`, or a list of these types.
-        Notes
-        -----
-        All extra parameters are passed through to the `Search` initializer.
-        """
-
-        def make_search(q: Union[str, Search]) -> Search:
-            return q if isinstance(q, Search) else Search(question=q, **options)
-
-        if isinstance(question, SearchSet):
-            return question
-        if isinstance(question, Search):
-            return question
-        if isinstance(question, list):
-            return SearchSet([make_search(q) for q in question])
-        if isinstance(question, str):
-            return make_search(question)
-
-        raise TypeError("`question` must be str, Search, SearchSet, or a list thereof")
-
-    @_rate_limited("bulk")
     def bulk_search(
-        self,
-        *,
-        search: Search = None,
-        question: str = None,
-        expansions: list[str] = None,
-        sql_filter: list[str] = None,
+        self: "Nosible",
+        search: Optional[Search] = None,
+        question: Optional[str] = None,
+        expansions: Optional[List[str]] = None,
+        sql_filter: Optional[str] = None,
         n_results: int = 1000,
-        n_probes: int = 30,
+        n_probes: int = 10,
         n_contextify: int = 128,
         algorithm: str = "hybrid-3",
-        min_similarity: float = None,
-        must_include: list[str] = None,
-        must_exclude: list[str] = None,
-        autogenerate_expansions: bool = False,
-        publish_start: str = None,
-        publish_end: str = None,
-        visited_start: str = None,
-        visited_end: str = None,
-        certain: bool = None,
-        include_netlocs: list = None,
-        exclude_netlocs: list = None,
-        include_companies: list = None,
-        exclude_companies: list = None,
-        include_docs: list = None,
-        exclude_docs: list = None,
-        brand_safety: str = None,
-        language: str = None,
-        continent: str = None,
-        region: str = None,
-        country: str = None,
-        sector: str = None,
-        industry_group: str = None,
-        industry: str = None,
-        sub_industry: str = None,
-        iab_tier_1: str = None,
-        iab_tier_2: str = None,
-        iab_tier_3: str = None,
-        iab_tier_4: str = None,
-        instruction: str = None,
+        min_similarity: Optional[float] = None,
+        must_include: Optional[List[str]] = None,
+        must_exclude: Optional[List[str]] = None,
+        brand_safety: Optional[str] = None,
+        language: Optional[str] = None,
+        continent: Optional[str] = None,
+        region: Optional[str] = None,
+        country: Optional[str] = None,
+        sector: Optional[str] = None,
+        industry_group: Optional[str] = None,
+        industry: Optional[str] = None,
+        sub_industry: Optional[str] = None,
+        iab_tier_1: Optional[str] = None,
+        iab_tier_2: Optional[str] = None,
+        iab_tier_3: Optional[str] = None,
+        iab_tier_4: Optional[str] = None,
+        instruction: Optional[str] = None,
+        companies: Optional[List[str]] = None,
+        collection: Optional[str] = None,
+        deduplicate: Optional[bool] = None,
+        internal_use: Optional[Dict[str, Any]] = None,
+        poll_interval: float = 15,
+        poll_timeout: float = 1500,
         verbose: bool = False,
-        **kwargs,
+        autogenerate_expansions: bool = False,
+        publish_start: Optional[str] = None,
+        publish_end: Optional[str] = None,
+        include_netlocs: Optional[List[str]] = None,
+        exclude_netlocs: Optional[List[str]] = None,
+        visited_start: Optional[str] = None,
+        visited_end: Optional[str] = None,
+        certain: Optional[bool] = None,
+        include_companies: Optional[List[str]] = None,
+        exclude_companies: Optional[List[str]] = None,
+        include_docs: Optional[List[str]] = None,
+        exclude_docs: Optional[List[str]] = None,
+        **kwargs: Any
     ) -> ResultSet:
         """
-        Perform a bulk (slow) search query (1,000–10,000 results) against the Nosible API.
+        Run asynchronous Bulk Search and download its encrypted result archive.
 
-        Parameters
-        ----------
-        question : str or None
-            Query string. Provide either a question string or a Search object.
-        search : Search or None
-            Search object to search with. Provide either a Search object or a question string.
-        expansions : list of str, optional
-            Optional list of expanded query strings.
-        sql_filter : list of str, optional
-            Optional SQL WHERE clause filters.
-        n_results : int
-            Number of results per query (1,000–10,000).
-        n_probes : int
-            Number of shards to probe.
-        n_contextify : int
-            Context window size per result.
-        algorithm : str
-            Search algorithm identifier.
-        min_similarity : float
-            Results must have at least this similarity score.
-        must_include : list of str
-            Only results mentioning these strings will be included.
-        must_exclude : list of str
-            Any result mentioning these strings will be excluded.
-        autogenerate_expansions : bool
-            Do you want to generate expansions automatically using a LLM?
-        publish_start : str, optional
-            Start date for when the document was published (ISO format).
-        publish_end : str, optional
-            End date for when the document was published (ISO format).
-        visited_start : str, optional
-            Start date for when the document was visited by NOSIBLE (ISO format).
-        visited_end : str, optional
-            End date for when the document was visited by NOSIBLE (ISO format).
-        certain : bool, optional
-            Only include documents where we are 100% sure of the date.
-        include_netlocs : list of str, optional
-            List of netlocs (domains) to include in the search. (Max: 50)
-        exclude_netlocs : list of str, optional
-            List of netlocs (domains) to exclude in the search. (Max: 50)
-        include_companies : list of str, optional
-            Google KG IDs of public companies to require (Max: 50).
-        exclude_companies : list of str, optional
-            Google KG IDs of public companies to forbid (Max: 50).
-        include_docs : list of str, optional
-            URL hashes of docs to include (Max: 50).
-        exclude_docs : list of str, optional
-            URL hashes of docs to exclude (Max: 50).
-        brand_safety : str, optional
-            Whether it is safe, sensitive, or unsafe to advertise on this content.
-        language : str, optional
-            Language code to use in search (ISO 639-1 language code).
-        continent : str, optional
-            Continent the results must come from (e.g., "Europe", "Asia").
-        region : str, optional
-            Region or subcontinent the results must come from (e.g., "Southern Africa", "Caribbean").
-        country : str, optional
-            Country the results must come from.
-        sector : str, optional
-            Sector the results must relate to (e.g., "Energy", "Information Technology").
-        industry_group : str, optional
-            Industry group the results must relate to (e.g., "Automobiles & Components", "Insurance").
-        industry : str, optional
-            Industry the results must relate to (e.g., "Consumer Finance", "Passenger Airlines").
-        sub_industry : str, optional
-            Sub-industry classification of the content's subject.
-        iab_tier_1 : str, optional
-            IAB Tier 1 category for the content.
-        iab_tier_2 : str, optional
-            IAB Tier 2 category for the content.
-        iab_tier_3 : str, optional
-            IAB Tier 3 category for the content.
-        iab_tier_4 : str, optional
-            IAB Tier 4 category for the content.
-        instruction : str, optional
-            Instruction to use with the search query.
-        verbose : bool, optional
-            Show verbose output, Bulk search will print more information.
-
-        Returns
-        -------
-        ResultSet
-            The results of the bulk search.
-
-        Raises
-        ------
-        ValueError
-            If `n_results` is out of bounds (<1000 or >10000).
-        TypeError
-            If both question and search are specified.
-        TypeError
-            If neither question nor search are specified.
-        RuntimeError
-            If the response fails in any way.
-        ValueError
-            If min_similarity is not [0,1].
-
-        Notes
-        -----
-        You must provide either a `question` string or a `Search` object, not both.
-        The search parameters will be set from the provided object or string and any additional keyword arguments.
-
-        Examples
-        --------
-        >>> from nosible.classes.search import Search  # doctest: +SKIP
-        >>> from nosible import Nosible  # doctest: +SKIP
-        >>> with Nosible(exclude_netlocs=["bbc.com"]) as nos:  # doctest: +SKIP
-        ...     results = nos.bulk_search(question=_get_question(), n_results=2000)  # doctest: +SKIP
-        ...     print(isinstance(results, ResultSet))  # doctest: +SKIP
-        ...     print(len(results))  # doctest: +SKIP
-        True
-        2000
-        >>> s = Search(question=_get_question(), n_results=1000)  # doctest: +SKIP
-        >>> with Nosible() as nos:  # doctest: +SKIP
-        ...     results = nos.bulk_search(search=s)  # doctest: +SKIP
-        ...     print(isinstance(results, ResultSet))  # doctest: +SKIP
-        ...     print(len(results))  # doctest: +SKIP
-        True
-        1000
-        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> nos.bulk_search()  # doctest: +SKIP
-        Traceback (most recent call last):
-        ...
-        TypeError: Either question or search must be specified
-
-        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> nos.bulk_search(question=_get_question(), search=Search(question=_get_question()))  # doctest: +SKIP
-        Traceback (most recent call last):
-        ...
-        TypeError: Question and search cannot be both specified
-        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> nos.bulk_search(question=_get_question(), n_results=100)  # doctest: +SKIP
-        Traceback (most recent call last):
-        ...
-        ValueError: Bulk search must have at least 1000 results per query; use search() for smaller result sets.
-        >>> nos = Nosible(nosible_api_key="test|xyz")  # doctest: +SKIP
-        >>> nos.bulk_search(question=_get_question(), n_results=10001)  # doctest: +SKIP
-        Traceback (most recent call last):  # doctest: +SKIP
-        ...
-        ValueError: Bulk search cannot have more than 10000 results per query.
+        :param search: Optional Search model.
+        :param question: Search question.
+        :param expansions: Query expansions.
+        :param sql_filter: SQL filter.
+        :param n_results: Requested result count.
+        :param n_probes: Number of search probes.
+        :param n_contextify: Context size per result.
+        :param algorithm: Retrieval algorithm.
+        :param min_similarity: Minimum similarity score.
+        :param must_include: Required strings.
+        :param must_exclude: Forbidden strings.
+        :param brand_safety: Brand-safety filter.
+        :param language: ISO language filter.
+        :param continent: Continent filter.
+        :param region: Region filter.
+        :param country: Country filter.
+        :param sector: GICS sector filter.
+        :param industry_group: GICS industry-group filter.
+        :param industry: GICS industry filter.
+        :param sub_industry: GICS sub-industry filter.
+        :param iab_tier_1: IAB tier-one filter.
+        :param iab_tier_2: IAB tier-two filter.
+        :param iab_tier_3: IAB tier-three filter.
+        :param iab_tier_4: IAB tier-four filter.
+        :param instruction: Retrieval instruction.
+        :param companies: Company names to refine retrieval.
+        :param collection: Search collection.
+        :param deduplicate: Whether to remove duplicate headlines.
+        :param internal_use: Private feature controls.
+        :param poll_interval: Download polling interval in seconds.
+        :param poll_timeout: Maximum polling duration in seconds.
+        :param verbose: Retained compatibility flag.
+        :param autogenerate_expansions: Whether to generate LLM expansions.
+        :param publish_start: Earliest publication date.
+        :param publish_end: Latest publication date.
+        :param include_netlocs: Domains to include.
+        :param exclude_netlocs: Domains to exclude.
+        :param visited_start: Earliest visit date.
+        :param visited_end: Latest visit date.
+        :param certain: Whether dates must be certain.
+        :param include_companies: Company identifiers to include.
+        :param exclude_companies: Company identifiers to exclude.
+        :param include_docs: Document hashes to include.
+        :param exclude_docs: Document hashes to exclude.
+        :param kwargs: Deprecated language-list filters.
+        :return: Downloaded bulk results.
         """
-        if "include_languages" in kwargs:
-            warnings.warn(
-                "The 'include_languages' parameter is deprecated and will be removed in a future release. "
-                "Please use the parameter 'language' instead.",
-            )
-        if "exclude_languages" in kwargs:
-            warnings.warn(
-                "The 'exclude_languages' parameter is deprecated and will be removed in a future release. "
-                "Please use the parameter 'language' instead.",
-            )
-
-        from cryptography.fernet import Fernet
-
-        previous_level = self.logger.level
+        warn_legacy_language_filters(kwargs=kwargs)
         if verbose:
-            self.logger.setLevel(logging.INFO)
+            LOGGER.info(msg="Submitting NOSIBLE Bulk Search")
+        payload = self.search_payload(
+            search=search,
+            question=question,
+            instruction=instruction,
+            expansions=expansions,
+            sql_filter=sql_filter,
+            algorithm=algorithm,
+            min_similarity=min_similarity,
+            must_include=must_include,
+            must_exclude=must_exclude,
+            brand_safety=brand_safety,
+            language=language,
+            continent=continent,
+            region=region,
+            country=country,
+            sector=sector,
+            industry_group=industry_group,
+            industry=industry,
+            sub_industry=sub_industry,
+            iab_tier_1=iab_tier_1,
+            iab_tier_2=iab_tier_2,
+            iab_tier_3=iab_tier_3,
+            iab_tier_4=iab_tier_4,
+            companies=companies,
+            collection=collection,
+            deduplicate=deduplicate,
+            internal_use=internal_use,
+            n_results=n_results,
+            n_probes=n_probes,
+            n_contextify=n_contextify,
+            autogenerate_expansions=autogenerate_expansions,
+            legacy_filters={
+                "publish_start": (
+                    publish_start
+                    if publish_start is not None
+                    else self.publish_start
+                ),
+                "publish_end": (
+                    publish_end
+                    if publish_end is not None
+                    else self.publish_end
+                ),
+                "include_netlocs": (
+                    include_netlocs
+                    if include_netlocs is not None
+                    else self.include_netlocs
+                ),
+                "exclude_netlocs": (
+                    exclude_netlocs
+                    if exclude_netlocs is not None
+                    else self.exclude_netlocs
+                ),
+                "visited_start": (
+                    visited_start
+                    if visited_start is not None
+                    else self.visited_start
+                ),
+                "visited_end": (
+                    visited_end
+                    if visited_end is not None
+                    else self.visited_end
+                ),
+                "certain": certain if certain is not None else self.certain,
+                "include_companies": (
+                    include_companies
+                    if include_companies is not None
+                    else self.include_companies
+                ),
+                "exclude_companies": (
+                    exclude_companies
+                    if exclude_companies is not None
+                    else self.exclude_companies
+                ),
+                "include_docs": (
+                    include_docs
+                    if include_docs is not None
+                    else self.include_docs
+                ),
+                "exclude_docs": (
+                    exclude_docs
+                    if exclude_docs is not None
+                    else self.exclude_docs
+                ),
+            }
+        )
+        validate_search_common(
+            payload=payload,
+            result_bounds=(1000, 10000),
+            probe_bounds=(5, 300),
+            context_bounds=(128, 1024)
+        )
+        data = self.downloaded_search(
+            endpoint="bulk-search",
+            payload=payload,
+            poll_interval=poll_interval,
+            poll_timeout=poll_timeout
+        )
+        return ResultSet.from_dict(data=data)
 
-        if question is not None and search is not None:
-            raise TypeError("Question and search cannot be both specified")
+    def time_search(
+        self: "Nosible",
+        start: str,
+        end: str,
+        frequency: str = "1d",
+        sort: str = "ascending",
+        require_timezone: bool = False,
+        n_results: int = 25,
+        n_probes: int = 10,
+        n_contextify: int = 128,
+        question: Optional[str] = None,
+        instruction: Optional[str] = None,
+        expansions: Optional[List[str]] = None,
+        sql_filter: Optional[str] = None,
+        algorithm: Optional[str] = None,
+        min_similarity: Optional[float] = None,
+        must_include: Optional[List[str]] = None,
+        must_exclude: Optional[List[str]] = None,
+        companies: Optional[List[str]] = None,
+        collection: Optional[str] = None,
+        deduplicate: Optional[bool] = None,
+        internal_use: Optional[Dict[str, Any]] = None,
+        poll_interval: float = 15,
+        poll_timeout: float = 1500,
+        **filters: Any
+    ) -> Dict[str, Any]:
+        """
+        Run independent searches across a time interval.
 
-        if question is None and search is None:
-            raise TypeError("Either question or search must be specified")
-
-        # If a Search object is provided, extract its fields
-        if search is not None:
-            question = search.question
-            expansions = search.expansions if search.expansions is not None else expansions
-            sql_filter = search.sql_filter if search.sql_filter is not None else sql_filter
-            n_results = search.n_results if search.n_results is not None else n_results
-            n_probes = search.n_probes if search.n_probes is not None else n_probes
-            n_contextify = search.n_contextify if search.n_contextify is not None else n_contextify
-            algorithm = search.algorithm if search.algorithm is not None else algorithm
-            min_similarity = search.min_similarity if search.min_similarity is not None else min_similarity
-            must_include = search.must_include if search.must_include is not None else must_include
-            must_exclude = search.must_exclude if search.must_exclude is not None else must_exclude
-            autogenerate_expansions = (
-                search.autogenerate_expansions
-                if search.autogenerate_expansions is not None
-                else autogenerate_expansions
+        :param start: Inclusive timezone-aware ISO start timestamp.
+        :param end: Exclusive timezone-aware ISO end timestamp.
+        :param frequency: Positive h, d, w, or mo interval.
+        :param sort: Result order, ascending or descending.
+        :param require_timezone: Whether results must expose timezone data.
+        :param n_results: Results requested per interval.
+        :param n_probes: Number of search probes.
+        :param n_contextify: Context size per result.
+        :param question: Optional Search question.
+        :param instruction: Retrieval instruction.
+        :param expansions: Query expansions.
+        :param sql_filter: SQL filter.
+        :param algorithm: Retrieval algorithm.
+        :param min_similarity: Minimum similarity score.
+        :param must_include: Required strings.
+        :param must_exclude: Forbidden strings.
+        :param companies: Company names to refine retrieval.
+        :param collection: Search collection.
+        :param deduplicate: Whether to remove duplicate headlines.
+        :param internal_use: Private feature controls.
+        :param poll_interval: Download polling interval in seconds.
+        :param poll_timeout: Maximum polling duration in seconds.
+        :param filters: Additional inherited Search filters.
+        :return: Downloaded time-search response.
+        """
+        start_datetime = parse_datetime(
+            value=start,
+            name="start"
+        )
+        end_datetime = parse_datetime(
+            value=end,
+            name="end"
+        )
+        if start_datetime >= end_datetime:
+            raise ValueError("start must be earlier than end")
+        if (
+            not isinstance(frequency, str)
+            or not 2 <= len(frequency) <= 8
+            or not re.fullmatch(
+                pattern=r"[1-9]\d*(?:h|d|w|mo)",
+                string=frequency
             )
-            publish_start = search.publish_start if search.publish_start is not None else publish_start
-            publish_end = search.publish_end if search.publish_end is not None else publish_end
-            include_netlocs = search.include_netlocs if search.include_netlocs is not None else include_netlocs
-            exclude_netlocs = search.exclude_netlocs if search.exclude_netlocs is not None else exclude_netlocs
-            visited_start = search.visited_start if search.visited_start is not None else visited_start
-            visited_end = search.visited_end if search.visited_end is not None else visited_end
-            certain = search.certain if search.certain is not None else certain
-            include_companies = search.include_companies if search.include_companies is not None else include_companies
-            exclude_companies = search.exclude_companies if search.exclude_companies is not None else exclude_companies
-            include_docs = search.include_docs if search.include_docs is not None else self.include_docs
-            exclude_docs = search.exclude_docs if search.exclude_docs is not None else self.exclude_docs
-            brand_safety = search.brand_safety if search.brand_safety is not None else self.brand_safety
-            language = search.language if search.language is not None else self.language
-            continent = search.continent if search.continent is not None else self.continent
-            region = search.region if search.region is not None else self.region
-            country = search.country if search.country is not None else self.country
-            sector = search.sector if search.sector is not None else self.sector
-            industry_group = search.industry_group if search.industry_group is not None else self.industry_group
-            industry = search.industry if search.industry is not None else self.industry
-            sub_industry = search.sub_industry if search.sub_industry is not None else self.sub_industry
-            iab_tier_1 = search.iab_tier_1 if search.iab_tier_1 is not None else self.iab_tier_1
-            iab_tier_2 = search.iab_tier_2 if search.iab_tier_2 is not None else self.iab_tier_2
-            iab_tier_3 = search.iab_tier_3 if search.iab_tier_3 is not None else self.iab_tier_3
-            iab_tier_4 = search.iab_tier_4 if search.iab_tier_4 is not None else self.iab_tier_4
-            instruction = search.instruction if search.instruction is not None else self.instruction
-
-        # Default expansions and filters
-        if expansions is None:
-            expansions = []
-        if autogenerate_expansions is True:
-            expansions = self._generate_expansions(question=question)
-
-        must_include = must_include if must_include is not None else []
-        must_exclude = must_exclude if must_exclude is not None else []
-        min_similarity = min_similarity if min_similarity is not None else 0
-
-        if not (0.0 <= min_similarity <= 1.0):
-            raise ValueError(f"Invalid min_simalarity: {min_similarity}.  Must be [0,1].")
-
-        # Generate sql_filter if unset
-        if sql_filter is None:
-            sql_filter = self._format_sql(
-                publish_start=publish_start if publish_start is not None else self.publish_start,
-                publish_end=publish_end if publish_end is not None else self.publish_end,
-                visited_start=visited_start if visited_start is not None else self.visited_start,
-                visited_end=visited_end if visited_end is not None else self.visited_end,
-                certain=certain if certain is not None else self.certain,
-                include_netlocs=include_netlocs if include_netlocs is not None else self.include_netlocs,
-                exclude_netlocs=exclude_netlocs if exclude_netlocs is not None else self.exclude_netlocs,
-                include_companies=include_companies if include_companies is not None else self.include_companies,
-                exclude_companies=exclude_companies if exclude_companies is not None else self.exclude_companies,
-                include_docs=include_docs if include_docs is not None else self.include_docs,
-                exclude_docs=exclude_docs if exclude_docs is not None else self.exclude_docs,
-            )
-
-        self.logger.debug(f"SQL Filter: {sql_filter}")
-
-        # Validate n_result bounds
-        if n_results < 1000:
+        ):
             raise ValueError(
-                "Bulk search must have at least 1000 results per query; use search() for smaller result sets."
+                "frequency must use a positive h, d, w, or mo unit"
             )
-        if n_results > 10000:
-            raise ValueError("Bulk search cannot have more than 10000 results per query.")
-
-        # Enforce Minimums
-        filter_responses = n_results
-        # Bulk search must ask for at least 1 000
-        n_results = max(n_results, 1000)
-
-        self.logger.info(f"Performing bulk search for {question!r}...")
-
-        try:
-            payload = {
-                "question": question,
-                "expansions": expansions,
-                "sql_filter": sql_filter,
-                "n_results": n_results,
-                "n_probes": n_probes,
-                "n_contextify": n_contextify,
-                "algorithm": algorithm,
-                "min_similarity": min_similarity,
-                "must_include": must_include,
-                "must_exclude": must_exclude,
-            }
-            optional = {
-                "instruction": instruction,
-                "brand_safety": brand_safety,
-                "language": language,
-                "continent": continent,
-                "region": region,
-                "country": country,
-                "sector": sector,
-                "industry_group": industry_group,
-                "industry": industry,
-                "sub_industry": sub_industry,
-                "iab_tier_1": iab_tier_1,
-                "iab_tier_2": iab_tier_2,
-                "iab_tier_3": iab_tier_3,
-                "iab_tier_4": iab_tier_4,
-            }
-            for key, val in optional.items():
-                if val is not None:
-                    payload[key] = val
-
-            resp = self._post(url="https://www.nosible.ai/search/v2/bulk-search", payload=payload)
-            try:
-                resp.raise_for_status()
-            except httpx.HTTPStatusError as e:
-                raise ValueError(f"[{question!r}] HTTP {resp.status_code}: {resp.text}") from e
-
-            data = resp.json()
-
-            # Bulk search: download & decrypt
-            download_from = data.get("download_from")
-            if ".zstd." in download_from:
-                download_from = download_from.replace(".zstd.", ".gzip.", 1)
-            decrypt_using = data.get("decrypt_using")
-            for _ in range(100):
-                dl = self._session.get(download_from, timeout=self.timeout)
-                if dl.status_code == 200:
-                    fernet = Fernet(decrypt_using.encode())
-                    decrypted = fernet.decrypt(dl.content)
-                    decompressed = gzip.decompress(decrypted)
-                    api_resp = json_loads(decompressed)
-                    return ResultSet.from_dicts(api_resp.get("response", [])[:filter_responses])
-                time.sleep(10)
-            raise ValueError("Results were not retrieved from Nosible")
-        except Exception as e:
-            self.logger.warning(f"Bulk search for {question!r} failed: {e}")
-            raise RuntimeError(f"Bulk search for {question!r} failed") from e
-        finally:
-            # Restore whatever logging level we had before
-            if verbose:
-                self.logger.setLevel(previous_level)
-
-    def answer(
-        self,
-        query: str,
-        n_results: int = 100,
-        min_similarity: float = 0.65,
-        model: Union[str, None] = "google/gemini-2.0-flash-001",
-        show_context: bool = True,
-    ) -> str:
-        """
-        RAG-style question answering: retrieve top `n_results` via `.fast_search()`
-        then answer `query` using those documents as context.
-
-        Parameters
-        ----------
-        query : str
-            The user’s natural-language question.
-        n_results : int
-            How many docs to fetch to build the context.
-        min_similarity : float
-            Results must have at least this similarity score.
-        model : str, optional
-            Which LLM to call to answer your question.
-        show_context : bool, optional
-            Do you want the context to be shown?
-
-        Returns
-        -------
-        str
-            The LLM’s generated answer, grounded in the retrieved docs.
-
-        Raises
-        ------
-        ValueError
-            If no API key is configured for the LLM client.
-        RuntimeError
-            If the LLM call fails or returns an invalid response.
-
-        Examples
-        --------
-        >>> from nosible import Nosible
-        >>> with Nosible() as nos:
-        ...     ans = nos.answer(
-        ...         query="How is research governance and decision-making structured between Google and DeepMind?",
-        ...         n_results=100,
-        ...         show_context=True,
-        ...     )  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-        <BLANKLINE>
-        Doc 1
-        Title: ...
-        >>> print(ans)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-        Answer:
-        ...
-        """
-
-        if not self.llm_api_key:
-            raise ValueError("An LLM API key is required for answer().")
-
-        # Retrieve top documents
-        results = self.fast_search(question=query, n_results=n_results, min_similarity=min_similarity)
-
-        # Build RAG context
-        context = ""
-        pieces: list[str] = []
-        for idx, result in enumerate(results):
-            pieces.append(f"""
-                Doc {idx + 1}
-                Title: {result.title}
-                Similarity Score: {result.similarity * 100:.2f}%
-                URL: {result.url}
-                Content: {result.content}
-                """)
-            context = "\n".join(pieces)
-
-        if show_context:
-            print(textwrap.dedent(context))
-
-        # Craft prompt
-        prompt = f"""
-            # TASK DESCRIPTION
-
-            You are a helpful assistant.  Use the following context to answer the question.
-            When you use information from a chunk, cite it by referencing its label in square brackets, e.g. [doc3].
-            
-            ## Question
-            {query}
-            
-            ## Context
-            {context}
-            """
-        from openai import OpenAI
-
-        # Call LLM
-        client = OpenAI(base_url=self.openai_base_url, api_key=self.llm_api_key)
-        try:
-            response = client.chat.completions.create(model=model, messages=[{"role": "user", "content": prompt}])
-        except Exception as e:
-            raise RuntimeError(f"LLM API error: {e}") from e
-
-        # Validate response shape
-        choices = getattr(response, "choices", None)
-        if not choices or not hasattr(choices[0], "message"):
-            raise RuntimeError(f"Invalid LLM response format: {response!r}")
-
-        # Return the generated text
-        return "Answer:\n" + response.choices[0].message.content.strip()
-
-    @_rate_limited("scrape-url")
-    def scrape_url(self, html: str = "", recrawl: bool = False, render: bool = False, url: str = None) -> WebPageData:
-        """
-        Scrape a given URL and return a structured WebPageData object for the page.
-
-        Parameters
-        ----------
-        html : str
-            Raw HTML to process instead of fetching.
-        recrawl : bool
-            If True, force a fresh crawl.
-        render : bool
-            If True, allow JavaScript rendering before extraction.
-        url : str
-            The URL to fetch and parse.
-
-        Returns
-        -------
-        WebPageData
-            Structured page data object.
-
-        Raises
-        ------
-        TypeError
-            If URL is not provided.
-        ValueError
-            If invalid JSON response from the server.
-        ValueError
-            If URL is not found.
-        ValueError
-            If the server did not send back a 'response' key.
-
-        Examples
-        --------
-        >>> from nosible import Nosible
-        >>> with Nosible() as nos:
-        ...     out = nos.scrape_url(url="https://www.dailynewsegypt.com/2023/09/08/g20-and-its-summits/")
-        ...     print(isinstance(out, WebPageData))
-        ...     print(hasattr(out, "languages"))
-        ...     print(hasattr(out, "page"))
-        True
-        True
-        True
-        >>> with Nosible() as nos:
-        ...     out = nos.scrape_url()
-        ...     print(isinstance(out, type(WebPageData)))
-        ...     print(hasattr(out, "languages"))
-        ...     print(hasattr(out, "page"))  # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ...
-        TypeError: URL must be provided
-        """
-        if url is None:
-            raise TypeError("URL must be provided")
-        response = self._post(
-            url="https://www.nosible.ai/search/v2/scrape-url",
-            payload={"html": html, "recrawl": recrawl, "render": render, "url": url},
+        if sort not in {
+            "ascending",
+            "descending"
+        }:
+            raise ValueError("sort must be 'ascending' or 'descending'")
+        payload = without_none(
+            start=start,
+            end=end,
+            frequency=frequency,
+            sort=sort,
+            require_timezone=require_timezone,
+            n_results=n_results,
+            n_probes=n_probes,
+            n_contextify=n_contextify,
+            question=question,
+            instruction=instruction,
+            expansions=expansions,
+            sql_filter=sql_filter,
+            algorithm=algorithm,
+            min_similarity=min_similarity,
+            must_include=must_include,
+            must_exclude=must_exclude,
+            companies=companies,
+            collection=collection,
+            deduplicate=deduplicate,
+            internal_use=internal_use,
+            **filters
         )
-        try:
-            data = response.json()
-        except Exception as e:
-            self.logger.error(f"Failed to parse JSON from response: {e}")
-            raise ValueError("Invalid JSON response from server") from e
+        validate_search_common(
+            payload=payload,
+            result_bounds=(1, 1000),
+            probe_bounds=(5, 300),
+            context_bounds=(128, 1024)
+        )
+        search_count = time_bucket_count(
+            start=start_datetime,
+            end=end_datetime,
+            frequency=frequency
+        )
+        if search_count > 500:
+            raise ValueError(
+                "time search cannot exceed 500 interval buckets"
+            )
+        if search_count * n_results > 50_000:
+            raise ValueError(
+                "time search cannot request more than 50,000 total results"
+            )
+        return self.downloaded_search(
+            endpoint="time-search",
+            payload=payload,
+            poll_interval=poll_interval,
+            poll_timeout=poll_timeout
+        )
 
-        if data == {"message": "Sorry, the URL could not be fetched."}:
-            raise ValueError("The URL could not be found.")
+    def scrape_url(
+        self: "Nosible",
+        html: str = "",
+        recrawl: bool = False,
+        render: bool = False,
+        url: Optional[str] = None
+    ) -> WebPageData:
+        """
+        Scrape a URL or supplied HTML document.
 
-        if "response" not in data:
-            self.logger.error(f"No 'response' key in server response: {data}")
-            raise ValueError("No 'response' key in server response")
-
-        response_data = data["response"]
+        :param html: Optional raw HTML.
+        :param recrawl: Whether to force a fresh crawl.
+        :param render: Whether to render JavaScript.
+        :param url: URL to scrape.
+        :return: Structured web-page data.
+        """
+        if url is None and not html:
+            raise TypeError("Specify a URL or HTML document")
+        data = self.search_json(
+            endpoint="scrape-url",
+            payload=without_none(
+                url=url,
+                html=html,
+                render=render,
+                recrawl=recrawl
+            )
+        )
+        response = data.get("response")
+        if not isinstance(response, dict):
+            raise ValueError(
+                "scrape-url response is missing its response object"
+            )
         return WebPageData(
-            full_text=response_data.get("full_text"),
-            languages=response_data.get("languages"),
-            metadata=response_data.get("metadata"),
-            page=response_data.get("page"),
-            request=response_data.get("request"),
-            snippets=SnippetSet.from_dict(response_data.get("snippets", {})),
-            statistics=response_data.get("statistics"),
-            structured=response_data.get("structured"),
-            url_tree=response_data.get("url_tree"),
+            full_text=response.get("full_text"),
+            languages=response.get("languages"),
+            metadata=response.get("metadata"),
+            page=response.get("page"),
+            request=response.get("request"),
+            snippets=SnippetSet.from_dict(
+                data=response.get("snippets", {})
+            ),
+            statistics=response.get("statistics"),
+            structured=response.get("structured"),
+            url_tree=response.get("url_tree")
         )
 
-    @_rate_limited("fast")
     def topic_trend(
-        self,
+        self: "Nosible",
         query: str,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
-        sql_filter: Optional[str] = None,
-    ) -> dict:
+        sql_filter: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Extract a topic's trend showing the volume of news surrounding your query.
+        Return daily trend values for a topic.
 
-        Parameters
-        ----------
-        query : str
-            The search term we would like to see a trend for.
-        start_date : str, optional
-            ISO‐format start date (YYYY-MM-DD) of the trend window.
-        end_date : str, optional
-            ISO‐format end date (YYYY-MM-DD) of the trend window.
-        sql_filter : str, optional
-            An optional SQL filter to narrow down the trend query
-
-        Returns
-        -------
-        dict
-            The JSON-decoded topic trend data returned by the server.
-
-        Examples
-        --------
-        >>> from nosible import Nosible
-        >>> with Nosible() as nos:
-        ...     topic_trends_data = nos.topic_trend("Christmas Shopping", start_date="2005-01-01", end_date="2020-12-31")
-        ...     print(topic_trends_data)  # doctest: +ELLIPSIS
-        {'2005-01-31': ...'2020-12-31': ...}
+        :param query: Topic query from 5 to 100 characters.
+        :param start_date: Optional inclusive first date.
+        :param end_date: Optional inclusive final date.
+        :param sql_filter: Optional Search SQL filter.
+        :return: Date-keyed trend values.
         """
-        # Validate dates
         if start_date is not None:
-            self._validate_date_format(start_date, "start_date")
+            validate_date_format(
+                value=start_date,
+                name="start_date"
+            )
         if end_date is not None:
-            self._validate_date_format(end_date, "end_date")
+            validate_date_format(
+                value=end_date,
+                name="end_date"
+            )
+        if not isinstance(query, str) or not 5 <= len(query) <= 100:
+            raise ValueError(
+                "query must contain between 5 and 100 characters"
+            )
+        data = self.search_json(
+            endpoint="topic-trend",
+            payload={
+                "query": query,
+                "sql_filter": (
+                    sql_filter or "SELECT loc, published FROM engine"
+                )
+            }
+        )
+        response = data.get("response")
+        if not isinstance(response, dict):
+            raise ValueError("topic-trend response must be an object")
+        return {
+            date: value
+            for date, value in response.items()
+            if (
+                start_date is None
+                or date >= start_date
+            )
+            and (
+                end_date is None
+                or date <= end_date
+            )
+        }
 
-        payload: dict[str, str] = {"query": query}
-
-        if sql_filter is not None:
-            payload["sql_filter"] = sql_filter
-        else:
-            payload["sql_filter"] = "SELECT loc, published FROM engine"
-
-        # Send the POST to the /topic-trend endpoint
-        response = self._post(url="https://www.nosible.ai/search/v2/topic-trend", payload=payload)
-        # Will raise ValueError on rate-limit or auth errors
-        response.raise_for_status()
-        payload = response.json().get("response", {})
-
-        # if no window requested, return everything
-        if start_date is None and end_date is None:
-            return payload
-
-        # Filter by ISO‐date keys
-        filtered: dict[str, float] = {}
-        for date_str, value in payload.items():
-            if start_date and date_str < start_date:
-                continue
-            if end_date and date_str > end_date:
-                continue
-            filtered[date_str] = value
-
-        return filtered
-
-    def close(self):
+    def save_search(
+        self: "Nosible",
+        **values: Any
+    ) -> Dict[str, Any]:
         """
-        Close the Nosible client, shutting down the HTTP session
-        and thread pool to release network and threading resources.
+        Save a Search definition.
 
-        Examples
-        --------
-        >>> from nosible import Nosible
-        >>> nos = Nosible()
-        >>> result = nos.close()
-        >>> print(result is None)
-        True
-        >>> # Calling close again should be a no-op
-        >>> nos.close()
-        >>> print("No Error")
-        No Error
+        :param values: Saved Search fields.
+        :return: Saved Search response.
         """
-        # Shut down HTTP session
-        try:
-            self._session.close()
-        except Exception:
-            pass
-        # Shut down thread pool
-        try:
-            # wait = True ensures all submitted tasks complete or are cancelled
-            self._executor.shutdown(wait=True)
-        except Exception:
-            pass
-
-    def _post(self, url: str, payload: dict, headers: dict = None, timeout: int = None) -> httpx.Response:
-        """
-        Internal helper to send a POST request with retry logic.
-
-        Parameters
-        ----------
-        url : str
-            Endpoint URL.
-        payload : dict
-            JSON-serializable payload.
-        headers : dict, optional
-            Override headers for this request.
-        timeout : int, optional
-            Override timeout for this request.
-
-        Raises
-        ------
-        ValueError
-            If the user API key is invalid.
-        ValueError
-            If the user hits their rate limit.
-        ValueError
-            If the user is making too many concurrent searches.
-        ValueError
-            If an unexpected error occurs.
-        ValueError
-            If NOSIBLE is currently restarting.
-        ValueError
-            If NOSIBLE is currently overloaded.
-
-        Returns
-        -------
-        httpx.Response
-            The HTTP response object.
-        """
-        response = self._session.post(
-            url=url,
-            json=payload,
-            headers=headers if headers is not None else self.headers,
-            timeout=timeout if timeout is not None else self.timeout,
-            follow_redirects=True,
+        payload = without_none(**values)
+        validate_search_common(
+            payload=payload,
+            result_bounds=(10, 100),
+            probe_bounds=(5, 1000),
+            context_bounds=(64, 1024),
+            algorithms=frozenset({"hybrid-3"})
+        )
+        return self.search_json(
+            endpoint="save-search",
+            payload=payload
         )
 
-        # If unauthorized, or if the payload is string too short, treat as invalid API key
-        if response.status_code == 401:
-            raise ValueError("Your API key is not valid.")
-        if response.status_code == 422:
-            content_type = response.headers.get("Content-Type", "")
-            if content_type.startswith("application/json"):
-                body = response.json()
-                if isinstance(body, list):
-                    body = body[0]
-                print(body)
-                if body.get("type") == "string_too_short":
-                    raise ValueError("Your API key is not valid: Too Short.")
-            else:
-                raise ValueError("You made a bad request.")
-        if response.status_code == 429:
-            raise ValueError("You have hit your rate limit.")
-        if response.status_code == 409:
-            raise ValueError("Too many concurrent searches.")
-        if response.status_code == 500:
-            raise ValueError("An unexpected error occurred.")
-        if response.status_code == 502:
-            raise ValueError("NOSIBLE is currently restarting.")
-        if response.status_code == 504:
-            raise ValueError("NOSIBLE is currently overloaded.")
-
-        return response
-
-    def _get_limits(self) -> dict[str, list[tuple[int, float]]]:
+    def get_searches(
+        self: "Nosible"
+    ) -> Dict[str, Any]:
         """
-        Fetch and parse the current API rate limits from the Nosible service.
+        Return saved Searches.
 
-        Returns
-        -------
-        dict[str, list[tuple[int, float]]]
-            A dictionary mapping query types (e.g., 'fast', 'slow', 'visit') to a list
-            of limit buckets. Each bucket is a tuple containing:
-            - limit (int): The maximum number of requests allowed.
-            - duration_seconds (float): The time window for the limit.
-
-        Raises
-        ------
-        ValueError
-            If the API key is invalid (401).
-        ValueError
-            If the rate limit is hit (429).
-        ValueError
-            If there are too many concurrent searches (409).
-        ValueError
-            If the service is restarting (502) or overloaded (504).
-        ValueError
-            If the response JSON is invalid or missing required fields.
+        :return: Saved Search response.
         """
-        url = "https://www.nosible.ai/search/v2/limits"
-        resp = self._session.get(
-            url=url,
-            headers=self.headers,
-            timeout=self.timeout,
-            follow_redirects=True,
+        return self.search_json(
+            endpoint="get-searches",
+            payload={}
         )
 
-        if resp.status_code == 401:
-            raise ValueError("Your API key is not valid.")
-        if resp.status_code == 429:
-            raise ValueError("You have hit your rate limit.")
-        if resp.status_code == 409:
-            raise ValueError("Too many concurrent searches.")
-        if resp.status_code == 502:
-            raise ValueError("NOSIBLE is currently restarting.")
-        if resp.status_code == 504:
-            raise ValueError("NOSIBLE is currently overloaded.")
-
-        resp.raise_for_status()
-
-        try:
-            data = resp.json()
-        except Exception as e:
-            raise ValueError("Invalid JSON response from /limits") from e
-
-        limits_list = data.get("limits")
-        if not isinstance(limits_list, list):
-            raise ValueError(f"Invalid /limits response shape: {data!r}")
-
-        grouped: dict[str, list[tuple[int, float]]] = {}
-        for item in limits_list:
-            query_type = item.get("query_type")
-            duration = item.get("duration_seconds")
-            limit = item.get("limit")
-
-            if query_type is None or duration is None or limit is None:
-                raise ValueError(f"Invalid limit entry: {item!r}")
-
-            grouped.setdefault(str(query_type), []).append((int(limit), float(duration)))
-
-        return grouped
-
-    def _generate_expansions(self, question: Union[str, Search]) -> list:
+    def delete_search(
+        self: "Nosible",
+        search_id: str
+    ) -> Dict[str, Any]:
         """
-        Generate up to 10 semantically diverse question expansions using an LLM.
+        Delete a saved Search.
 
-        Parameters
-        ----------
-        question : str
-            Original user query.
-
-        Returns
-        -------
-        list of str
-            Up to 10 expanded query strings.
-
-        Raises
-        ------
-        ValueError
-            If no LLM API key is set.
-        RuntimeError
-            If the LLM response is invalid or cannot be parsed.
-
-        Examples
-        --------
-        >>> from nosible import Nosible
-        >>> nos = Nosible(llm_api_key=None)
-        >>> nos.llm_api_key = None
-        >>> nos._generate_expansions("anything")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-        Traceback (most recent call last):
-        ...
-        ValueError: LLM API key is required for generating expansions.
+        :param search_id: Saved Search identifier.
+        :return: Deletion response.
         """
-        if not self.llm_api_key:
-            raise ValueError("LLM API key is required for generating expansions.")
-
-        # If the user put in a search, get the question out of it.
-        if isinstance(question, Search):
-            question = question.question
-
-        # Build a clear prompt that demands JSON output of exactly 10 strings.
-        prompt = f"""
-            # TASK DESCRIPTION
-
-            Given a search question you must generate a list of 10 similar questions that have the same exact
-            semantic meaning but are contextually and lexically different to improve search recall.
-
-            ## Question
-
-            Here is the question you must generate expansions for:
-
-            Question: {question}
-
-            # RESPONSE FORMAT
-
-            Your response must be a JSON object structured as follows: a list of ten strings. Each string must
-            be a grammatically correct question that expands on the original question to improve recall.
-
-            [
-                string,
-                string,
-                string,
-                string,
-                string,
-                string,
-                string,
-                string,
-                string,
-                string
-            ]
-
-            # EXPANSION GUIDELINES
-
-            1. **Use specific named entities** - To improve the quality of your search results you must mention
-               specific named entities (people, locations, organizations, products, places) in expansions.
-
-            2. **Expansions must be highly targeted** - To improve the quality of search results each expansion
-               must be semantically unambiguous. Questions must be use between ten and fifteen words.
-
-            3. **Expansions must improve recall** - When expanding the question leverage semantic and contextual
-               expansion to maximize the ability of the search engine to find semantically relevant documents:
-
-               - Semantic Example: Swap "climate change" with "global warming" or "environmental change".
-               - Contextual Example: Swap "diabetes treatment" with "insulin therapy" or "blood sugar management".
-
-        """.replace("                ", "")
-        # Lazy load
-        from openai import OpenAI
-
-        client = OpenAI(base_url=self.openai_base_url, api_key=self.llm_api_key)
-
-        # Call the chat completions endpoint.
-        resp = client.chat.completions.create(
-            model=self.expansions_model, messages=[{"role": "user", "content": prompt.strip()}], temperature=0.7
+        if not isinstance(search_id, str) or not search_id:
+            raise ValueError("search_id must be a non-empty string")
+        return self.search_json(
+            endpoint="delete-search",
+            payload={
+                "search_id": search_id
+            }
         )
 
-        raw = resp.choices[0].message.content
-
-        # Strip any leading/trailing markdown ``` or text.
-        if raw.startswith("```"):
-            # remove ```json ... ```
-            raw = raw.strip("`").strip()
-            # remove optional leading "json"
-            if raw.lower().startswith("json"):
-                raw = raw[len("json") :].strip()
-
-        # Parse JSON.
-        try:
-            expansions = json.loads(raw)
-        except Exception as decode_err:
-            raise RuntimeError(f"OpenRouter response was not valid JSON: '{raw}'") from decode_err
-
-        # Validate.
-        if not isinstance(expansions, list) or len(expansions) != 10 or not all(isinstance(q, str) for q in expansions):
-            raise RuntimeError("Invalid response: 'choices' missing or empty")
-
-        self.logger.debug(f"Successful expansions: {expansions}")
-        return expansions
-
-    @staticmethod
-    def _validate_date_format(string: str, name: str):
+    def get_limits(
+        self: "Nosible"
+    ) -> Dict[str, Any]:
         """
-        Check that a date string is valid ISO format (YYYY-MM-DD or full ISO timestamp).
+        Return Search limits for the current API key.
 
-        Parameters
-        ----------
-        string : str
-            The date string to validate.
-        name : str
-            The name of the parameter being validated, used in the error message.
-
-        Raises
-        ------
-        ValueError
-            If `string` is not a valid ISO 8601 date. Error message will include
-            the `name` and the offending string.
-                Examples
-        --------
-        >>> # valid date-only format
-        >>> Nosible._validate_date_format("2023-12-31", "publish_start")
-        >>> # valid full timestamp
-        >>> Nosible._validate_date_format("2023-12-31T15:30:00", "visited_end")
-        >>> # invalid month
-        >>> Nosible._validate_date_format("2023-13-01", "publish_end")
-        Traceback (most recent call last):
-            ...
-        ValueError: Invalid date for 'publish_end': '2023-13-01'.  Expected ISO format 'YYYY-MM-DD'.
-        >>> # wrong separator
-        >>> Nosible._validate_date_format("2023/12/31", "visited_start")
-        Traceback (most recent call last):
-            ...
-        ValueError: Invalid date for 'visited_start': '2023/12/31'.  Expected ISO format 'YYYY-MM-DD'.
+        :return: Search limit response.
         """
-        dateregex = r"^\d{4}-\d{2}-\d{2}"
+        data = self.transport.request_json(
+            method="GET",
+            path="search/v2/limits",
+            auth="search"
+        )
+        if not isinstance(data, dict) or not isinstance(
+            data.get("limits"),
+            list
+        ):
+            raise ValueError("limits response has an invalid shape")
+        return data
 
-        if not re.match(dateregex, string):
-            raise ValueError(f"Invalid date for '{name}': {string!r}.  Expected ISO format 'YYYY-MM-DD'.")
-
-        try:
-            # datetime.fromisoformat accepts both YYYY-MM-DD and full timestamps
-            parsed = datetime.fromisoformat(string)
-        except Exception:
-            raise ValueError(f"Invalid date for '{name}': {string!r}.  Expected ISO format 'YYYY-MM-DD'.")
-
-    def _format_sql(
-        self,
-        publish_start: str = None,
-        publish_end: str = None,
-        visited_start: str = None,
-        visited_end: str = None,
-        certain: bool = None,
-        include_netlocs: list = None,
-        exclude_netlocs: list = None,
-        include_companies: list = None,
-        exclude_companies: list = None,
-        include_docs: list = None,
-        exclude_docs: list = None,
+    def answer(
+        self: "Nosible",
+        query: str,
+        n_results: int = 100,
+        min_similarity: float = 0.65,
+        model: Optional[str] = "google/gemini-2.0-flash-001",
+        show_context: bool = True
     ) -> str:
         """
-        Construct an SQL SELECT statement with WHERE clauses based on provided filters.
+        Answer a question using Fast Search results as context.
 
-        Parameters
-        ----------
-        publish_start : str, optional
-            Start date for when the document was published (ISO format).
-        publish_end : str, optional
-            End date for when the document was published (ISO format).
-        visited_start : str, optional
-            Start date for when the document was visited by NOSIBLE (ISO format).
-        visited_end : str, optional
-            End date for when the document was visited by NOSIBLE (ISO format).
-        certain : bool, optional
-            Only include documents where we are 100% sure of the date.
-        include_netlocs : list of str, optional
-            List of netlocs (domains) to include in the search. (Max: 50)
-        exclude_netlocs : list of str, optional
-            List of netlocs (domains) to exclude in the search. (Max: 50)
-        include_companies : list of str, optional
-            Google KG IDs of public companies to require (Max: 50).
-        exclude_companies : list of str, optional
-            Google KG IDs of public companies to forbid (Max: 50).
-        include_docs : list of str, optional
-            URL hashes of docs to include (Max: 50).
-        exclude_docs : list of str, optional
-            URL hashes of docs to exclude (Max: 50).
-
-        Returns
-        -------
-        str
-            An SQL query string with appropriate WHERE clauses.
-
-        Raises
-        ------
-        ValueError
-            If more than 50 items in a filter are given.
+        :param query: Natural-language question.
+        :param n_results: Results used as context.
+        :param min_similarity: Minimum context similarity.
+        :param model: OpenAI-compatible model name.
+        :param show_context: Whether to print the assembled context.
+        :return: LLM answer.
         """
-        for name, value in [
-            ("publish_start", publish_start),
-            ("publish_end", publish_end),
-            ("visited_start", visited_start),
-            ("visited_end", visited_end),
-        ]:
+        if not self.llm_api_key:
+            raise ValueError("An LLM API key is required for answer().")
+        results = self.fast_search(
+            question=query,
+            n_results=n_results,
+            min_similarity=min_similarity
+        )
+        context_parts = []
+        for index, result in enumerate(results):
+            similarity = (
+                result.similarity * 100
+                if result.similarity is not None
+                else 0
+            )
+            context_parts.append(
+                "\n".join(
+                    [
+                        f"Doc {index + 1}",
+                        f"Title: {result.title}",
+                        f"Similarity Score: {similarity:.2f}%",
+                        f"URL: {result.url}",
+                        f"Content: {result.content}"
+                    ]
+                )
+            )
+        context = "\n\n".join(context_parts)
+        if show_context:
+            print(textwrap.dedent(text=context))
+        prompt = (
+            "Use the context to answer the question. Cite document labels in "
+            f"square brackets.\n\nQuestion:\n{query}\n\nContext:\n{context}"
+        )
+        llm_client = OpenAI(
+            base_url=self.openai_base_url,
+            api_key=self.llm_api_key
+        )
+        try:
+            response = llm_client.chat.completions.create(
+                model=model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            )
+        except OpenAIError as error:
+            raise RuntimeError(f"LLM API error: {error}") from error
+        choices = getattr(response, "choices", None)
+        if not choices or not hasattr(choices[0], "message"):
+            raise RuntimeError(f"Invalid LLM response format: {response!r}")
+        return "Answer:\n" + choices[0].message.content.strip()
+
+    def fast_search(
+        self: "Nosible",
+        search: Optional[Search] = None,
+        question: Optional[str] = None,
+        expansions: Optional[List[str]] = None,
+        sql_filter: Optional[str] = None,
+        n_results: int = 100,
+        n_probes: int = 30,
+        n_contextify: int = 128,
+        algorithm: str = "hybrid-3",
+        min_similarity: Optional[float] = None,
+        must_include: Optional[List[str]] = None,
+        must_exclude: Optional[List[str]] = None,
+        autogenerate_expansions: bool = False,
+        publish_start: Optional[str] = None,
+        publish_end: Optional[str] = None,
+        include_netlocs: Optional[List[str]] = None,
+        exclude_netlocs: Optional[List[str]] = None,
+        visited_start: Optional[str] = None,
+        visited_end: Optional[str] = None,
+        certain: Optional[bool] = None,
+        include_companies: Optional[List[str]] = None,
+        exclude_companies: Optional[List[str]] = None,
+        include_docs: Optional[List[str]] = None,
+        exclude_docs: Optional[List[str]] = None,
+        brand_safety: Optional[str] = None,
+        language: Optional[str] = None,
+        continent: Optional[str] = None,
+        region: Optional[str] = None,
+        country: Optional[str] = None,
+        sector: Optional[str] = None,
+        industry_group: Optional[str] = None,
+        industry: Optional[str] = None,
+        sub_industry: Optional[str] = None,
+        iab_tier_1: Optional[str] = None,
+        iab_tier_2: Optional[str] = None,
+        iab_tier_3: Optional[str] = None,
+        iab_tier_4: Optional[str] = None,
+        instruction: Optional[str] = None,
+        companies: Optional[List[str]] = None,
+        collection: Optional[str] = None,
+        deduplicate: Optional[bool] = None,
+        internal_use: Optional[Dict[str, Any]] = None,
+        *args: Any,
+        **kwargs: Any
+    ) -> ResultSet:
+        """
+        Run interactive Fast Search.
+
+        :param search: Optional Search model.
+        :param question: Search question.
+        :param expansions: Query expansions.
+        :param sql_filter: SQL filter.
+        :param n_results: Requested result count.
+        :param n_probes: Number of search probes.
+        :param n_contextify: Context size per result.
+        :param algorithm: Retrieval algorithm.
+        :param min_similarity: Minimum similarity score.
+        :param must_include: Required strings.
+        :param must_exclude: Forbidden strings.
+        :param autogenerate_expansions: Whether to generate LLM expansions.
+        :param publish_start: Earliest publication date.
+        :param publish_end: Latest publication date.
+        :param include_netlocs: Domains to include.
+        :param exclude_netlocs: Domains to exclude.
+        :param visited_start: Earliest visit date.
+        :param visited_end: Latest visit date.
+        :param certain: Whether dates must be certain.
+        :param include_companies: Company identifiers to include.
+        :param exclude_companies: Company identifiers to exclude.
+        :param include_docs: Document hashes to include.
+        :param exclude_docs: Document hashes to exclude.
+        :param brand_safety: Brand-safety filter.
+        :param language: ISO language filter.
+        :param continent: Continent filter.
+        :param region: Region filter.
+        :param country: Country filter.
+        :param sector: GICS sector filter.
+        :param industry_group: GICS industry-group filter.
+        :param industry: GICS industry filter.
+        :param sub_industry: GICS sub-industry filter.
+        :param iab_tier_1: IAB tier-one filter.
+        :param iab_tier_2: IAB tier-two filter.
+        :param iab_tier_3: IAB tier-three filter.
+        :param iab_tier_4: IAB tier-four filter.
+        :param instruction: Retrieval instruction.
+        :param companies: Company names to refine retrieval.
+        :param collection: Search collection.
+        :param deduplicate: Whether to remove duplicate headlines.
+        :param internal_use: Private feature controls.
+        :param args: Ignored legacy positional arguments.
+        :param kwargs: Deprecated language-list filters.
+        :return: Interactive search results.
+        """
+        if args:
+            warnings.warn(
+                message="Additional positional arguments are ignored",
+                category=DeprecationWarning,
+                stacklevel=2
+            )
+        warn_legacy_language_filters(kwargs=kwargs)
+        requested_results = (
+            search.n_results
+            if search is not None and search.n_results is not None
+            else n_results
+        )
+        if (
+            isinstance(requested_results, bool)
+            or not isinstance(requested_results, int)
+            or not 1 <= requested_results <= 100
+        ):
+            raise ValueError("n_results must be between 1 and 100")
+        wire_results = max(10, requested_results)
+        payload = self.search_payload(
+            search=search,
+            question=question,
+            instruction=instruction,
+            expansions=expansions,
+            sql_filter=sql_filter,
+            algorithm=algorithm,
+            min_similarity=min_similarity,
+            must_include=must_include,
+            must_exclude=must_exclude,
+            brand_safety=brand_safety,
+            language=language,
+            continent=continent,
+            region=region,
+            country=country,
+            sector=sector,
+            industry_group=industry_group,
+            industry=industry,
+            sub_industry=sub_industry,
+            iab_tier_1=iab_tier_1,
+            iab_tier_2=iab_tier_2,
+            iab_tier_3=iab_tier_3,
+            iab_tier_4=iab_tier_4,
+            companies=companies,
+            collection=collection,
+            deduplicate=deduplicate,
+            internal_use=internal_use,
+            n_results=wire_results,
+            n_probes=n_probes,
+            n_contextify=n_contextify,
+            autogenerate_expansions=autogenerate_expansions,
+            legacy_filters={
+                "publish_start": (
+                    publish_start
+                    if publish_start is not None
+                    else self.publish_start
+                ),
+                "publish_end": (
+                    publish_end
+                    if publish_end is not None
+                    else self.publish_end
+                ),
+                "include_netlocs": (
+                    include_netlocs
+                    if include_netlocs is not None
+                    else self.include_netlocs
+                ),
+                "exclude_netlocs": (
+                    exclude_netlocs
+                    if exclude_netlocs is not None
+                    else self.exclude_netlocs
+                ),
+                "visited_start": (
+                    visited_start
+                    if visited_start is not None
+                    else self.visited_start
+                ),
+                "visited_end": (
+                    visited_end
+                    if visited_end is not None
+                    else self.visited_end
+                ),
+                "certain": certain if certain is not None else self.certain,
+                "include_companies": (
+                    include_companies
+                    if include_companies is not None
+                    else self.include_companies
+                ),
+                "exclude_companies": (
+                    exclude_companies
+                    if exclude_companies is not None
+                    else self.exclude_companies
+                ),
+                "include_docs": (
+                    include_docs
+                    if include_docs is not None
+                    else self.include_docs
+                ),
+                "exclude_docs": (
+                    exclude_docs
+                    if exclude_docs is not None
+                    else self.exclude_docs
+                ),
+            }
+        )
+        payload["n_results"] = wire_results
+        validate_search_common(
+            payload=payload,
+            result_bounds=(10, 100),
+            probe_bounds=(5, 50),
+            context_bounds=(64, 1024)
+        )
+        data = self.search_json(
+            endpoint="fast-search",
+            payload=payload
+        )
+        result_set = ResultSet.from_dict(data=data)
+        if requested_results < len(result_set):
+            object.__setattr__(
+                result_set,
+                "results",
+                result_set.results[:requested_results]
+            )
+        return result_set
+
+    def close(
+        self: "Nosible"
+    ) -> None:
+        """
+        Close resources owned by this client.
+
+        :return: None.
+        """
+        if self.closed:
+            return
+        self.closed = True
+        if self.owns_http_client:
+            self.session.close()
+
+    def search_payload(
+        self: "Nosible",
+        search: Optional[Search],
+        question: Optional[str],
+        instruction: Optional[str],
+        expansions: Optional[List[str]],
+        sql_filter: Optional[str],
+        algorithm: Optional[str],
+        min_similarity: Optional[float],
+        must_include: Optional[List[str]],
+        must_exclude: Optional[List[str]],
+        brand_safety: Optional[str],
+        language: Optional[str],
+        continent: Optional[str],
+        region: Optional[str],
+        country: Optional[str],
+        sector: Optional[str],
+        industry_group: Optional[str],
+        industry: Optional[str],
+        sub_industry: Optional[str],
+        iab_tier_1: Optional[str],
+        iab_tier_2: Optional[str],
+        iab_tier_3: Optional[str],
+        iab_tier_4: Optional[str],
+        companies: Optional[List[str]],
+        collection: Optional[str],
+        deduplicate: Optional[bool],
+        internal_use: Optional[Dict[str, Any]],
+        n_results: Optional[int],
+        n_probes: Optional[int],
+        n_contextify: Optional[int],
+        autogenerate_expansions: bool,
+        legacy_filters: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Merge direct, model, generated, and legacy Search fields.
+
+        :param search: Optional Search model.
+        :param question: Direct Search question.
+        :param instruction: Retrieval instruction.
+        :param expansions: Query expansions.
+        :param sql_filter: SQL filter.
+        :param algorithm: Retrieval algorithm.
+        :param min_similarity: Minimum similarity score.
+        :param must_include: Required strings.
+        :param must_exclude: Forbidden strings.
+        :param brand_safety: Brand-safety filter.
+        :param language: ISO language filter.
+        :param continent: Continent filter.
+        :param region: Region filter.
+        :param country: Country filter.
+        :param sector: GICS sector filter.
+        :param industry_group: GICS industry-group filter.
+        :param industry: GICS industry filter.
+        :param sub_industry: GICS sub-industry filter.
+        :param iab_tier_1: IAB tier-one filter.
+        :param iab_tier_2: IAB tier-two filter.
+        :param iab_tier_3: IAB tier-three filter.
+        :param iab_tier_4: IAB tier-four filter.
+        :param companies: Company names to refine retrieval.
+        :param collection: Search collection.
+        :param deduplicate: Whether to remove duplicate headlines.
+        :param internal_use: Private feature controls.
+        :param n_results: Requested result count.
+        :param n_probes: Number of search probes.
+        :param n_contextify: Context size per result.
+        :param autogenerate_expansions: Whether to generate expansions.
+        :param legacy_filters: Structured legacy filters.
+        :return: Search API request payload.
+        """
+        if search is not None and question is not None:
+            raise TypeError(
+                "Specify exactly one of 'question' or 'search'."
+            )
+        if search is None and question is None:
+            raise TypeError(
+                "Specify exactly one of 'question' or 'search'."
+            )
+        direct = without_none(
+            question=question,
+            instruction=instruction,
+            expansions=expansions,
+            sql_filter=sql_filter,
+            algorithm=algorithm,
+            min_similarity=min_similarity,
+            must_include=must_include,
+            must_exclude=must_exclude,
+            brand_safety=brand_safety,
+            language=language,
+            continent=continent,
+            region=region,
+            country=country,
+            sector=sector,
+            industry_group=industry_group,
+            industry=industry,
+            sub_industry=sub_industry,
+            iab_tier_1=iab_tier_1,
+            iab_tier_2=iab_tier_2,
+            iab_tier_3=iab_tier_3,
+            iab_tier_4=iab_tier_4,
+            companies=companies,
+            collection=collection,
+            deduplicate=deduplicate,
+            internal_use=internal_use,
+            n_results=n_results,
+            n_probes=n_probes,
+            n_contextify=n_contextify
+        )
+        if search is not None:
+            source = {
+                key: value
+                for key, value in search.to_dict().items()
+                if value is not None
+            }
+            for key, value in direct.items():
+                source.setdefault(key, value)
+        else:
+            source = direct
+        source.pop("autogenerate_expansions", None)
+        legacy_names = (
+            "publish_start",
+            "publish_end",
+            "visited_start",
+            "visited_end",
+            "certain",
+            "include_netlocs",
+            "exclude_netlocs",
+            "include_companies",
+            "exclude_companies",
+            "include_docs",
+            "exclude_docs"
+        )
+        effective_legacy_filters = dict(legacy_filters)
+        for legacy_name in legacy_names:
+            if legacy_name in source:
+                effective_legacy_filters[legacy_name] = source[legacy_name]
+            source.pop(legacy_name, None)
+        should_generate = autogenerate_expansions or bool(
+            getattr(search, "autogenerate_expansions", False)
+        )
+        if should_generate and not source.get("expansions"):
+            source["expansions"] = self.generate_expansions(
+                question=source["question"]
+            )
+        if source.get("sql_filter") is None and any(
+            value is not None
+            for value in effective_legacy_filters.values()
+        ):
+            source["sql_filter"] = self.format_sql(**effective_legacy_filters)
+        return source
+
+    def generate_expansions(
+        self: "Nosible",
+        question: Union[str, Search]
+    ) -> List[str]:
+        """
+        Generate ten semantically equivalent Search questions.
+
+        :param question: Source question or Search model.
+        :return: Ten generated query expansions.
+        """
+        if not self.llm_api_key:
+            raise ValueError(
+                "LLM API key is required for generating expansions."
+            )
+        question_text = (
+            question.question
+            if isinstance(question, Search)
+            else question
+        )
+        if not isinstance(question_text, str) or not question_text:
+            raise ValueError("question must be a non-empty string")
+        prompt = (
+            "Return a JSON list of exactly ten semantically equivalent, "
+            "lexically diverse questions for this search query:\n"
+            f"{question_text}"
+        )
+        llm_client = OpenAI(
+            base_url=self.openai_base_url,
+            api_key=self.llm_api_key
+        )
+        response = llm_client.chat.completions.create(
+            model=self.expansions_model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.7
+        )
+        raw_response = response.choices[0].message.content.strip()
+        if raw_response.startswith("```"):
+            raw_response = raw_response.strip("`").strip()
+            if raw_response.lower().startswith("json"):
+                raw_response = raw_response[4:].strip()
+        try:
+            expansions = json.loads(s=raw_response)
+        except json.JSONDecodeError as error:
+            raise RuntimeError(
+                "OpenAI-compatible response was not valid JSON"
+            ) from error
+        if (
+            not isinstance(expansions, list)
+            or len(expansions) != 10
+            or any(
+                not isinstance(expansion, str)
+                for expansion in expansions
+            )
+        ):
+            raise RuntimeError(
+                "Expansion response must contain exactly ten strings"
+            )
+        return expansions
+
+    def format_sql(
+        self: "Nosible",
+        publish_start: Optional[str] = None,
+        publish_end: Optional[str] = None,
+        visited_start: Optional[str] = None,
+        visited_end: Optional[str] = None,
+        certain: Optional[bool] = None,
+        include_netlocs: Optional[List[str]] = None,
+        exclude_netlocs: Optional[List[str]] = None,
+        include_companies: Optional[List[str]] = None,
+        exclude_companies: Optional[List[str]] = None,
+        include_docs: Optional[List[str]] = None,
+        exclude_docs: Optional[List[str]] = None
+    ) -> str:
+        """
+        Build the legacy SQL filter from structured filter values.
+
+        :param publish_start: Earliest publication date.
+        :param publish_end: Latest publication date.
+        :param visited_start: Earliest visit date.
+        :param visited_end: Latest visit date.
+        :param certain: Whether dates must be certain.
+        :param include_netlocs: Domains to include.
+        :param exclude_netlocs: Domains to exclude.
+        :param include_companies: Company identifiers to include.
+        :param exclude_companies: Company identifiers to exclude.
+        :param include_docs: Document hashes to include.
+        :param exclude_docs: Document hashes to exclude.
+        :return: Valid Search SQL filter.
+        """
+        date_values = {
+            "publish_start": publish_start,
+            "publish_end": publish_end,
+            "visited_start": visited_start,
+            "visited_end": visited_end
+        }
+        for name, value in date_values.items():
             if value is not None:
-                self._validate_date_format(string=value, name=name)
+                validate_date_format(
+                    value=value,
+                    name=name
+                )
+        list_values = {
+            "include_netlocs": include_netlocs,
+            "exclude_netlocs": exclude_netlocs,
+            "include_companies": include_companies,
+            "exclude_companies": exclude_companies,
+            "include_docs": include_docs,
+            "exclude_docs": exclude_docs
+        }
+        for name, values in list_values.items():
+            if values is not None and len(values) > 50:
+                raise ValueError(
+                    f"{name} cannot contain more than 50 items"
+                )
 
-        # Validate list lengths
-        for name, value in [
-            ("include_netlocs", include_netlocs),
-            ("exclude_netlocs", exclude_netlocs),
-            ("include_companies", include_companies),
-            ("exclude_companies", exclude_companies),
-            ("include_docs", include_docs),
-            ("exclude_docs", exclude_docs),
-        ]:
-            if value is not None and len(value) > 50:
-                raise ValueError(f"Too many items for '{name}' filter ({len(value)}); maximum allowed is 50.")
-
-        sql = ["SELECT loc FROM engine"]
-        clauses: list[str] = []
-
-        # Published date range
-        if publish_start or publish_end:
-            if publish_start and publish_end:
-                clauses.append(f"published >= '{publish_start}' AND published <= '{publish_end}'")
-            elif publish_start:
-                clauses.append(f"published >= '{publish_start}'")
-            else:  # Only publish_end
-                clauses.append(f"published <= '{publish_end}'")
-
-        # Visited date range
-        if visited_start or visited_end:
-            if visited_start and visited_end:
-                clauses.append(f"visited >= '{visited_start}' AND visited <= '{visited_end}'")
-            elif visited_start:
-                clauses.append(f"visited >= '{visited_start}'")
-            else:  # Only visited_end
-                clauses.append(f"visited <= '{visited_end}'")
-
-        # date certainty filter
-        if certain is True:
-            clauses.append("certain = TRUE")
-        elif certain is False:
-            clauses.append("certain = FALSE")
-
-        # Include netlocs with both www/non-www variants
-        if include_netlocs:
-            variants = set()
-            for n in include_netlocs:
-                variants.add(n)
-                if n.startswith("www."):
-                    variants.add(n[4:])
-                else:
-                    variants.add("www." + n)
-            in_list = ", ".join(f"'{v}'" for v in sorted(variants))
-            clauses.append(f"netloc IN ({in_list})")
-
-        # Exclude netlocs with both www/non-www variants
-        if exclude_netlocs:
-            variants = set()
-            for n in exclude_netlocs:
-                variants.add(n)
-                if n.startswith("www."):
-                    variants.add(n[4:])
-                else:
-                    variants.add("www." + n)
-            ex_list = ", ".join(f"'{v}'" for v in sorted(variants))
-            clauses.append(f"netloc NOT IN ({ex_list})")
-
-        # Include / exclude companies
-        if include_companies:
-            company_list = " OR ".join(f"ARRAY_CONTAINS(companies, '{c}')" for c in include_companies)
+        clauses = []
+        append_date_clause(
+            clauses=clauses,
+            column="published",
+            start=publish_start,
+            end=publish_end
+        )
+        append_date_clause(
+            clauses=clauses,
+            column="visited",
+            start=visited_start,
+            end=visited_end
+        )
+        if certain is not None:
             clauses.append(
-                f"(companies IS NOT NULL AND ({company_list}))"
+                "certain = TRUE"
+                if certain
+                else "certain = FALSE"
             )
-        if exclude_companies:
-            company_list = " OR ".join(f"ARRAY_CONTAINS(companies, '{c}')" for c in exclude_companies)
-            clauses.append(
-                f"(companies IS NULL OR NOT ({company_list}))"
-            )
-
-        if include_docs:
-            # Assume these are URL hashes, e.g. "ENNmqkF1mGNhVhvhmbUEs4U2"
-            docs = ", ".join(f"'{doc}'" for doc in include_docs)
-            clauses.append(f"doc IN ({docs})")
-
-        if exclude_docs:
-            # Assume these are URL hashes, e.g. "ENNmqkF1mGNhVhvhmbUEs4U2"
-            docs = ", ".join(f"'{doc}'" for doc in exclude_docs)
-            clauses.append(f"doc NOT IN ({docs})")
-
-        # Join everything
+        append_netloc_clause(
+            clauses=clauses,
+            values=include_netlocs,
+            include=True
+        )
+        append_netloc_clause(
+            clauses=clauses,
+            values=exclude_netlocs,
+            include=False
+        )
+        append_array_clause(
+            clauses=clauses,
+            values=include_companies,
+            include=True
+        )
+        append_array_clause(
+            clauses=clauses,
+            values=exclude_companies,
+            include=False
+        )
+        append_document_clause(
+            clauses=clauses,
+            values=include_docs,
+            include=True
+        )
+        append_document_clause(
+            clauses=clauses,
+            values=exclude_docs,
+            include=False
+        )
+        sql = "SELECT loc FROM engine"
         if clauses:
-            sql.append("WHERE " + " AND ".join(clauses))
+            sql = f"{sql} WHERE {' AND '.join(clauses)}"
+        if not self.validate_sql(sql=sql):
+            raise ValueError(f"Invalid SQL query: {sql!r}")
+        return sql
 
-        sql_filter = " ".join(sql)
-
-        # Validate the SQL query against the schemas
-        if not self._validate_sql(sql_filter):
-            raise ValueError(f"Invalid SQL query: {sql_filter!r}. Please check your filters and try again.")
-
-        self.logger.debug(f"Generated SQL filter: {sql_filter}")
-
-        # Return the final SQL filter string
-        return sql_filter
-
-    def _validate_sql(self, sql: str) -> bool:
+    def validate_sql(
+        self: "Nosible",
+        sql: str
+    ) -> bool:
         """
-        Validate a SQL query string by attempting to execute it against a mock schema.
+        Validate Search SQL against the supported engine schema.
 
-        Parameters
-        ----------
-        sql : str
-            The SQL query string to validate.
-
-        Returns
-        -------
-        bool
-            True if the SQL is valid, False otherwise.
-
-        Examples
-        --------
-        >>> Nosible()._validate_sql(sql="SELECT 1")
-        True
-        >>> Nosible()._validate_sql(sql="SELECT * FROM missing_table")
-        False
+        :param sql: SQL query to validate.
+        :return: Whether Polars accepts the SQL against the engine schema.
         """
-        # Define a mock schema for the 'engine' table with all possible columns used in _format_sql
         columns = [
             "loc",
             "published",
@@ -2144,71 +1796,589 @@ class Nosible:
             "netloc",
             "language",
             "companies",
-            "doc",
+            "doc"
         ]
-        import polars as pl  # Lazy import
-
-        # Create a dummy DataFrame with correct columns and no rows
-        df = pl.DataFrame({col: [] for col in columns})
-        ctx = pl.SQLContext()
-        ctx.register("engine", df)
+        frame = pl.DataFrame(
+            data={
+                column: []
+                for column in columns
+            }
+        )
+        context = pl.SQLContext()
+        context.register(
+            name="engine",
+            frame=frame
+        )
         try:
-            ctx.execute(sql)
+            context.execute(query=sql)
             return True
-        except Exception:
+        except pl.exceptions.PolarsError:
             return False
 
-    def __enter__(self) -> "Nosible":
+    def downloaded_search(
+        self: "Nosible",
+        endpoint: str,
+        payload: Dict[str, Any],
+        poll_interval: float,
+        poll_timeout: float
+    ) -> Dict[str, Any]:
         """
-        Enter the context manager, returning this client instance.
+        Poll and decode an encrypted Search download.
 
-        Returns
-        -------
-        Nosible
-            The current client instance.
+        :param endpoint: Bulk or Time Search endpoint suffix.
+        :param payload: Search request body.
+        :param poll_interval: Polling interval in seconds.
+        :param poll_timeout: Maximum polling duration in seconds.
+        :return: Decoded Search response.
         """
-        return self
+        if poll_interval < 0 or poll_timeout < 0:
+            raise ValueError(
+                "poll_interval and poll_timeout cannot be negative"
+            )
+        accepted = self.search_json(
+            endpoint=endpoint,
+            payload=payload
+        )
+        download_from = accepted.get("download_from")
+        decrypt_using = accepted.get("decrypt_using")
+        if not isinstance(download_from, str) or not isinstance(
+            decrypt_using,
+            str
+        ):
+            raise ValueError(
+                f"{endpoint} did not return download credentials"
+            )
+        deadline = time.monotonic() + poll_timeout
+        while True:
+            response = self.transport.download(url=download_from)
+            if response.status_code == 200:
+                return decode_download(
+                    content=response.content,
+                    key=decrypt_using
+                )
+            if not pending_download_response(
+                response=response,
+                url=download_from
+            ):
+                raise error_from_response(response=response)
+            if time.monotonic() >= deadline:
+                raise TimeoutError(
+                    f"Timed out waiting for {endpoint} results after "
+                    f"{poll_timeout} seconds"
+                )
+            if poll_interval:
+                time.sleep(
+                    min(
+                        poll_interval,
+                        max(
+                            0,
+                            deadline - time.monotonic()
+                        )
+                    )
+                )
 
-    def __exit__(
-        self,
-        _exc_type: Optional[type[BaseException]],
-        _exc_val: Optional[BaseException],
-        _exc_tb: Optional[types.TracebackType],
-    ) -> Optional[bool]:
+    def search_json(
+        self: "Nosible",
+        endpoint: str,
+        payload: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
-        Always clean up (self.close()), but let exceptions propagate.
-        Return True only if you really want to suppress an exception.
+        Post to a Search v2.1 endpoint and require an object response.
 
-        Parameters
-        ----------
-        _exc_type : Optional[type[BaseException]]
-            The type of the exception raised, if any.
-        _exc_val : Optional[BaseException]
-            The exception instance, if any.
-        _exc_tb : Optional[types.TracebackType]
-            The traceback object, if any.
-
-        Returns
-        -------
-        Optional[bool]
-            False to propagate exceptions, True to suppress them.
+        :param endpoint: Search endpoint suffix.
+        :param payload: JSON request body.
+        :return: JSON response object.
         """
-        try:
-            self.close()
-        except Exception as cleanup_err:
-            # optional: log or re-raise, but don’t hide the original exc
-            print(f"Cleanup failed: {cleanup_err!r}")
-        # Return False (or None) => exceptions inside the with‐block are re-raised.
-        return False
+        data = self.transport.request_json(
+            method="POST",
+            path=f"search/v2/{endpoint}",
+            auth="search",
+            json=payload
+        )
+        if not isinstance(data, dict):
+            raise ValueError(f"{endpoint} returned a non-object response")
+        return data
 
-    def __del__(self):
-        """
-        Destructor to ensure resources are cleaned up if not explicitly closed.
 
-        """
-        # Only close if interpreter is fully alive
-        if not getattr(sys, "is_finalizing", lambda: False)():
-            try:
-                self.close()
-            except Exception:
-                pass
+def pending_download_response(
+    response: httpx.Response,
+    url: str
+) -> bool:
+    """
+    Identify an object-storage response that means the archive is not ready.
+
+    Some NOSIBLE deployments return an unsigned object-storage URL. While the
+    asynchronous result is being written, Wasabi responds with an XML 403
+    ``AccessDenied`` rather than the 404 used by other deployments. A signed
+    URL returning 403 remains an actual access error and is not retried.
+
+    :param response: Download response.
+    :param url: Download URL supplied by NOSIBLE.
+    :return: Whether polling should continue.
+    """
+    if response.status_code == 404:
+        return True
+    return (
+        response.status_code == 403
+        and not urlsplit(url=url).query
+        and re.search(
+            pattern=r"<Code>\s*AccessDenied\s*</Code>",
+            string=response.text
+        ) is not None
+    )
+
+
+def without_none(
+    **values: Any
+) -> Dict[str, Any]:
+    """
+    Remove None-valued fields from a dictionary.
+
+    :param values: Candidate fields.
+    :return: Fields whose values are not None.
+    """
+    return {
+        key: value
+        for key, value in values.items()
+        if value is not None
+    }
+
+
+def validate_search_common(
+    payload: Dict[str, Any],
+    result_bounds: Tuple[int, int],
+    probe_bounds: Tuple[int, int],
+    context_bounds: Tuple[int, int],
+    algorithms: FrozenSet[str] = SEARCH_ALGORITHMS
+) -> None:
+    """
+    Validate fields inherited by Search endpoint schemas.
+
+    :param payload: Search request body.
+    :param result_bounds: Inclusive result-count bounds.
+    :param probe_bounds: Inclusive probe-count bounds.
+    :param context_bounds: Inclusive context-size bounds.
+    :param algorithms: Supported retrieval algorithms.
+    :return: None.
+    """
+    validate_optional_text(
+        payload=payload,
+        name="question",
+        minimum=1,
+        maximum=500
+    )
+    validate_optional_text(
+        payload=payload,
+        name="instruction",
+        minimum=1,
+        maximum=500
+    )
+    for name, maximum in (
+        ("expansions", 10),
+        ("must_include", 100),
+        ("must_exclude", 100),
+        ("companies", 3)
+    ):
+        value = payload.get(name)
+        if value is not None and (
+            not isinstance(value, list)
+            or len(value) > maximum
+            or any(
+                not isinstance(item, str)
+                for item in value
+            )
+        ):
+            raise ValueError(
+                f"{name} must contain at most {maximum} strings"
+            )
+    if payload.get("collection") not in {
+        None,
+        "everything",
+        "this-week"
+    }:
+        raise ValueError(
+            "collection must be 'everything' or 'this-week'"
+        )
+    similarity = payload.get("min_similarity")
+    if similarity is not None and (
+        isinstance(similarity, bool)
+        or not isinstance(similarity, (int, float))
+        or not 0 <= similarity <= 1
+    ):
+        raise ValueError("min_similarity must be between 0 and 1")
+    algorithm = payload.get("algorithm")
+    if algorithm is not None and algorithm not in algorithms:
+        raise ValueError(
+            f"algorithm must be one of: {', '.join(sorted(algorithms))}"
+        )
+    brand_safety = payload.get("brand_safety")
+    if (
+        brand_safety is not None
+        and brand_safety not in SEARCH_BRAND_SAFETY
+    ):
+        raise ValueError(
+            "brand_safety must be Safe, Sensitive, or Unsafe"
+        )
+    language = payload.get("language")
+    if language is not None and language not in SEARCH_LANGUAGES:
+        raise ValueError(
+            "language must be a supported ISO 639-1 code"
+        )
+    continent = payload.get("continent")
+    if continent is not None and continent not in SEARCH_CONTINENTS:
+        raise ValueError(
+            "continent is not a supported NOSIBLE continent"
+        )
+    for name in (
+        "deduplicate",
+        "require_timezone"
+    ):
+        value = payload.get(name)
+        if value is not None and not isinstance(value, bool):
+            raise ValueError(f"{name} must be a boolean")
+    internal_use = payload.get("internal_use")
+    if internal_use is not None and not isinstance(internal_use, dict):
+        raise ValueError("internal_use must be an object")
+    for name, bounds in (
+        ("n_results", result_bounds),
+        ("n_probes", probe_bounds),
+        ("n_contextify", context_bounds)
+    ):
+        value = payload.get(name)
+        if value is not None and (
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or not bounds[0] <= value <= bounds[1]
+        ):
+            raise ValueError(
+                f"{name} must be between {bounds[0]} and {bounds[1]}"
+            )
+
+
+def validate_optional_text(
+    payload: Dict[str, Any],
+    name: str,
+    minimum: int,
+    maximum: int
+) -> None:
+    """
+    Validate an optional bounded text field.
+
+    :param payload: Request body containing the field.
+    :param name: Field name.
+    :param minimum: Minimum length.
+    :param maximum: Maximum length.
+    :return: None.
+    """
+    value = payload.get(name)
+    if value is not None and (
+        not isinstance(value, str)
+        or not minimum <= len(value) <= maximum
+    ):
+        raise ValueError(
+            f"{name} must contain between {minimum} and {maximum} characters"
+        )
+
+
+def validate_date_format(
+    value: str,
+    name: str
+) -> None:
+    """
+    Validate an ISO date or timestamp.
+
+    :param value: Date or timestamp text.
+    :param name: Parameter name for validation errors.
+    :return: None.
+    """
+    if not isinstance(value, str) or re.match(
+        pattern=r"^\d{4}-\d{2}-\d{2}",
+        string=value
+    ) is None:
+        raise ValueError(
+            f"Invalid date for '{name}': {value!r}. "
+            "Expected ISO format 'YYYY-MM-DD'."
+        )
+    try:
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise ValueError(
+            f"Invalid date for '{name}': {value!r}. "
+            "Expected ISO format 'YYYY-MM-DD'."
+        ) from error
+
+
+def parse_datetime(
+    value: str,
+    name: str
+) -> datetime:
+    """
+    Parse a timezone-aware ISO timestamp.
+
+    :param value: Timestamp text.
+    :param name: Parameter name for validation errors.
+    :return: Parsed timezone-aware timestamp.
+    """
+    if not isinstance(value, str):
+        raise ValueError(
+            f"{name} must be a timezone-aware ISO 8601 timestamp"
+        )
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise ValueError(
+            f"{name} must be a timezone-aware ISO 8601 timestamp"
+        ) from error
+    if parsed.tzinfo is None:
+        raise ValueError(f"{name} must include a timezone")
+    return parsed
+
+
+def time_bucket_count(
+    start: datetime,
+    end: datetime,
+    frequency: str
+) -> int:
+    """
+    Count Time Search intervals.
+
+    :param start: Inclusive interval start.
+    :param end: Exclusive interval end.
+    :param frequency: Positive h, d, w, or mo interval.
+    :return: Number of interval buckets.
+    """
+    match = re.fullmatch(
+        pattern=r"([1-9]\d*)(h|d|w|mo)",
+        string=frequency
+    )
+    if match is None:
+        raise ValueError(
+            "frequency must use a positive h, d, w, or mo unit"
+        )
+    amount = int(match.group(1))
+    unit = match.group(2)
+    if unit == "mo":
+        count = 0
+        while add_months(
+            value=start,
+            months=amount * count
+        ) < end:
+            count += 1
+            if count > 500:
+                break
+        return count
+    interval = {
+        "h": timedelta(hours=amount),
+        "d": timedelta(days=amount),
+        "w": timedelta(weeks=amount)
+    }[unit]
+    return math.ceil((end - start) / interval)
+
+
+def add_months(
+    value: datetime,
+    months: int
+) -> datetime:
+    """
+    Add whole calendar months to a timestamp.
+
+    :param value: Source timestamp.
+    :param months: Month count to add.
+    :return: Adjusted timestamp.
+    """
+    month_index = value.year * 12 + value.month - 1 + months
+    year, zero_based_month = divmod(month_index, 12)
+    month = zero_based_month + 1
+    day = min(
+        value.day,
+        monthrange(
+            year=year,
+            month=month
+        )[1]
+    )
+    return value.replace(
+        year=year,
+        month=month,
+        day=day
+    )
+
+
+def decode_download(
+    content: bytes,
+    key: str
+) -> Dict[str, Any]:
+    """
+    Decrypt and decompress a Search result archive.
+
+    :param content: Encrypted archive bytes.
+    :param key: Fernet decryption key.
+    :return: Decoded Search response.
+    """
+    try:
+        decrypted = Fernet(
+            key=key.encode(encoding="utf-8")
+        ).decrypt(token=content)
+    except (InvalidToken, ValueError, TypeError) as error:
+        raise ValueError(
+            "Unable to decrypt the NOSIBLE result payload"
+        ) from error
+    try:
+        if decrypted.startswith(b"\x1f\x8b"):
+            raw = gzip.decompress(data=decrypted)
+        elif decrypted.startswith(b"\x28\xb5\x2f\xfd"):
+            raw = zstandard.ZstdDecompressor().decompress(data=decrypted)
+        else:
+            raise ValueError("Unknown result compression format")
+        data = json.loads(s=raw)
+    except (
+        ValueError,
+        OSError,
+        json.JSONDecodeError,
+        zstandard.ZstdError
+    ) as error:
+        raise ValueError(
+            "Unable to decode the NOSIBLE result payload"
+        ) from error
+    if not isinstance(data, dict) or not isinstance(
+        data.get("response"),
+        list
+    ):
+        raise ValueError(
+            "Downloaded NOSIBLE results have an invalid shape"
+        )
+    return data
+
+
+def warn_legacy_language_filters(
+    kwargs: Dict[str, Any]
+) -> None:
+    """
+    Warn when deprecated language-list filters are supplied.
+
+    :param kwargs: Extra endpoint keyword arguments.
+    :return: None.
+    """
+    if "include_languages" in kwargs or "exclude_languages" in kwargs:
+        warnings.warn(
+            message="Language list filters are deprecated; use 'language'",
+            category=DeprecationWarning,
+            stacklevel=3
+        )
+
+
+def append_date_clause(
+    clauses: List[str],
+    column: str,
+    start: Optional[str],
+    end: Optional[str]
+) -> None:
+    """
+    Append a bounded SQL date clause.
+
+    :param clauses: Mutable SQL clause collection.
+    :param column: Date column name.
+    :param start: Optional inclusive start.
+    :param end: Optional inclusive end.
+    :return: None.
+    """
+    if start and end:
+        clauses.append(
+            f"{column} >= {sql_literal(value=start)} "
+            f"AND {column} <= {sql_literal(value=end)}"
+        )
+    elif start:
+        clauses.append(f"{column} >= {sql_literal(value=start)}")
+    elif end:
+        clauses.append(f"{column} <= {sql_literal(value=end)}")
+
+
+def append_netloc_clause(
+    clauses: List[str],
+    values: Optional[List[str]],
+    include: bool
+) -> None:
+    """
+    Append a SQL netloc membership clause.
+
+    :param clauses: Mutable SQL clause collection.
+    :param values: Domain values.
+    :param include: Whether values are included or excluded.
+    :return: None.
+    """
+    if not values:
+        return
+    variants = set()
+    for value in values:
+        variants |= {value}
+        variants |= {
+            value[4:]
+            if value.startswith("www.")
+            else f"www.{value}"
+        }
+    operator = "IN" if include else "NOT IN"
+    literals = ", ".join(
+        sql_literal(value=value)
+        for value in sorted(variants)
+    )
+    clauses.append(f"netloc {operator} ({literals})")
+
+
+def append_array_clause(
+    clauses: List[str],
+    values: Optional[List[str]],
+    include: bool
+) -> None:
+    """
+    Append a company-array membership clause.
+
+    :param clauses: Mutable SQL clause collection.
+    :param values: Company identifiers.
+    :param include: Whether values are included or excluded.
+    :return: None.
+    """
+    if not values:
+        return
+    checks = " OR ".join(
+        f"ARRAY_CONTAINS(companies, {sql_literal(value=value)})"
+        for value in values
+    )
+    clauses.append(
+        f"(companies IS NOT NULL AND ({checks}))"
+        if include
+        else f"(companies IS NULL OR NOT ({checks}))"
+    )
+
+
+def append_document_clause(
+    clauses: List[str],
+    values: Optional[List[str]],
+    include: bool
+) -> None:
+    """
+    Append a document-hash membership clause.
+
+    :param clauses: Mutable SQL clause collection.
+    :param values: Document hashes.
+    :param include: Whether values are included or excluded.
+    :return: None.
+    """
+    if not values:
+        return
+    operator = "IN" if include else "NOT IN"
+    literals = ", ".join(
+        sql_literal(value=value)
+        for value in values
+    )
+    clauses.append(f"doc {operator} ({literals})")
+
+
+def sql_literal(
+    value: str
+) -> str:
+    """
+    Quote a SQL string literal.
+
+    :param value: Unquoted text.
+    :return: Safely quoted SQL literal.
+    """
+    return "'" + value.replace("'", "''") + "'"
