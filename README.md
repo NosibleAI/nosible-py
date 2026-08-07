@@ -6,11 +6,13 @@
 
 # NOSIBLE Python SDK
 
-`nosible` is the synchronous Python client for the
-[NOSIBLE Search API](https://docs.nosible.com/) and
-[NOSIBLE World API](https://nosible.world/).
+`nosible` is the official synchronous Python SDK for NOSIBLE's worldwide
+web-surveillance platform. It provides **SEARCH** for retrieving dated, ranked
+web sources and **WORLD** for accessing structured, point-in-time verified
+events for models, research, and backtesting.
 
-Version 0.4.0 supports every Search v2.1 endpoint and exposes World through the
+Version 0.4.0 supports every [SEARCH v2.1](https://docs.nosible.com/)
+endpoint and exposes [WORLD](https://nosible.world/) through the
 `client.world` namespace. Existing 0.3 Search models and convenience methods
 remain available.
 
