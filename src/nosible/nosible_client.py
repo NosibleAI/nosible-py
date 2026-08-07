@@ -16,6 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from functools import partial
 from typing import Any, Dict, FrozenSet, List, Optional, Tuple, Union
+from urllib.parse import urlsplit
 
 import httpx
 import polars as pl
@@ -1855,7 +1856,10 @@ class Nosible:
                     content=response.content,
                     key=decrypt_using
                 )
-            if response.status_code != 404:
+            if not pending_download_response(
+                response=response,
+                url=download_from
+            ):
                 raise error_from_response(response=response)
             if time.monotonic() >= deadline:
                 raise TimeoutError(
@@ -1894,6 +1898,34 @@ class Nosible:
         if not isinstance(data, dict):
             raise ValueError(f"{endpoint} returned a non-object response")
         return data
+
+
+def pending_download_response(
+    response: httpx.Response,
+    url: str
+) -> bool:
+    """
+    Identify an object-storage response that means the archive is not ready.
+
+    Some NOSIBLE deployments return an unsigned object-storage URL. While the
+    asynchronous result is being written, Wasabi responds with an XML 403
+    ``AccessDenied`` rather than the 404 used by other deployments. A signed
+    URL returning 403 remains an actual access error and is not retried.
+
+    :param response: Download response.
+    :param url: Download URL supplied by NOSIBLE.
+    :return: Whether polling should continue.
+    """
+    if response.status_code == 404:
+        return True
+    return (
+        response.status_code == 403
+        and not urlsplit(url=url).query
+        and re.search(
+            pattern=r"<Code>\s*AccessDenied\s*</Code>",
+            string=response.text
+        ) is not None
+    )
 
 
 def without_none(

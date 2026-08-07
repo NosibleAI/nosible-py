@@ -774,6 +774,56 @@ def test_bulk_search_downloads_decrypts_and_decodes_supported_archives(
     assert "authorization" not in recorder.requests[1].headers
 
 
+def test_bulk_search_polls_unsigned_storage_access_denied(
+    client_factory: Any,
+    fast_search_response: Any
+) -> None:
+    """
+    Verify transient Wasabi AccessDenied responses remain pollable.
+
+    :param client_factory: Test dependency or input.
+    :param fast_search_response: Test dependency or input.
+    :return: None.
+    """
+    key, filename, encrypted = encrypted_download(
+        fast_search_response=fast_search_response,
+        compression="zstd"
+    )
+    download_url = f"https://s3.eu-west-1.wasabisys.com/finweb-results/{filename}"
+    routes = {
+        ("POST", "/api/search/v2/bulk-search"): {
+            "json": {
+                "message": "Bulk search accepted.",
+                "decrypt_using": key,
+                "download_from": download_url,
+            }
+        },
+        ("GET", f"/finweb-results/{filename}"): [
+            {
+                "status": 403,
+                "content": b"<Error><Code>AccessDenied</Code></Error>",
+                "headers": {"Content-Type": "application/xml"}
+            },
+            {"content": encrypted}
+        ]
+    }
+    client, recorder = client_factory(routes=routes)
+
+    results = client.bulk_search(
+        question="semiconductor investment",
+        n_results=1000,
+        poll_interval=0,
+        poll_timeout=1
+    )
+
+    assert len(results) == 1
+    assert [request.url.path for request in recorder.requests] == [
+        "/api/search/v2/bulk-search",
+        f"/finweb-results/{filename}",
+        f"/finweb-results/{filename}"
+    ]
+
+
 @pytest.mark.parametrize(
     argnames="n_results",
     argvalues=[999, 10001]

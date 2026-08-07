@@ -63,10 +63,11 @@ includes the optional caller-supplied `floor` query parameter.
   indexable result while retaining offset, cursor, facet, and timing metadata.
 - HTTP failures use a typed, backwards-compatible `ValueError` hierarchy with
   status, error code, method, path, body, and retry metadata.
-- Bulk and Time Search poll 404-to-ready downloads, never forward API
-  credentials to object storage, and accept both legacy gzip and current
-  Zstandard encrypted payloads. Bulk remains a `ResultSet`; Time preserves
-  interval buckets.
+- Bulk and Time Search poll 404-to-ready downloads, including the transient
+  unsigned-object-storage 403 response used by some deployments. They never
+  forward API credentials to object storage and accept both legacy gzip and
+  current Zstandard encrypted payloads. Bulk remains a `ResultSet`; Time
+  preserves interval buckets.
 - Presigned downloads retry transient HTTP statuses without turning a pending
   404 into a transport retry.
 - `fast_searches` forwards shared options to question batches,

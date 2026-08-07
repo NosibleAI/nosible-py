@@ -7,7 +7,6 @@ requires-python = ">=3.9"
 authors = [
   { name = "Stuart Reid", email = "stuart@nosible.com" },
   { name = "Matthew Dicks", email = "matthew@nosible.com" },
-  { name = "Richard Taylor", email = "richard@nosible.com" },
   { name = "Gareth Warburton", email = "gareth@nosible.com" },
 ]
 
@@ -89,8 +88,8 @@ ignore = [
 [tool.ruff.lint.isort]
 force-to-top = ["os"]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
   "pytest",
   "pytest-doctestplus",
   "pytest-xdist",
